@@ -25,7 +25,7 @@ Send:
 - `paymentMethods` (method **IDs**)
 
 ```bash
-curl -X POST "https://api.tuservicio.com/v1/payments" \
+curl -X POST "https://api.dinaria.com/v1/payments" \
   -H "Authorization: Bearer sk_test_xxx" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: 2b1a2b0a-4b2b-4e6a-9c61-7b1b5a7a2f11" \
