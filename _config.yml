@@ -6,7 +6,7 @@ search_enabled: true
 logo: /assets/images/dinaria-logo.png
 custom_css: custom
 aux_links:
-  "API Spec (OpenAPI)": https://dinariap.github.io/dinaria-api-docs/assets/api.html
+  "API Specification": https://dinariap.github.io/dinaria-api-docs/assets/api.html
   "Dinaria": https://dinaria.com
 footer_content: "© 2026 Dinaria · support@dinaria.com"
 plugins:
