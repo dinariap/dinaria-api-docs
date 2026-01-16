@@ -1,5 +1,5 @@
 ---
-title: Webhooks Receiving
+title: Receiving
 nav_order: 12
 parent: Webhooks
 ---
