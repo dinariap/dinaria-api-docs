@@ -1,5 +1,5 @@
 ---
-title: Payments Create
+title: Create Payments
 nav_order: 7
 parent: Guides
 ---
