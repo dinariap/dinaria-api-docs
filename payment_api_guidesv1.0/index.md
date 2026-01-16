@@ -7,9 +7,3 @@ nav_order: 2
 
 Select a guide from the sidebar.
 
----
-title: Webhooks
-nav_order: 3
----
-
-##Webhooks
