@@ -1,10 +1,10 @@
 ---
 title: Webhooks Registration
 nav_order: 11
-parent: Guides
+parent: Webhooks
 ---
 
-# Registering webhooks (configuration)
+# Registering (configuration)
 
 Use this endpoint to register the URL where payment status updates will be delivered.
 
