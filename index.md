@@ -17,10 +17,15 @@ Welcome to the Dinaria API docs. Use the guide on the left to navigate.
 - [Create payments](payment_api_guidesv1.0/05_payments_create)
 - [Redirect flow](payment_api_guidesv1.0/06_payments_redirect_flow)
 - [Retrieve payments](payment_api_guidesv1.0/07_payments_retrieve)
+- [Errors and retries](payment_api_guidesv1.0/12_errors_and_retries)
+- [Data formats (ISO)](payment_api_guidesv1.0/13_data_formats_iso)
+
+## Webhooks 
 - [Webhooks Overview](payment_api_guidesv1.0/08_webhooks_overview)
 - [Webhook Registration](payment_api_guidesv1.0/09_webhooks_registration)
 - [Receiving Webhooks](payment_api_guidesv1.0/10_webhooks_receiving)
+- [Webkook Security](payment_api_guidesv1.0/13_webhooks_security)
+- [Webkook Verification Examples](payment_api_guidesv1.0/webhooks-vexamples)
+- [Webkook Security](payment_api_guidesv1.0/11_rotate-webhook-secret)
 - [Webhooks Best practices](payment_api_guidesv1.0/11_webhooks_best_practices)
-- [Errors and retries](payment_api_guidesv1.0/12_errors_and_retries)
-- [Data formats (ISO)](payment_api_guidesv1.0/13_data_formats_iso)
 
