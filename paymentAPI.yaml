@@ -19,8 +19,12 @@ info:
     name: Development Team
     email: operations@dinaria.com
 
+externalDocs:
+  description: Dinaria API Guides
+  url: https://dinariap.github.io/dinaria-api-docs
+  
 servers:
-  - url: https://api.tuservicio.com/v1
+  - url: https://api.dinaria.com/v1
     description: Production environment
 
 tags:
