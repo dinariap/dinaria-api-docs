@@ -16,7 +16,7 @@ Use the base URL for the environment you are integrating with.
 Authenticate every request by sending your API key in the `Authorization` header:
 
 ```http
-Authorization: Bearer sk_test_xxx
+Authorization: Bearer di_test_xxx
 Content-Type: application/json
 ```
 
