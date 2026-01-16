@@ -23,3 +23,4 @@ Welcome to the Dinaria API docs. Use the guide on the left to navigate.
 - [Webhook best practices](payment_api_guidesv1.0/11_webhooks_best_practices)
 - [Errors and retries](payment_api_guidesv1.0/12_errors_and_retries)
 - [Data formats (ISO)](payment_api_guidesv1.0/13_data_formats_iso)
+
