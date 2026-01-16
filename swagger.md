@@ -2,11 +2,6 @@
 title: API Specification
 nav_order: 3
 ---
-<style>
-html {
-  color-scheme: light;
-}
-</style>
 
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css">
 
@@ -20,6 +15,8 @@ html {
     SwaggerUIBundle({
       url: "{{ 'https://dinariap.github.io/dinaria-api-docs/paymentAPI.yaml' | relative_url }}",
       dom_id: '#swagger-ui',
+      deepLinking: true,
+      docExpansion: "list",
       presets: [
         SwaggerUIBundle.presets.apis,
         SwaggerUIStandalonePreset
