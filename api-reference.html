@@ -1,6 +1,15 @@
+---
+layout: default
+title: API Reference
+permalink: /api/
+---
+
+<div id="redoc-container"></div>
+
+<script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 <script>
   Redoc.init(
-    "https://dinariap.github.io/dinaria-api-docs/paymentAPI.yaml",
+    "{{ site.baseurl }}/paymentAPI.yaml",
     { scrollYOffset: 60 },
     document.getElementById('redoc-container')
   );
