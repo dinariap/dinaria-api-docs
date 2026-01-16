@@ -18,6 +18,3 @@ Free-text string (no universally practical standard for city codes).
 
 ## currency
 ISO 4217 (e.g. `USD`, `EUR`).
-
-## paymentMethods
-Payment method IDs returned by `GET /payment-methods` (e.g. `pm_card`, `pm_wallet`).
