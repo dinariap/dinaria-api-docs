@@ -1,7 +1,23 @@
-<script>
-  Redoc.init(
-    "https://dinariap.github.io/dinaria-api-docs/paymentAPI.yaml",
-    { scrollYOffset: 60 },
-    document.getElementById('redoc-container')
-  );
-</script>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>API Reference</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      #redoc-container { height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div id="redoc-container"></div>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script>
+      Redoc.init(
+        "https://dinariap.github.io/dinaria-api-docs/paymentAPI.yaml",
+        {},
+        document.getElementById('redoc-container')
+      );
+    </script>
+  </body>
+</html>
