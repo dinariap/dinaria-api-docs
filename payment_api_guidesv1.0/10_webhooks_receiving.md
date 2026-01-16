@@ -15,6 +15,15 @@ This endpoint is called by **us**, not by the merchant.
 POST /webhooks/payments/updates
 ```
 
+## Verification flow
+
+1. Read raw request body
+2. Validate `X-Webhook-Timestamp`
+3. Verify `X-Webhook-Signature`
+4. Parse JSON payload
+5. Process asynchronously
+6. Respond with HTTP 200
+
 ## Payload
 Webhook events include the full payment context needed for reconciliation, including:
 - `transactionId`
