@@ -15,8 +15,6 @@ nav_order: 3
     SwaggerUIBundle({
       url: "{{ 'https://dinariap.github.io/dinaria-api-docs/paymentAPI.yaml' | relative_url }}",
       dom_id: '#swagger-ui',
-      deepLinking: true,
-      docExpansion: "list",
       presets: [
         SwaggerUIBundle.presets.apis,
         SwaggerUIStandalonePreset
