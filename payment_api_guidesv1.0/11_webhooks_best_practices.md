@@ -6,6 +6,12 @@ parent: Guides
 
 # Webhook best practices
 
+## Security
+- Always verify webhook signatures
+- Store secrets in a secure secret manager
+- Rotate webhook secrets periodically
+- Use constant-time signature comparison
+
 ## Make webhook handling resilient
 - Assume events may be duplicated (at-least-once delivery)
 - Assume events may arrive out of order
