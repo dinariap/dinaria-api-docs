@@ -3,11 +3,13 @@ title: API Reference
 nav_order: 20
 ---
 
-<link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css" />
+<div id="redoc-container"></div>
 
-<script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
-
-<elements-api
-  apiDescriptionUrl="{{ '/paymentAPI.yaml' | relative_url }}"
-  router="hash"
-></elements-api>
+<script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+<script>
+  Redoc.init(
+    "{{ '/openapi/paymentAPI.yaml' | relative_url }}",
+    {},
+    document.getElementById('redoc-container')
+  );
+</script>
