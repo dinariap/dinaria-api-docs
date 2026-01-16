@@ -1,5 +1,5 @@
 ---
-title: Payments Retrieve
+title: Retrieve a Payment
 nav_order: 9
 parent: Guides
 ---
