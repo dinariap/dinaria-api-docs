@@ -1,7 +1,7 @@
 ---
-title: Overview
-nav_order: 1
-parent: Webhooks
+title: Webhooks: Overview
+nav_order: 8
+parent: Guides
 ---
 
 # Webhooks
