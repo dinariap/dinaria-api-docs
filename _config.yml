@@ -1,7 +1,10 @@
 title: Dinaria API Docs
 description: Documentation for the Dinaria payment API
 theme: just-the-docs
-color_scheme: light
+color_scheme: dinaria
 search_enabled: true
+logo: /assets/images/dinaria-logo.png
 aux_links:
   "API Spec (OpenAPI)": /paymentAPI.yaml
+  "Dinaria": https://dinaria.com
+footer_content: "© 2026 Dinaria · support@dinaria.com"
