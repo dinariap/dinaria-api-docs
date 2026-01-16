@@ -18,9 +18,12 @@ parent: Webhooks
 - Do not block webhook responses with heavy processing
 
 ## Idempotency
-Use a persistent idempotency strategy, for example:
-- `transactionId + status` as a natural key
-- Ignore duplicates you've already processed
+To ensure idempotent processing, we recommend tracking processed events using a
+unique event identifier or a derived event key (for example, transactionId +
+event type + timestamp).
+
+Do not assume that transactionId + status is unique, as payments may transition
+through multiple states (refunds, reversals) over time.
 
 ## Response requirements
 - Respond with HTTP 200 quickly
