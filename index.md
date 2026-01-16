@@ -19,6 +19,8 @@ Welcome to the Dinaria API docs. Use the guide on the left to navigate.
 - [Retrieve payments](payment_api_guidesv1.0/07_payments_retrieve)
 - [Errors and retries](payment_api_guidesv1.0/12_errors_and_retries)
 - [Data formats (ISO)](payment_api_guidesv1.0/13_data_formats_iso)
+- [Payments Best Practices](payment_api_guidesv1.0/14_payment_best_practices)
+
 
 ## Webhooks 
 - [Overview](payment_api_guidesv1.0/08_webhooks_overview)
