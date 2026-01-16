@@ -1,6 +1,6 @@
 ---
-title: API (Swagger)
-nav_order: 20
+title: API Specification
+nav_order: 3
 ---
 
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css">
