@@ -3,8 +3,8 @@
 <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 <script>
   Redoc.init(
-    "{{ '/paymentAPI.yaml' | relative_url }}",
-    {},
+    "{{ site.baseurl }}/paymentAPI.yaml",
+    { scrollYOffset: 60 },
     document.getElementById('redoc-container')
   );
 </script>
