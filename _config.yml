@@ -4,6 +4,7 @@ remote_theme: just-the-docs/just-the-docs
 color_scheme: dinaria
 search_enabled: true
 logo: /assets/images/dinaria-logo.png
+custom_css: custom
 aux_links:
   "API Spec (OpenAPI)": /paymentAPI.yaml
   "Dinaria": https://dinaria.com
