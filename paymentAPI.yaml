@@ -1,11 +1,20 @@
 openapi: 3.0.3
 info:
   title: Payment API
-  version: 1.2.0
+  version: 1.3.0
   description: |
     API for creating and managing payments using redirect-based flows.
-    Merchants can create payments, retrieve their status, discover available
-    payment methods, and receive asynchronous updates via webhooks.
+
+    Merchants can:
+    - Create payments and redirect customers to complete checkout
+    - Retrieve payment details and current status
+    - Discover available payment methods (IDs)
+    - Receive asynchronous updates via webhooks
+
+    Notes:
+    - Payments are single-use: create a new payment for each attempt.
+    - Redirects to success/cancel URLs do not guarantee the final status.
+      Confirm final state via webhooks (recommended) or by retrieving the payment.
   contact:
     name: Development Team
     email: operations@dinaria.com
@@ -39,7 +48,8 @@ components:
       description: |
         Authentication is performed using an API key.
         Include your secret key in the Authorization header:
-        Authorization: Bearer sk_test_xxx
+
+        Authorization: Bearer di_test_xxx
 
   parameters:
     IdempotencyKey:
@@ -92,6 +102,36 @@ components:
       description: Payment method type filter (e.g. cash, bank, wallet, crypto).
       schema:
         type: string
+
+    WebhookTimestampHeader:
+      name: X-Webhook-Timestamp
+      in: header
+      required: true
+      description: |
+        Webhook event timestamp in Unix seconds.
+
+        Used together with X-Webhook-Signature to verify the webhook origin and integrity.
+      schema:
+        type: integer
+        format: int64
+      example: 1737000000
+
+    WebhookSignatureHeader:
+      name: X-Webhook-Signature
+      in: header
+      required: true
+      description: |
+        Webhook signature header.
+
+        Format: `t=<timestamp>,v1=<hex_hmac_sha256>`
+
+        Signature base string: `<timestamp>.<raw_body>`
+        Signature: HMAC-SHA256(webhookSecret, base string)
+
+        The `webhookSecret` is returned only once during webhook registration or rotation.
+      schema:
+        type: string
+      example: t=1737000000,v1=9d0c...ab12
 
   headers:
     RequestId:
@@ -388,6 +428,61 @@ components:
           format: uri
           description: Merchant webhook URL where payment update events will be delivered.
 
+    WebhookRegistrationResponse:
+      type: object
+      description: |
+        Webhook registration response.
+
+        The `webhookSecret` is shown only once. Store it securely.
+      required: [webhookUrl, webhookSecret, createdAt]
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+          description: Registered webhook URL.
+        webhookSecret:
+          type: string
+          description: |
+            Secret used to verify webhook signatures.
+
+            Shown only once. It cannot be retrieved again.
+          example: whsec_9f3c2a1b7d5e4c3a...
+        createdAt:
+          type: string
+          format: date-time
+          description: Registration timestamp.
+
+    WebhookRotateSecretResponse:
+      type: object
+      description: |
+        Rotation result.
+
+        The `webhookSecret` is shown only once. Store it securely.
+      required: [webhookUrl, webhookSecret, rotatedAt]
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+          description: The webhook URL whose secret was rotated.
+        webhookSecret:
+          type: string
+          description: |
+            New secret used to verify webhook signatures.
+
+            Shown only once. It cannot be retrieved again.
+          example: whsec_2b91d0f6a1d34f0b...
+        rotatedAt:
+          type: string
+          format: date-time
+          description: Rotation timestamp.
+        previousSecretExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            If you support a grace period, this indicates when the previous secret
+            will stop being accepted.
+
     WebhookPaymentUpdate:
       type: object
       description: |
@@ -579,6 +674,8 @@ paths:
 
         Do not poll aggressively. Webhooks are the recommended mechanism to track
         final payment states.
+
+        The response returns the full payment object, including `metadata` and `externalId`.
       parameters:
         - $ref: "#/components/parameters/TransactionIdPath"
       responses:
@@ -629,6 +726,8 @@ paths:
       description: |
         Returns the available payment methods based on country,
         currency, and type.
+
+        Use the returned `id` values in `paymentMethods` when creating a payment.
       parameters:
         - $ref: "#/components/parameters/CountryQuery"
         - $ref: "#/components/parameters/CurrencyQuery"
@@ -687,6 +786,8 @@ paths:
 
         This is a configuration endpoint called by the merchant.
         It does not deliver events and it is not triggered automatically.
+
+        The webhook secret is returned only once in the response. Store it securely.
       requestBody:
         required: true
         content:
@@ -703,6 +804,16 @@ paths:
           headers:
             Request-Id:
               $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookRegistrationResponse"
+              examples:
+                registered:
+                  value:
+                    webhookUrl: "https://merchant.example/webhooks/payments"
+                    webhookSecret: "whsec_9f3c2a1b7d5e4c3a..."
+                    createdAt: "2026-01-16T18:00:00Z"
         "400":
           description: Invalid webhook URL.
           headers:
@@ -723,6 +834,37 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /webhooks/payments/rotate-secret:
+    post:
+      tags: [Webhooks]
+      summary: Rotate webhook secret
+      description: |
+        Rotates the webhook signing secret for the registered payment webhook endpoint.
+
+        The new `webhookSecret` is returned only once. Store it securely.
+
+        If a grace period is enabled, signatures generated with the previous secret
+        may be accepted until `previousSecretExpiresAt`.
+      responses:
+        "200":
+          description: Secret rotated successfully.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookRotateSecretResponse"
+              examples:
+                rotated:
+                  value:
+                    webhookUrl: "https://merchant.example/webhooks/payments"
+                    webhookSecret: "whsec_2b91d0f6a1d34f0b..."
+                    rotatedAt: "2026-01-16T18:10:00Z"
+                    previousSecretExpiresAt: "2026-01-17T18:10:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /webhooks/payments/updates:
     post:
       tags: [Webhooks]
@@ -734,6 +876,14 @@ paths:
         Configure delivery by registering a webhook URL using POST /webhooks/payments.
 
         Webhook deliveries are at-least-once. Your receiver must be idempotent.
+
+        Security:
+        - Validate X-Webhook-Timestamp and X-Webhook-Signature
+        - Signature base string: `<timestamp>.<raw_body>`
+        - Signature: HMAC-SHA256(webhookSecret, base string)
+      parameters:
+        - $ref: "#/components/parameters/WebhookTimestampHeader"
+        - $ref: "#/components/parameters/WebhookSignatureHeader"
       requestBody:
         required: true
         content:
