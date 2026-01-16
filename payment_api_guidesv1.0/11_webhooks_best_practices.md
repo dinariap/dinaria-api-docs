@@ -1,5 +1,5 @@
 ---
-title: Webhooks Best Practices
+title: Best Practices
 nav_order: 13
 parent: Webhooks
 ---
