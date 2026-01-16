@@ -1,6 +1,6 @@
 ---
 title: Payments Best Practices
-nav_order: 14
+nav_order: 16
 parent: Guides
 ---
 # Payments best practices
