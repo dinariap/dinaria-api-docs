@@ -1,0 +1,7 @@
+title: Dinaria API Docs
+description: Documentation for the Dinaria payment API
+theme: just-the-docs
+color_scheme: light
+search_enabled: true
+aux_links:
+  "API Spec (OpenAPI)": /paymentAPI.yaml
