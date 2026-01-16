@@ -1,7 +1,7 @@
 ---
-title: Webhooks Verification Examples
+title: Verification Examples
 nav_order: 14
-parent: Guides
+parent: Webhooks
 ---
 
 # Webhook verification examples
