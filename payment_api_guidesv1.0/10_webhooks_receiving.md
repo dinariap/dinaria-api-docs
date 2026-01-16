@@ -4,7 +4,7 @@ nav_order: 12
 parent: Guides
 ---
 
-# Receiving payment status updates (webhook delivery)
+# Receiving payment status updates
 
 Our platform sends HTTP POST requests to your server whenever a payment changes status.
 
