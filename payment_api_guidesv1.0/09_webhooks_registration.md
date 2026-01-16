@@ -1,7 +1,7 @@
 ---
 title: Webhook Registration
 nav_order: 11
-parent: Webhooks
+parent: Guides
 ---
 
 # Registering (configuration)
