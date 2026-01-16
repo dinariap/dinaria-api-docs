@@ -1,7 +1,7 @@
 ---
 title: Webhooks Best Practices
 nav_order: 13
-parent: Guides
+parent: Webhooks
 ---
 
 # Webhook best practices
