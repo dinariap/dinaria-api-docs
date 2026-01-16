@@ -13,7 +13,7 @@ This quickstart creates a payment, redirects the customer to complete it, and va
 `paymentMethods` are **IDs**. Use this endpoint to discover the IDs available for a given country/currency.
 
 ```bash
-curl -X GET "https://api.tuservicio.com/v1/payment-methods?country=US&currency=USD" \
+curl -X GET "https://api.dinaria.com/v1/payment-methods?country=US&currency=USD" \
   -H "Authorization: Bearer sk_test_xxx"
 ```
 
