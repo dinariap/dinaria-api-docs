@@ -1,5 +1,5 @@
 ---
-title: Registration
+title: Webhook Registration
 nav_order: 11
 parent: Webhooks
 ---
