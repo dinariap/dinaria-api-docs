@@ -7,7 +7,6 @@ parent: Guides
 
 This guide describes recommended patterns for integrating with the Payments API in a production-safe way.
 
----
 
 ## 1) Create payments safely
 
@@ -20,7 +19,6 @@ When creating a payment, you should send an `Idempotency-Key` header.
 - Generate a unique idempotency key per checkout attempt (UUID v4 is fine)
 - If you need to retry, **reuse the same key** for the same logical attempt
 
----
 
 ### Always provide and store `externalId`
 Set `externalId` to your internal reference (order/checkout/cart).
@@ -29,7 +27,6 @@ Set `externalId` to your internal reference (order/checkout/cart).
 - You can map your internal order to our `transactionId`
 - `externalId` is returned in **retrieve** and **webhooks**
 
----
 
 ### Attach useful `metadata` (but keep it stable)
 Use `metadata` for small internal references and routing information:
@@ -49,7 +46,6 @@ Use `metadata` for small internal references and routing information:
 - Putting sensitive data (PII, secrets)
 - Large objects or changing metadata on every request
 
----
 
 ## 2) Redirect flow (do not assume success)
 
@@ -62,7 +58,6 @@ A redirect to `successUrl` **does not guarantee** that the payment is confirmed.
 
 **Why:** redirects can be interrupted, repeated, or manipulated, and the payment may still fail or remain in progress.
 
----
 
 ## 3) Status handling
 
@@ -88,7 +83,6 @@ Webhooks provide near real-time updates and reduce load vs polling.
   - if webhook delivery is delayed
   - for reconciliation / support workflows
 
----
 
 ### Assume at-least-once delivery
 Webhook deliveries are **at-least-once**. The same event may be delivered more than once.
@@ -97,7 +91,6 @@ Webhook deliveries are **at-least-once**. The same event may be delivered more t
 - Make your webhook handler idempotent.
 - A simple approach is to ensure you do not process the same transition twice (e.g., store the latest known status per `transactionId`).
 
----
 
 ## 5) Retries & error handling
 
@@ -110,14 +103,12 @@ Safe retry conditions (typical):
 **Do not retry** (without fixing your request):
 - `4xx` validation errors
 
----
 
 ### Log and keep `Request-Id`
 Store the `Request-Id` response header when available.
 
 **Why:** it makes troubleshooting with support faster.
 
----
 
 ## 6) Security
 
@@ -129,7 +120,6 @@ Never expose secret API keys in:
 
 Store them in a secret manager and rotate periodically.
 
----
 
 ## 7) Observability (recommended)
 Monitor your integration with:
