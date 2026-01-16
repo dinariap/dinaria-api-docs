@@ -1,5 +1,5 @@
 ---
-title: Webhooks Overview
+title: Overview
 nav_order: 10
 parent: Webhooks
 ---
