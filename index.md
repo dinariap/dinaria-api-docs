@@ -5,7 +5,16 @@ nav_order: 1
 
 # Dinaria API Documentation
 
-Welcome to the Dinaria API docs. Use the guide on the left to navigate.
+The Dinaria API allows you to create, manage, and track payments through secure,
+redirect-based flows.
+
+It is designed for backend-driven integrations and provides the building blocks
+to handle the full payment lifecycle, from payment creation to final confirmation
+and settlement.
+
+Use this documentation to understand Dinaria’s payment concepts, recommended
+integration patterns, and the APIs required to build reliable, production-ready
+payment experiences.
 
 ## Guides
 
