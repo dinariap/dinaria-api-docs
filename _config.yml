@@ -8,3 +8,6 @@ aux_links:
   "API Spec (OpenAPI)": /paymentAPI.yaml
   "Dinaria": https://dinaria.com
 footer_content: "© 2026 Dinaria · support@dinaria.com"
+plugins:
+  - jekyll-remote-theme
+  - jekyll-include-cache
