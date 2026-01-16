@@ -1,7 +1,7 @@
 ---
-title: Rotate Webhook Secret
-nav_order: 11
-parent: Guides
+title: Rotate Secret
+nav_order: 15
+parent: Webhooks
 ---
 
 # Rotate webhook secret
