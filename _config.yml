@@ -3,7 +3,7 @@ description: Documentation for the Dinaria payment API
 remote_theme: just-the-docs/just-the-docs
 color_scheme: dinaria
 search_enabled: true
-logo: /assets/images/dinaria-logo.png
+logo: /assets/images/dinaria-logo.jpeg
 custom_css: custom
 aux_links:
   "API Specification": https://dinariap.github.io/dinaria-api-docs/assets/api.html
