@@ -1,7 +1,7 @@
 ---
-title: Receiving
+title: Receiving Webhooks
 nav_order: 12
-parent: Webhooks
+parent: Guides
 ---
 
 # Receiving payment status updates (webhook delivery)
