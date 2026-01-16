@@ -2,6 +2,11 @@
 title: API Specification
 nav_order: 3
 ---
+<style>
+html {
+  color-scheme: light;
+}
+</style>
 
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css">
 
