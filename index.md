@@ -21,11 +21,11 @@ Welcome to the Dinaria API docs. Use the guide on the left to navigate.
 - [Data formats (ISO)](payment_api_guidesv1.0/13_data_formats_iso)
 
 ## Webhooks 
-- [Webhooks Overview](payment_api_guidesv1.0/08_webhooks_overview)
-- [Webhook Registration](payment_api_guidesv1.0/09_webhooks_registration)
-- [Receiving Webhooks](payment_api_guidesv1.0/10_webhooks_receiving)
-- [Webkook Security](payment_api_guidesv1.0/13_webhooks_security)
-- [Webkook Verification Examples](payment_api_guidesv1.0/webhooks-vexamples)
-- [Webkook Security](payment_api_guidesv1.0/11_rotate-webhook-secret)
-- [Webhooks Best practices](payment_api_guidesv1.0/11_webhooks_best_practices)
+- [Overview](payment_api_guidesv1.0/08_webhooks_overview)
+- [Registration](payment_api_guidesv1.0/09_webhooks_registration)
+- [Receiving](payment_api_guidesv1.0/10_webhooks_receiving)
+- [Security](payment_api_guidesv1.0/13_webhooks_security)
+- [Verification Examples](payment_api_guidesv1.0/webhooks-vexamples)
+- [Rotate Secret](payment_api_guidesv1.0/11_rotate-webhook-secret)
+- [Best practices](payment_api_guidesv1.0/11_webhooks_best_practices)
 
