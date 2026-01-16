@@ -1,349 +1,763 @@
 openapi: 3.0.3
 info:
   title: Payment API
-  description: API para gestión de clientes y pagos.
-  version: 1.1.0
+  version: 1.2.0
+  description: |
+    API for creating and managing payments using redirect-based flows.
+    Merchants can create payments, retrieve their status, discover available
+    payment methods, and receive asynchronous updates via webhooks.
   contact:
-    name: Equipo de Desarrollo
-    email: info@dinaria.com
+    name: Development Team
+    email: operations@dinaria.com
+
 servers:
   - url: https://api.tuservicio.com/v1
+    description: Production environment
+
 tags:
-  - name: Payments 
-    description: Operations related to payments
+  - name: Payments
+    description: |
+      Operations for creating payments, redirecting customers to complete checkout,
+      and retrieving payment status throughout its lifecycle.
   - name: Webhooks
-    description: Operations to be implemeted by the merchants
-  
+    description: |
+      Webhook configuration and event delivery.
+
+      NOTE: This API includes two webhook-related concepts:
+      1) Webhook registration (configuration) called by merchants.
+      2) Webhook delivery (events) called by our platform to merchants.
+
+security:
+  - ApiKeyAuth: []
 
 components:
   securitySchemes:
-    clientSecretAuth:
-      type: oauth2
-      flows:
-        clientCredentials:
-          tokenUrl: https://auth.tuservicio.com/oauth2/token
-          scopes:
-            read: Grants read access
-            write: Grants write access
-            delete: Grants delete access
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
+      description: |
+        Authentication is performed using an API key.
+        Include your secret key in the Authorization header:
+        Authorization: Bearer sk_test_xxx
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        A unique key that allows safe retries of payment creation requests.
+
+        When the same Idempotency-Key is reused, duplicate payments are prevented.
+        Strongly recommended for all POST /payments requests.
+
+        Example: a UUID v4.
+      schema:
+        type: string
+        maxLength: 128
+
+    TransactionIdPath:
+      name: transactionId
+      in: path
+      required: true
+      description: Transaction identifier.
+      schema:
+        type: string
+
+    CountryQuery:
+      name: country
+      in: query
+      required: false
+      description: Country code (ISO 3166-1 alpha-2), e.g. "US".
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 2
+
+    CurrencyQuery:
+      name: currency
+      in: query
+      required: false
+      description: Currency code (ISO 4217), e.g. "USD".
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 3
+
+    TypeQuery:
+      name: type
+      in: query
+      required: false
+      description: Payment method type filter (e.g. cash, bank, wallet, crypto).
+      schema:
+        type: string
+
+  headers:
+    RequestId:
+      description: |
+        Unique identifier for this request, useful for troubleshooting with support.
+      schema:
+        type: string
 
   schemas:
+    ErrorResponse:
+      type: object
+      description: Standard error response.
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code.
+              example: invalid_request
+            message:
+              type: string
+              description: Human-readable error description.
+              example: Invalid request payload.
+            param:
+              type: string
+              nullable: true
+              description: Optional parameter name related to the error.
+              example: amount
+            requestId:
+              type: string
+              nullable: true
+              description: Mirrors the Request-Id header, if available.
+              example: req_01HX9K2X2Z0V7K0M2S2Y8A1B2C
+
     Customer:
       type: object
+      description: |
+        Information about the end customer performing the payment.
+        Used for identification, validation, and reporting purposes.
       properties:
         firstName:
           type: string
-          description: Customer's First Name
+          description: Customer first name.
         lastName:
           type: string
-          description: Customer's Last Name
+          description: Customer last name.
         fullName:
-          type: object
-          description: Customer's Full Name
+          type: string
+          description: Customer full name (optional convenience field).
         documentType:
           type: string
           enum: [nationalId, passport, other]
-          description: Customer's Document Type
+          description: Type of identification document.
         documentNumber:
           type: string
-          description: Customer's Document Number
+          description: Identification document number.
         country:
           type: string
-          description: Customer's birth country
+          description: Customer country code in ISO 3166-1 alpha-2 format.
           example: US
         state:
           type: string
-          description: State where the customer lives
+          description: |
+            State/region code.
+
+            Recommended format: ISO 3166-2 (e.g. "US-CA").
+            If the merchant does not know the ISO 3166-2 code, a commonly used
+            region name may be provided.
+          example: US-CA
         city:
           type: string
-          description: City where the customer lives
+          description: City name (free text).
+          example: San Francisco
         address:
           type: string
-          description: Address where the customer lives
+          description: Full postal address of the customer.
         zipcode:
           type: string
-          description: Zip Code
+          description: Postal or ZIP code (free text; may be alphanumeric).
         phoneNumber:
           type: string
-          description: Customer's phone
+          description: |
+            Customer phone number.
+            Recommended format: E.164 (e.g. +59899123456).
         email:
           type: string
-          description: Customer's email
-        metadata:
-          type: object
-          description: Custom metadata associated with the customer
-          example:
-            loyaltyNumber: "1234567890"
-            preferredLanguage: "en"  
+          format: email
+          description: Customer email address.
 
     PaymentRequest:
       type: object
+      description: |
+        Request payload used to create a new payment.
+
+        A payment represents a single checkout attempt.
+        If the payment is cancelled or expires, a new payment must be created.
+      required:
+        - amount
+        - currency
+        - paymentMethods
+        - successUrl
+        - cancelUrl
       properties:
+        externalId:
+          type: string
+          description: |
+            Merchant-provided identifier for the payment.
+
+            Use this field to link the payment to your internal order or checkout ID.
+            The value is stored and returned in responses and webhooks.
+          example: ORD-1001
         amount:
           type: string
-          description: Transaction Amount
+          description: |
+            Total transaction amount expressed as a decimal value.
+            Example: "100.50".
         currency:
           type: string
-          description: Transaction Currency (ISO 4217)
+          description: Currency code in ISO 4217 format.
+          example: USD
         customer:
-          $ref: '#/components/schemas/Customer'
+          $ref: "#/components/schemas/Customer"
         paymentMethods:
           type: array
+          description: |
+            List of payment method IDs allowed for this transaction.
+
+            This field acts as a strict whitelist. Only the specified payment method IDs
+            will be available to the customer during checkout.
           items:
             type: string
-          description: Payment Methods available to the customer
+            example: pm_card
         successUrl:
           type: string
-          description: URL to redirect when payment is successful
+          format: uri
+          description: |
+            URL where the customer is redirected after completing the payment flow.
+
+            This redirect does not guarantee final payment confirmation.
+            Always validate the payment result server-side (webhooks or retrieve payment).
         cancelUrl:
           type: string
-          description: URL to redirect when payment is canceled or failed
+          format: uri
+          description: |
+            URL where the customer is redirected if the payment is cancelled or
+            cannot be completed.
         expiration:
           type: string
           format: date-time
-          description: Expiration date for the payment
+          description: |
+            Date and time after which the payment can no longer be completed.
+            Once expired, the payment moves to the `expired` status.
+        metadata:
+          type: object
+          description: |
+            Free-form key-value data attached to the payment.
+
+            Use metadata to store internal references (order IDs, customer segments, etc.).
+            This data is returned in retrieve-payment responses and webhooks.
+          additionalProperties:
+            type: string
 
     PaymentResponse:
       type: object
+      description: |
+        Represents the current state of a payment.
+
+        Payments move through multiple states during their lifecycle and eventually
+        reach a terminal state such as `confirmed`, `cancelled`, or `expired`.
       properties:
         transactionId:
           type: string
-          description: Transaction Identifier
-        customer:
-          $ref: '#/components/schemas/Customer'
+          description: Unique identifier of the transaction.
+        externalId:
+          type: string
+          description: |
+            Merchant-provided identifier for the payment.
+            Mirrors the `externalId` sent during payment creation.
+          example: ORD-1001
+        status:
+          type: string
+          enum: [started, inprogress, confirmed, cancelled, expired]
+          description: |
+            Current payment status.
+
+            Possible values:
+            - started: Payment was created successfully.
+            - inprogress: Customer is completing the payment.
+            - confirmed: Payment was completed successfully.
+            - cancelled: Payment was cancelled or failed.
+            - expired: Payment expired before completion.
+
+            Once a payment reaches a terminal state, it cannot be reused.
         amount:
           type: string
-          description: Transaction Amount
+          description: Original transaction amount.
         refundedAmount:
           type: string
-          description: Refunded Amount from the original transaction
+          description: Total amount refunded so far.
         currency:
           type: string
-          description: Transaction Currency (ISO 4217)
+          description: Transaction currency.
         creationDate:
           type: string
           format: date-time
+          description: Date and time when the payment was created.
         confirmationDate:
           type: string
           format: date-time
+          description: Date and time when the payment was confirmed.
         refunded:
           type: boolean
+          description: Indicates whether the payment has been partially or fully refunded.
         reversed:
           type: boolean
+          description: Indicates whether the payment was reversed before settlement.
         reversionDate:
           type: string
           format: date-time
+          description: Date when the reversal occurred.
         disputed:
           type: boolean
+          description: Indicates whether the payment is under dispute.
         disputeDate:
           type: string
           format: date-time
+          description: Date when the dispute started.
         paid:
           type: boolean
+          description: Indicates whether the funds have been fully settled.
         paidDate:
           type: string
           format: date-time
+          description: Settlement date of the payment.
         paymentMethods:
           type: array
+          description: Payment method IDs enabled or used in the transaction.
           items:
             type: string
         actionUrl:
           type: string
-          description: URL for the customer to continue/complete the payment
-        status:
-          type: string
-          enum: [started, InProgress, confirmed, cancelled, expired]
+          format: uri
+          description: |
+            URL where the merchant must redirect the customer to complete the payment.
+
+            The payment flow is not completed until the customer visits this URL and
+            finishes the checkout process.
         expirationDate:
           type: string
           format: date-time
+          description: Effective expiration date of the payment.
+        metadata:
+          type: object
+          description: |
+            Free-form key-value data attached to the payment.
+            Mirrors the `metadata` sent during payment creation.
+          additionalProperties:
+            type: string
+        customer:
+          $ref: "#/components/schemas/Customer"
 
     PaymentMethod:
       type: object
+      description: Payment method available for a given country and currency.
       properties:
         id:
           type: string
-          description: Identifier for the payment method
+          description: Payment method ID.
+          example: pm_card
         name:
           type: string
-          description: Name of the payment method
+          description: Display name of the payment method.
         country:
           type: string
-          description: ISO code of the country (ISO 3166-2)
+          description: Country where the method is available (ISO 3166-1).
         currency:
           type: string
-          description: ISO code of the currency (ISO 4217)
+          description: Supported currency (ISO 4217).
         type:
           type: string
-          description: Type of payment method (cash, bank, wallet, crypto)
+          description: Type of payment method (e.g. cash, bank, wallet, crypto).
+          example: card
+
+    WebhookRegistrationRequest:
+      type: object
+      description: Payload used by merchants to register a webhook endpoint URL.
+      required: [webhookUrl]
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+          description: Merchant webhook URL where payment update events will be delivered.
 
     WebhookPaymentUpdate:
       type: object
+      description: |
+        Event sent to the merchant when a payment status changes.
+
+        Webhook deliveries are at-least-once. Your receiver must be idempotent.
       properties:
         transactionId:
           type: string
-          description: Transaction Identifier
+          description: Identifier of the affected transaction.
+        externalId:
+          type: string
+          description: Merchant-provided identifier for the payment.
+          example: ORD-1001
         status:
           type: string
-          enum: [started, InProgress, confirmed, cancelled, expired]
-          description: Status of the payment
+          enum: [started, inprogress, confirmed, cancelled, expired, refunded, disputed, paid]
+          description: New payment status.
         amount:
           type: string
-          description: Transaction Amount
+          description: Transaction amount.
         currency:
           type: string
-          description: Transaction Currency (ISO 4217)
+          description: Transaction currency.
         confirmationDate:
           type: string
           format: date-time
-          description: Date when the payment was confirmed
-        customer:
-          $ref: '#/components/schemas/Customer'
+          description: Payment confirmation date, if applicable.
+        metadata:
+          type: object
+          description: Free-form key-value data attached to the payment.
+          additionalProperties:
+            type: string
         paymentMethods:
           type: array
+          description: Payment method IDs associated with the transaction.
           items:
             type: string
-          description: Payment methods available for the transaction
+        customer:
+          $ref: "#/components/schemas/Customer"
 
   responses:
     Unauthorized:
-      description: Unauthorized access
-    NotFound:
-      description: Resource not found
+      description: Missing or invalid API key.
+      headers:
+        Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            unauthorized:
+              value:
+                error:
+                  code: unauthorized
+                  message: Missing or invalid API key.
+                  requestId: req_01HX9K2X2Z0V7K0M2S2Y8A1B2C
 
-security:
-  - clientSecretAuth: [read, write, delete]
+    NotFound:
+      description: Resource not found.
+      headers:
+        Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            not_found:
+              value:
+                error:
+                  code: not_found
+                  message: Resource not found.
+                  requestId: req_01HX9K2X2Z0V7K0M2S2Y8A1B2C
 
 paths:
-  
   /payments:
     post:
-      tags:
-        - Payments
-      summary: Execute a payment
-      security:
-        - clientSecretAuth: [write]
+      tags: [Payments]
+      summary: Create a payment
+      description: |
+        Creates a new payment and starts a redirect-based checkout flow.
+
+        After creating the payment, the API returns an `actionUrl` where the customer
+        must be redirected to complete the payment.
+
+        Payments are single-use. If a payment is cancelled or expired, a new payment
+        must be created.
+
+        Redirects to `successUrl` or `cancelUrl` do not guarantee final payment status.
+        Always confirm the result using webhooks or by retrieving the payment.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentRequest'
+              $ref: "#/components/schemas/PaymentRequest"
+            examples:
+              create_payment:
+                summary: Create a payment (redirect flow)
+                value:
+                  externalId: "ORD-1001"
+                  amount: "100.50"
+                  currency: "USD"
+                  paymentMethods: ["pm_card", "pm_wallet"]
+                  successUrl: "https://merchant.example/success"
+                  cancelUrl: "https://merchant.example/cancel"
+                  expiration: "2026-01-15T00:00:00Z"
+                  metadata:
+                    orderId: "ORD-1001"
+                    cartId: "CART-7788"
+                  customer:
+                    firstName: "John"
+                    lastName: "Doe"
+                    email: "john.doe@example.com"
+                    country: "US"
+                    state: "US-CA"
+                    city: "San Francisco"
+                    address: "Market Street 123"
+                    zipcode: "94105"
       responses:
-        200:
-          description: Payment processed
+        "200":
+          description: Payment successfully created.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
-        400:
-          description: Bad request
-        401:
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/PaymentResponse"
+              examples:
+                created:
+                  value:
+                    transactionId: "trx_123456"
+                    externalId: "ORD-1001"
+                    status: "started"
+                    amount: "100.50"
+                    currency: "USD"
+                    creationDate: "2026-01-14T06:30:00Z"
+                    actionUrl: "https://pay.tuservicio.com/checkout/trx_123456"
+                    expirationDate: "2026-01-15T00:00:00Z"
+                    metadata:
+                      orderId: "ORD-1001"
+                      cartId: "CART-7788"
+                    paymentMethods: ["pm_card", "pm_wallet"]
+                    customer:
+                      firstName: "John"
+                      lastName: "Doe"
+                      email: "john.doe@example.com"
+                      country: "US"
+                      state: "US-CA"
+                      city: "San Francisco"
+                      address: "Market Street 123"
+                      zipcode: "94105"
+        "400":
+          description: Invalid request.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid_request:
+                  value:
+                    error:
+                      code: invalid_request
+                      message: Invalid request payload.
+                      param: amount
+                      requestId: req_01HX9K2X2Z0V7K0M2S2Y8A1B2C
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /payments/{transactionId}:
     get:
-      tags:
-        - Payments
-      summary: Get payment by transactionId
-      security:
-        - clientSecretAuth: [read]
+      tags: [Payments]
+      summary: Retrieve a payment
+      description: |
+        Retrieves the current state of a payment.
+
+        This endpoint can be used to:
+        - Check the payment status after a customer redirect
+        - Reconcile payments if webhooks are delayed
+        - Support operational and audit use cases
+
+        Do not poll aggressively. Webhooks are the recommended mechanism to track
+        final payment states.
       parameters:
-        - name: transactionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Identifier of the transaction
+        - $ref: "#/components/parameters/TransactionIdPath"
       responses:
-        200:
-          description: Payment information retrieved
+        "200":
+          description: Payment details.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
-        400:
-          description: Bad request
-        404:
-          $ref: '#/components/responses/NotFound'
-        401:
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/PaymentResponse"
+              examples:
+                confirmed:
+                  value:
+                    transactionId: "trx_123456"
+                    externalId: "ORD-1001"
+                    status: "confirmed"
+                    amount: "100.50"
+                    currency: "USD"
+                    creationDate: "2026-01-14T06:30:00Z"
+                    confirmationDate: "2026-01-14T06:33:12Z"
+                    actionUrl: "https://pay.tuservicio.com/checkout/trx_123456"
+                    expirationDate: "2026-01-15T00:00:00Z"
+                    metadata:
+                      orderId: "ORD-1001"
+                      cartId: "CART-7788"
+                    paymentMethods: ["pm_card"]
+                    customer:
+                      firstName: "John"
+                      lastName: "Doe"
+                      email: "john.doe@example.com"
+                      country: "US"
+                      state: "US-CA"
+                      city: "San Francisco"
+                      address: "Market Street 123"
+                      zipcode: "94105"
+                    paid: false
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /payment-methods:
     get:
-      tags:
-        - Payments
-      summary: Get payment methods by country, currency, and type
-      security:
-        - clientSecretAuth: [read]
+      tags: [Payments]
+      summary: List payment methods
+      description: |
+        Returns the available payment methods based on country,
+        currency, and type.
       parameters:
-        - name: country
-          in: query
-          schema:
-            type: string
-            description: ISO code of the country (ISO 3166-2)
-        - name: currency
-          in: query
-          schema:
-            type: string
-            description: ISO code of the currency (ISO 4217)
-        - name: type
-          in: query
-          schema:
-            type: string
-            description: Type of payment method (cash, bank, wallet, crypto)
+        - $ref: "#/components/parameters/CountryQuery"
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/TypeQuery"
       responses:
-        200:
-          description: List of available payment methods
+        "200":
+          description: List of available payment methods.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PaymentMethod'
-        400:
-          description: Bad request
-        401:
-          $ref: '#/components/responses/Unauthorized'
+                  $ref: "#/components/schemas/PaymentMethod"
+              examples:
+                methods:
+                  value:
+                    - id: "pm_card"
+                      name: "Card"
+                      country: "US"
+                      currency: "USD"
+                      type: "card"
+                    - id: "pm_wallet"
+                      name: "Wallet"
+                      country: "US"
+                      currency: "USD"
+                      type: "wallet"
+        "400":
+          description: Invalid request.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid_filter:
+                  value:
+                    error:
+                      code: invalid_request
+                      message: Invalid query parameters.
+                      param: currency
+                      requestId: req_01HX9K2X2Z0V7K0M2S2Y8A1B2C
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /webhooks/payments:
     post:
-      tags:
-        - Webhooks
-      summary: Register a payment update webhook
-      description: Clients can register their webhook URLs to receive payment updates.
-      security:
-        - clientSecretAuth: [write]
+      tags: [Webhooks]
+      summary: Register a webhook endpoint
+      description: |
+        Registers the URL where you want to receive payment status update events.
+
+        This is a configuration endpoint called by the merchant.
+        It does not deliver events and it is not triggered automatically.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                webhookUrl:
-                  type: string
-                  description: URL where payment updates will be sent
+              $ref: "#/components/schemas/WebhookRegistrationRequest"
+            examples:
+              register:
+                value:
+                  webhookUrl: "https://merchant.example/webhooks/payments"
       responses:
-        201:
-          description: Webhook registered successfully
-        400:
-          description: Invalid webhook URL
-        401:
-          $ref: '#/components/responses/Unauthorized'
+        "201":
+          description: Webhook successfully registered.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "400":
+          description: Invalid webhook URL.
+          headers:
+            Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid_url:
+                  value:
+                    error:
+                      code: invalid_request
+                      message: Invalid webhookUrl.
+                      param: webhookUrl
+                      requestId: req_01HX9K2X2Z0V7K0M2S2Y8A1B2C
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /webhooks/payments/updates:
     post:
-      tags:
-        - Webhooks
-      summary: Receive payment updates via webhook
-      description: This endpoint will receive payment updates from the API, intended for the client’s server.
+      tags: [Webhooks]
+      summary: Receive payment status updates (webhook delivery)
+      description: |
+        Delivery endpoint called by our platform to notify merchants when a payment changes status.
+
+        Merchants must not call this endpoint directly.
+        Configure delivery by registering a webhook URL using POST /webhooks/payments.
+
+        Webhook deliveries are at-least-once. Your receiver must be idempotent.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WebhookPaymentUpdate'
+              $ref: "#/components/schemas/WebhookPaymentUpdate"
+            examples:
+              payment_paid:
+                value:
+                  transactionId: "trx_123456"
+                  externalId: "ORD-1001"
+                  status: "paid"
+                  amount: "100.50"
+                  currency: "USD"
+                  confirmationDate: "2026-01-14T06:33:12Z"
+                  metadata:
+                    orderId: "ORD-1001"
+                    cartId: "CART-7788"
+                  customer:
+                    email: "john.doe@example.com"
+                    country: "US"
+                  paymentMethods: ["pm_card"]
       responses:
-        200:
-          description: Payment update received successfully
-        400:
-          description: Invalid data format
+        "200":
+          description: Event successfully received.
+        "400":
+          description: Invalid data format.
