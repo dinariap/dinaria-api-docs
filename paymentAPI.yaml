@@ -1,0 +1,349 @@
+openapi: 3.0.3
+info:
+  title: Payment API
+  description: API para gestión de clientes y pagos.
+  version: 1.1.0
+  contact:
+    name: Equipo de Desarrollo
+    email: info@dinaria.com
+servers:
+  - url: https://api.tuservicio.com/v1
+tags:
+  - name: Payments 
+    description: Operations related to payments
+  - name: Webhooks
+    description: Operations to be implemeted by the merchants
+  
+
+components:
+  securitySchemes:
+    clientSecretAuth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.tuservicio.com/oauth2/token
+          scopes:
+            read: Grants read access
+            write: Grants write access
+            delete: Grants delete access
+
+  schemas:
+    Customer:
+      type: object
+      properties:
+        firstName:
+          type: string
+          description: Customer's First Name
+        lastName:
+          type: string
+          description: Customer's Last Name
+        fullName:
+          type: object
+          description: Customer's Full Name
+        documentType:
+          type: string
+          enum: [nationalId, passport, other]
+          description: Customer's Document Type
+        documentNumber:
+          type: string
+          description: Customer's Document Number
+        country:
+          type: string
+          description: Customer's birth country
+          example: US
+        state:
+          type: string
+          description: State where the customer lives
+        city:
+          type: string
+          description: City where the customer lives
+        address:
+          type: string
+          description: Address where the customer lives
+        zipcode:
+          type: string
+          description: Zip Code
+        phoneNumber:
+          type: string
+          description: Customer's phone
+        email:
+          type: string
+          description: Customer's email
+        metadata:
+          type: object
+          description: Custom metadata associated with the customer
+          example:
+            loyaltyNumber: "1234567890"
+            preferredLanguage: "en"  
+
+    PaymentRequest:
+      type: object
+      properties:
+        amount:
+          type: string
+          description: Transaction Amount
+        currency:
+          type: string
+          description: Transaction Currency (ISO 4217)
+        customer:
+          $ref: '#/components/schemas/Customer'
+        paymentMethods:
+          type: array
+          items:
+            type: string
+          description: Payment Methods available to the customer
+        successUrl:
+          type: string
+          description: URL to redirect when payment is successful
+        cancelUrl:
+          type: string
+          description: URL to redirect when payment is canceled or failed
+        expiration:
+          type: string
+          format: date-time
+          description: Expiration date for the payment
+
+    PaymentResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          description: Transaction Identifier
+        customer:
+          $ref: '#/components/schemas/Customer'
+        amount:
+          type: string
+          description: Transaction Amount
+        refundedAmount:
+          type: string
+          description: Refunded Amount from the original transaction
+        currency:
+          type: string
+          description: Transaction Currency (ISO 4217)
+        creationDate:
+          type: string
+          format: date-time
+        confirmationDate:
+          type: string
+          format: date-time
+        refunded:
+          type: boolean
+        reversed:
+          type: boolean
+        reversionDate:
+          type: string
+          format: date-time
+        disputed:
+          type: boolean
+        disputeDate:
+          type: string
+          format: date-time
+        paid:
+          type: boolean
+        paidDate:
+          type: string
+          format: date-time
+        paymentMethods:
+          type: array
+          items:
+            type: string
+        actionUrl:
+          type: string
+          description: URL for the customer to continue/complete the payment
+        status:
+          type: string
+          enum: [started, InProgress, confirmed, cancelled, expired]
+        expirationDate:
+          type: string
+          format: date-time
+
+    PaymentMethod:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identifier for the payment method
+        name:
+          type: string
+          description: Name of the payment method
+        country:
+          type: string
+          description: ISO code of the country (ISO 3166-2)
+        currency:
+          type: string
+          description: ISO code of the currency (ISO 4217)
+        type:
+          type: string
+          description: Type of payment method (cash, bank, wallet, crypto)
+
+    WebhookPaymentUpdate:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          description: Transaction Identifier
+        status:
+          type: string
+          enum: [started, InProgress, confirmed, cancelled, expired]
+          description: Status of the payment
+        amount:
+          type: string
+          description: Transaction Amount
+        currency:
+          type: string
+          description: Transaction Currency (ISO 4217)
+        confirmationDate:
+          type: string
+          format: date-time
+          description: Date when the payment was confirmed
+        customer:
+          $ref: '#/components/schemas/Customer'
+        paymentMethods:
+          type: array
+          items:
+            type: string
+          description: Payment methods available for the transaction
+
+  responses:
+    Unauthorized:
+      description: Unauthorized access
+    NotFound:
+      description: Resource not found
+
+security:
+  - clientSecretAuth: [read, write, delete]
+
+paths:
+  
+  /payments:
+    post:
+      tags:
+        - Payments
+      summary: Execute a payment
+      security:
+        - clientSecretAuth: [write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        200:
+          description: Payment processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        400:
+          description: Bad request
+        401:
+          $ref: '#/components/responses/Unauthorized'
+  /payments/{transactionId}:
+    get:
+      tags:
+        - Payments
+      summary: Get payment by transactionId
+      security:
+        - clientSecretAuth: [read]
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Identifier of the transaction
+      responses:
+        200:
+          description: Payment information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        400:
+          description: Bad request
+        404:
+          $ref: '#/components/responses/NotFound'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+
+  /payment-methods:
+    get:
+      tags:
+        - Payments
+      summary: Get payment methods by country, currency, and type
+      security:
+        - clientSecretAuth: [read]
+      parameters:
+        - name: country
+          in: query
+          schema:
+            type: string
+            description: ISO code of the country (ISO 3166-2)
+        - name: currency
+          in: query
+          schema:
+            type: string
+            description: ISO code of the currency (ISO 4217)
+        - name: type
+          in: query
+          schema:
+            type: string
+            description: Type of payment method (cash, bank, wallet, crypto)
+      responses:
+        200:
+          description: List of available payment methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentMethod'
+        400:
+          description: Bad request
+        401:
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks/payments:
+    post:
+      tags:
+        - Webhooks
+      summary: Register a payment update webhook
+      description: Clients can register their webhook URLs to receive payment updates.
+      security:
+        - clientSecretAuth: [write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                webhookUrl:
+                  type: string
+                  description: URL where payment updates will be sent
+      responses:
+        201:
+          description: Webhook registered successfully
+        400:
+          description: Invalid webhook URL
+        401:
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks/payments/updates:
+    post:
+      tags:
+        - Webhooks
+      summary: Receive payment updates via webhook
+      description: This endpoint will receive payment updates from the API, intended for the client’s server.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookPaymentUpdate'
+      responses:
+        200:
+          description: Payment update received successfully
+        400:
+          description: Invalid data format

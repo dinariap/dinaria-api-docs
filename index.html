@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DinaPay API Docs</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        color: var(--ink);
+        background: #f8fafc;
+      }
+
+      .hero {
+        background: #ffffff;
+        border-bottom: 1px solid var(--border);
+        padding: 24px 32px;
+      }
+
+      .hero-inner {
+        max-width: 1120px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+      }
+
+      .logo img {
+        margin-right: 8px;
+      }
+
+      .logo img {
+        width: 140px;
+        height: auto;
+      }
+
+      .hero-text h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .hero-text p {
+        margin: 6px 0 0;
+        color: var(--muted);
+      }
+
+      .cta a {
+        text-decoration: none;
+        color: #ffffff;
+        background: #0f172a;
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+
+      .cta a:hover {
+        background: #1e293b;
+      }
+
+      .docs {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 16px 0 0;
+      }
+
+      redoc {
+        display: block;
+        padding: 0 32px 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="logo">
+          <img src="DYNARIA (2).png" alt="Dinaria logo" />
+          <div class="hero-text">
+            <h1>DinaPay API Documentation</h1>
+            <p>Guia tecnica para merchants y partners de integracion.</p>
+          </div>
+        </div>
+        <div class="cta">
+          <a href="https://dinaria.com/" target="_blank" rel="noreferrer">
+            Ir a Dinaria.com
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="docs">
+      <redoc spec-url="paymentAPI.yaml"></redoc>
+    </main>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+  </body>
+</html>
