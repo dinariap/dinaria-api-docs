@@ -9,7 +9,7 @@ parent: Guides
 ## Base URL
 Use the base URL for the environment you are integrating with.
 
-- Sandbox: `https://sbxapi.dinaria.com/v1`
+- Sandbox: `https://api.sandbox.dinaria.com/v1`
 - Production: `https://api.dinaria.com/v1`
 
 If you run separate dev/test/prod stacks, keep them isolated by using different API
