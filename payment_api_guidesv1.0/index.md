@@ -16,3 +16,6 @@ why, and how to use them correctly.
 ## Environments
 Start with `Getting Started` to choose the correct base URL and API key for
 sandbox vs dev/test/prod.
+
+## Step-by-step example
+See `Step-by-Step Payment Example` for a full merchant flow with curl commands.
