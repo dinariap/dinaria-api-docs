@@ -12,6 +12,8 @@ Use the base URL for the environment you are integrating with.
 - Sandbox: `https://sbxapi.dinaria.com/v1`
 - Production: `https://api.dinaria.com/v1`
 
+You will need to contact operations@dinaria.com to be able to access above sites.
+
 ## Authentication (API Key)
 
 Authenticate every request by sending your API key in the `Authorization` header:

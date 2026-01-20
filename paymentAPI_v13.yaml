@@ -20,8 +20,10 @@ info:
     email: support@api.com
 
 servers:
-  - url: https://api.tuservicio.com/v1
+  - url: https://api.dinaria.com/v1
     description: Production environment
+  - url: https://sbxapi.dinaria.com/v1
+    description: Sandbox environment
 
 externalDocs:
   description: Dinaria API Guides
