@@ -25,7 +25,9 @@ externalDocs:
   
 servers:
   - url: https://api.dinaria.com/v1
-    description: Production environment
+    description: Production environment (dev/test/prod with live keys)
+  - url: https://sbxapi.dinaria.com/v1
+    description: Sandbox environment (test keys only)
 
 tags:
   - name: Payments

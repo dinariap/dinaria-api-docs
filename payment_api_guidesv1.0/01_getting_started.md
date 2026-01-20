@@ -12,6 +12,10 @@ Use the base URL for the environment you are integrating with.
 - Sandbox: `https://sbxapi.dinaria.com/v1`
 - Production: `https://api.dinaria.com/v1`
 
+If you run separate dev/test/prod stacks, keep them isolated by using different API
+keys and webhook endpoints. Unless a dedicated environment is provisioned for you,
+dev/test/prod use the Production base URL.
+
 You will need to contact operations@dinaria.com to be able to access above sites.
 
 ## Authentication (API Key)
@@ -22,6 +26,8 @@ Authenticate every request by sending your API key in the `Authorization` header
 Authorization: Bearer di_test_xxx
 Content-Type: application/json
 ```
+
+Use the API key that matches the base URL (sandbox keys only work in sandbox).
 
 **Best practices**
 - Treat your API key as a secret (never expose it in the frontend).
