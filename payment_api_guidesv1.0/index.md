@@ -19,3 +19,6 @@ sandbox vs dev/test/prod.
 
 ## Step-by-step example
 See `Step-by-Step Payment Example` for a full merchant flow with curl commands.
+
+## Merchant tools
+See `Merchant Tools & Admin Pages (Sandbox)` for merchant-facing admin tools and URLs.
