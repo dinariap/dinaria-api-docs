@@ -1,3 +1,7 @@
+---
+nav_exclude: true
+---
+
 # Dinaria API Docs — Context & Rules
 
 ## Scope model
