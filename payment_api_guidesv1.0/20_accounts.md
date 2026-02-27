@@ -1,6 +1,7 @@
 ---
 title: Accounts & Balance
-nav_order: 23
+nav_order: 2
+parent: Customer Accounts
 ---
 
 # Accounts & Balance

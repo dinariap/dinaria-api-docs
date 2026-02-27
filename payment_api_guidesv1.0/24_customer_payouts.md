@@ -1,6 +1,7 @@
 ---
 title: Customer Payouts
-nav_order: 27
+nav_order: 6
+parent: Customer Accounts
 ---
 
 # Customer Payouts

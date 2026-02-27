@@ -1,6 +1,7 @@
 ---
 title: Payout Overview
-nav_order: 19
+nav_order: 1
+parent: Payouts
 ---
 
 # Payout Overview

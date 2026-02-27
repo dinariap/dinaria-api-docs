@@ -1,6 +1,7 @@
 ---
 title: Customer Payments
-nav_order: 26
+nav_order: 5
+parent: Customer Accounts
 ---
 
 # Customer Payments

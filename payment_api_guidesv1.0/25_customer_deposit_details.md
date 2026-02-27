@@ -1,6 +1,7 @@
 ---
 title: Deposit Details
-nav_order: 28
+nav_order: 7
+parent: Customer Accounts
 ---
 
 # Deposit Details

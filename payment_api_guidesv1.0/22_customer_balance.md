@@ -1,6 +1,7 @@
 ---
 title: Customer Balance
-nav_order: 25
+nav_order: 4
+parent: Customer Accounts
 ---
 
 # Customer Balance

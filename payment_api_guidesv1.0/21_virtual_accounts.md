@@ -1,6 +1,7 @@
 ---
 title: Virtual Accounts
-nav_order: 24
+nav_order: 3
+parent: Customer Accounts
 ---
 
 # Virtual Accounts
