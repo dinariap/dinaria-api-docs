@@ -1,7 +1,6 @@
 ---
 title: Data Formats (CBU / CVU)
-nav_order: 15
-parent: Guides
+nav_order: 7
 ---
 
 # Data formats (ISO standards)
