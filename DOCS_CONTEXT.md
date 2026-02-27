@@ -32,6 +32,11 @@ When making changes, check the table below.
 | `brazil/10_payouts_retrieve.md` | Retrieve & List Payouts | 🇧🇷 Brazil |
 | `brazil/11_customers.md` | Customers | 🇧🇷 Brazil |
 | `brazil/12_accounts.md` | Accounts & Balance | 🌐 Common (BRL examples) |
+| `brazil/14_virtual_accounts.md` | Virtual Accounts | 🇧🇷 Brazil |
+| `brazil/15_customer_balance.md` | Customer Balance | 🇧🇷 Brazil |
+| `brazil/16_customer_payments.md` | Customer Payments | 🇧🇷 Brazil |
+| `brazil/17_customer_payouts.md` | Customer Payouts | 🇧🇷 Brazil |
+| `brazil/18_customer_deposit_details.md` | Deposit Details | 🇧🇷 Brazil |
 | `payment_api_guidesv1.0/00_overview.md` | Overview | 🇦🇷 Argentina |
 | `payment_api_guidesv1.0/01_getting_started.md` | Getting Started | 🇦🇷 Argentina |
 | `payment_api_guidesv1.0/02_quickstart_first_payment.md` | Quickstart | 🇦🇷 Argentina |
@@ -49,6 +54,11 @@ When making changes, check the table below.
 | `payment_api_guidesv1.0/18_payouts_retrieve.md` | Retrieve & List Payouts | 🇦🇷 Argentina |
 | `payment_api_guidesv1.0/19_customers.md` | Customers | 🇦🇷 Argentina |
 | `payment_api_guidesv1.0/20_accounts.md` | Accounts & Balance | 🌐 Common (ARS examples) |
+| `payment_api_guidesv1.0/21_virtual_accounts.md` | Virtual Accounts | 🇦🇷 Argentina |
+| `payment_api_guidesv1.0/22_customer_balance.md` | Customer Balance | 🇦🇷 Argentina |
+| `payment_api_guidesv1.0/23_customer_payments.md` | Customer Payments | 🇦🇷 Argentina |
+| `payment_api_guidesv1.0/24_customer_payouts.md` | Customer Payouts | 🇦🇷 Argentina |
+| `payment_api_guidesv1.0/25_customer_deposit_details.md` | Deposit Details | 🇦🇷 Argentina |
 | `payment_api_guidesv1.0/webhooks.md` | Webhooks (parent) | 🌐 Common |
 | `payment_api_guidesv1.0/08_webhooks_overview.md` | Webhooks Overview | 🌐 Common |
 | `payment_api_guidesv1.0/09_webhooks_registration.md` | Webhook Registration | 🌐 Common |
@@ -88,3 +98,5 @@ When making changes, check the table below.
 - Nav filtering uses CSS `:has()` + `data-scope` attribute on `<html>`
 - Argentina chip → `/` | Brazil chip → `/brazil/`
 - Custom CSS in `assets/css/custom.scss`
+- **API spec files**: `dinaria_API_arg_V1.8.yaml` (Argentina) and `dinaria_API_bra_V1.8.yaml` (Brazil)
+- Old files deleted: `paymentAPI.yaml`, `paymentAPI_v13.yaml`, `brazil/api.yaml`

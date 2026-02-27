@@ -1358,6 +1358,73 @@ components:
         createdAt:
           type: string
           format: date-time
+    CustomerBalanceResponse:
+      type: object
+      description: Virtual balance for a customer account.
+      properties:
+        customerId:
+          type: string
+          example: cust_12345
+        currency:
+          type: string
+          example: ARS
+        available:
+          type: string
+          description: Funds available for payouts right now.
+          example: '5000.00'
+        pending:
+          type: string
+          description: Funds tied to in-flight payouts or unconfirmed cash-ins.
+          example: '500.00'
+        reserved:
+          type: string
+          description: Funds reserved for other purposes.
+          example: '0.00'
+        updatedAt:
+          type: string
+          format: date-time
+    DepositDetailsResponse:
+      type: object
+      description: >
+        Destination details the customer should use to fund their virtual account.
+        Argentina: CBU transfer with a reference code in the description.
+        Brazil: PIX transfer with a reference code in the PIX message.
+      properties:
+        method:
+          type: string
+          enum:
+          - bank_transfer
+          - pix
+          description: Deposit method for this country.
+        currency:
+          type: string
+          description: Currency to deposit (ARS or BRL).
+        cbu:
+          type: string
+          nullable: true
+          description: Destination CBU — Argentina only.
+        alias:
+          type: string
+          nullable: true
+          description: Human-friendly CBU alias — Argentina only.
+        pixKey:
+          type: string
+          nullable: true
+          description: Destination PIX key — Brazil only.
+        pixKeyType:
+          type: string
+          nullable: true
+          description: PIX key type (cpf, cnpj, phone, email, random) — Brazil only.
+        reference:
+          type: string
+          description: >
+            Reference code the customer must include in the transfer description
+            (concepto for CBU, mensagem for PIX). Used to attribute the deposit
+            to the correct customer virtual account.
+          example: REF-cust_abc123
+        instructions:
+          type: string
+          description: Human-readable instructions to display to the customer.
   responses:
     Unauthorized:
       description: Missing or invalid API key.
@@ -2900,6 +2967,213 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /customers/{customerId}/balance:
+    get:
+      tags:
+      - Customers
+      summary: Get customer balance
+      description: Returns the current virtual balance for a customer (available, pending, reserved).
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique customer identifier.
+      responses:
+        '200':
+          description: Customer balance.
+          headers:
+            Request-Id:
+              $ref: '#/components/headers/Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerBalanceResponse'
+              examples:
+                argentina:
+                  summary: Argentina (ARS)
+                  value:
+                    customerId: cust_12345
+                    currency: ARS
+                    available: '5000.00'
+                    pending: '500.00'
+                    reserved: '0.00'
+                    updatedAt: '2026-02-25T12:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /customers/{customerId}/payments:
+    get:
+      tags:
+      - Customers
+      summary: List customer payments
+      description: Returns cash-in payments associated with a customer. Ordered by most recent first.
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - started
+          - confirmed
+          - cancelled
+          - expired
+        description: Filter by payment status.
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - in: query
+        name: startingAfter
+        schema:
+          type: string
+        description: Cursor for pagination (payment transactionId).
+      responses:
+        '200':
+          description: List of payments.
+          headers:
+            Request-Id:
+              $ref: '#/components/headers/Request-Id'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /customers/{customerId}/payouts:
+    get:
+      tags:
+      - Customers
+      summary: List customer payouts
+      description: Returns payouts (cash-outs) associated with a customer. Ordered by most recent first.
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - pending
+          - completed
+          - failed
+          - cancelled
+        description: Filter by payout status.
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - in: query
+        name: startingAfter
+        schema:
+          type: string
+        description: Cursor for pagination (payout ID).
+      responses:
+        '200':
+          description: List of payouts.
+          headers:
+            Request-Id:
+              $ref: '#/components/headers/Request-Id'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PayoutResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /customers/{customerId}/deposit-details:
+    get:
+      tags:
+      - Customers
+      summary: Get deposit details
+      description: >
+        Returns the deposit destination a customer must use to fund their virtual account.
+        Argentina: Dinaria CBU + reference code to include in the transfer description (concepto).
+        Brazil: Dinaria PIX key + reference code to include in the PIX message (mensagem).
+        The reference code is essential — it is how Dinaria attributes the incoming transfer
+        to the correct customer virtual account.
+      parameters:
+      - name: customerId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Deposit details.
+          headers:
+            Request-Id:
+              $ref: '#/components/headers/Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepositDetailsResponse'
+              examples:
+                argentina:
+                  summary: Argentina — CBU transfer
+                  value:
+                    method: bank_transfer
+                    currency: ARS
+                    cbu: '4310009922100000122004'
+                    alias: DINARIA.PAGOS
+                    pixKey: null
+                    pixKeyType: null
+                    reference: REF-cust_abc123
+                    instructions: >
+                      Transfer ARS to the above CBU and include the reference code
+                      in the payment description (concepto). Your balance will be
+                      credited within minutes.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '503':
