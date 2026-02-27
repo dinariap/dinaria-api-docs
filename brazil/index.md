@@ -1,13 +1,7 @@
 ---
-title: Brazil
-nav_order: 2
+title: Home
+nav_order: 1
 ---
-
-<div class="scope-bar">
-  <span class="scope-label">Scope:</span>
-  <a href="../" class="scope-chip argentina">Argentina (CBU)</a>
-  <a href="#" class="scope-chip brazil active">Brazil (PIX)</a>
-</div>
 
 # Dinaria API — Brazil (PIX)
 

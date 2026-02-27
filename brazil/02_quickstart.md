@@ -1,7 +1,7 @@
 ---
 title: Quickstart First Payment
 nav_order: 3
-parent: Brazil
+parent: Home
 ---
 
 # Quickstart: your first PIX payment

@@ -1,7 +1,7 @@
 ---
 title: Payment Lifecycle States
 nav_order: 4
-parent: Brazil
+parent: Home
 ---
 
 # Payment lifecycle states — Brazil

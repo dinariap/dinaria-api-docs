@@ -1,0 +1,52 @@
+{%- comment -%}
+  Scope-aware nav: Argentina tree OR Brazil tree based on current page URL.
+  Argentina/Brazil are not nav items — chips in header switch scope.
+{%- endcomment -%}
+
+{%- if page.url contains '/brazil' -%}
+  {%- assign scope_pages = site.html_pages | where_exp: "item", "item.url contains '/brazil'" -%}
+{%- else -%}
+  {%- assign scope_pages = site.html_pages | where_exp: "item", "item.url contains '/brazil' == false" -%}
+{%- endif -%}
+
+{% assign pages_top_size = scope_pages
+  | where_exp:"item", "item.title != nil"
+  | where_exp:"item", "item.parent == nil"
+  | where_exp:"item", "item.nav_exclude != true"
+  | size %}
+{% if pages_top_size > 0 %}
+{% include components/nav/pages.html pages=scope_pages all=include.all %}
+{% endif %}
+{%- if site.nav_external_links -%}
+{%- for node in site.nav_external_links -%}
+{{ node.title }}
+{% unless node.hide_icon %} {% endunless %}
+{%- endfor -%}
+{%- endif -%}
+{% if site.just_the_docs.collections %}
+{% assign collections_size = site.just_the_docs.collections | size %}
+{% for collection_entry in site.just_the_docs.collections %}
+{% assign collection_key = collection_entry[0] %}
+{% assign collection_value = collection_entry[1] %}
+{% assign collection = site[collection_key] %}
+{% if collection_value.nav_exclude != true %}
+{% if collections_size > 1 or pages_top_size > 0 %}
+{% if collection_value.nav_fold == true %}
+{%- if collection.size > 0 -%}
+{%- endif -%}
+{{ collection_value.name }}
+{% include components/nav/pages.html pages=collection all=include.all %}
+{% else %}
+{{ collection_value.name }}
+{% include components/nav/pages.html pages=collection all=include.all %}
+{% endif %}
+{% else %}
+{% include components/nav/pages.html pages=collection all=include.all %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if site.nav_error_report %}
+{{ nav_error_report }}
+{%- endif %}

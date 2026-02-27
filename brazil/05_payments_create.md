@@ -1,7 +1,7 @@
 ---
 title: Create Payments
 nav_order: 5
-parent: Brazil
+parent: Home
 ---
 
 # Create a payment — Brazil

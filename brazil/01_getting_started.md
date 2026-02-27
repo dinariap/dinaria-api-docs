@@ -1,7 +1,7 @@
 ---
 title: Getting Started
 nav_order: 2
-parent: Brazil
+parent: Home
 ---
 
 # Getting started — Brazil

@@ -3,12 +3,6 @@ title: Home
 nav_order: 1
 ---
 
-<div class="scope-bar">
-  <span class="scope-label">Scope:</span>
-  <a href="#" class="scope-chip argentina active">Argentina (CBU)</a>
-  <a href="brazil/" class="scope-chip brazil">Brazil (PIX)</a>
-</div>
-
 # Dinaria API Documentation
 
 The Dinaria API allows you to create, manage, and track payments through secure,

@@ -1,6 +1,7 @@
 ---
 ---
 
+/* Scope chips: pill/badge style, not text links */
 .scope-bar {
   padding: 10px 0 16px;
   display: flex;
@@ -8,25 +9,52 @@
   gap: 10px;
   font-size: 14px;
 }
-.scope-bar .scope-label { color: #6b7280; }
+.scope-bar.scope-bar-header {
+  padding: 0 0 0 16px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.scope-bar .scope-label {
+  color: #6b7280;
+  font-size: 13px;
+}
 .scope-chip {
+  display: inline-block;
   padding: 6px 14px;
-  border-radius: 6px;
-  text-decoration: none;
+  border-radius: 20px;
+  text-decoration: none !important;
   font-weight: 600;
-  transition: background 0.15s;
+  font-size: 13px;
+  transition: background 0.15s, box-shadow 0.15s;
+  border: none;
 }
 .scope-chip.argentina {
   background: #0ea5e9;
-  color: #fff;
+  color: #fff !important;
 }
-.scope-chip.argentina:hover { background: #0284c7; color: #fff; }
+.scope-chip.argentina:hover {
+  background: #0284c7;
+  color: #fff !important;
+}
 .scope-chip.brazil {
   background: #009c3b;
-  color: #fff;
+  color: #fff !important;
 }
-.scope-chip.brazil:hover { background: #007a2f; color: #fff; }
-.scope-chip.active { box-shadow: 0 0 0 2px currentColor; }
+.scope-chip.brazil:hover {
+  background: #007a2f;
+  color: #fff !important;
+}
+.scope-chip.active {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+.scope-chip.active.argentina {
+  box-shadow: 0 0 0 2px #fff;
+}
+.scope-chip.active.brazil {
+  box-shadow: 0 0 0 2px #fff;
+}
 
 .site-title {
   font-weight: 700;
