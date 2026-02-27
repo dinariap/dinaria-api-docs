@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: Dinaria API — Brazil (PIX)
+  version: 0.1.0
+  description: |
+    API for payments and payouts in Brazil.
+
+    **Scope:** PIX instant payments, Brazilian bank transfers.
+
+    PIX is Brazil's instant payment system (run by the central bank). Recipients
+    are identified by a PIX key: CPF, email, phone number, or random alphanumeric key.
+
+    *In development — contact support@dinaria.com for early access.*
+
+  contact:
+    name: Dinaria
+    email: support@dinaria.com
+
+servers:
+  - url: https://br.dinaria.com/v1
+    description: Production (coming soon)
+  - url: https://br-sandbox.dinaria.com/v1
+    description: Sandbox (coming soon)
+
+tags:
+  - name: Payments
+    description: Create and retrieve payments
+  - name: Payouts
+    description: PIX transfers to recipients
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
+      description: Chave API no header Authorization
+
+security:
+  - ApiKeyAuth: []

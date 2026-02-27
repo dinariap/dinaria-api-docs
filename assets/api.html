@@ -3,21 +3,72 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>API Reference</title>
+    <title>API Reference — Dinaria</title>
     <style>
       html, body { height: 100%; margin: 0; }
-      #redoc-container { height: 100vh; }
+      #scope-bar {
+        padding: 10px 20px;
+        background: #1a1a2e;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: system-ui, sans-serif;
+      }
+      #scope-bar span {
+        color: #94a3b8;
+        font-size: 13px;
+      }
+      .scope-chip {
+        padding: 6px 14px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        transition: background 0.15s;
+      }
+      .scope-chip.argentina {
+        background: #0ea5e9;
+        color: #fff;
+      }
+      .scope-chip.argentina:hover {
+        background: #0284c7;
+      }
+      .scope-chip.brazil {
+        background: #334155;
+        color: #e2e8f0;
+      }
+      .scope-chip.brazil:hover {
+        background: #475569;
+      }
+      .scope-chip.active {
+        box-shadow: 0 0 0 2px #fff;
+      }
+      #redoc-container { height: calc(100vh - 42px); }
     </style>
   </head>
   <body>
+    <div id="scope-bar">
+      <span>Scope:</span>
+      <a href="?scope=argentina" id="chip-argentina" class="scope-chip argentina">Argentina (CBU)</a>
+      <a href="?scope=brazil" id="chip-brazil" class="scope-chip brazil">Brazil (PIX)</a>
+    </div>
     <div id="redoc-container"></div>
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
     <script>
-      Redoc.init(
-        "https://dinariap.github.io/dinaria-api-docs/paymentAPI_v13.yaml",
-        {},
-        document.getElementById('redoc-container')
-      );
+      (function() {
+        var base = 'https://dinariap.github.io/dinaria-api-docs';
+        var params = new URLSearchParams(location.search);
+        var scope = params.get('scope') || 'argentina';
+        var specs = {
+          argentina: base + '/paymentAPI_v13.yaml',
+          brazil: base + '/brazil/api.yaml'
+        };
+        var specUrl = specs[scope] || specs.argentina;
+
+        document.getElementById('chip-' + scope).classList.add('active');
+
+        Redoc.init(specUrl, {}, document.getElementById('redoc-container'));
+      })();
     </script>
   </body>
 </html>

@@ -79,6 +79,18 @@ curl -X POST "$BASE_URL/payments" \
 ## 4) Redirect the customer to pay
 Use the `actionUrl` from the response to redirect your customer to complete payment.
 
+**Sandbox note:** in sandbox you can simulate payment confirmation by calling the PSP
+endpoint directly:
+
+```bash
+curl -X POST "https://psp.sandbox.dinaria.com/psp/simulate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "trx_123456",
+    "status": "approved"
+  }'
+```
+
 ## 5) Confirm the final status
 Do **not** rely on redirects for confirmation. Use webhooks (recommended) or retrieve:
 

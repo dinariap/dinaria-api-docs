@@ -16,6 +16,8 @@ Use this documentation to understand Dinaria’s payment concepts, recommended
 integration patterns, and the APIs required to build reliable, production-ready
 payment experiences.
 
+**API scopes:** The [API Specification](https://dinariap.github.io/dinaria-api-docs/assets/api.html) includes **Argentina (CBU)** and **Brazil (PIX)**. Use the scope chips to switch between them.
+
 ## Guides
 
 - [Overview](payment_api_guidesv1.0/00_overview)
