@@ -1,6 +1,33 @@
 ---
 ---
 
+.scope-bar {
+  padding: 10px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.scope-bar .scope-label { color: #6b7280; }
+.scope-chip {
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.scope-chip.argentina {
+  background: #0ea5e9;
+  color: #fff;
+}
+.scope-chip.argentina:hover { background: #0284c7; color: #fff; }
+.scope-chip.brazil {
+  background: #009c3b;
+  color: #fff;
+}
+.scope-chip.brazil:hover { background: #007a2f; color: #fff; }
+.scope-chip.active { box-shadow: 0 0 0 2px currentColor; }
+
 .site-title {
   font-weight: 700;
 }

@@ -1,16 +1,18 @@
 openapi: 3.0.3
 info:
   title: Dinaria API — Brazil (PIX)
-  version: 0.1.0
+  version: 1.0.0
   description: |
     API for payments and payouts in Brazil.
-
-    **Scope:** PIX instant payments, Brazilian bank transfers.
 
     PIX is Brazil's instant payment system (run by the central bank). Recipients
     are identified by a PIX key: CPF, email, phone number, or random alphanumeric key.
 
-    *In development — contact support@dinaria.com for early access.*
+    Merchants can:
+    - Create payments and redirect customers to complete PIX checkout
+    - Retrieve payment details and status
+    - Send payouts to recipients via PIX
+    - Receive asynchronous updates via webhooks
 
   contact:
     name: Dinaria
@@ -18,15 +20,43 @@ info:
 
 servers:
   - url: https://br.dinaria.com/v1
-    description: Production (coming soon)
+    description: Production
   - url: https://br-sandbox.dinaria.com/v1
-    description: Sandbox (coming soon)
+    description: Sandbox
 
 tags:
   - name: Payments
-    description: Create and retrieve payments
+    description: Create and retrieve PIX payments
   - name: Payouts
     description: PIX transfers to recipients
+  - name: Webhooks
+    description: Webhook configuration and delivery
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
+      description: Include your API key in the Authorization header.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+    TransactionIdPath:
+      name: transactionId
+      in: path
+      required: true
+      schema:
+        type: string
 
 paths:
   /health:
@@ -37,13 +67,166 @@ paths:
         '200':
           description: OK
 
-components:
-  securitySchemes:
-    ApiKeyAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: APIKey
-      description: Chave API no header Authorization
+  /payment-methods:
+    get:
+      tags: [Payments]
+      summary: List payment methods
+      parameters:
+        - name: country
+          in: query
+          schema:
+            type: string
+            default: BR
+        - name: currency
+          in: query
+          schema:
+            type: string
+            default: BRL
+      responses:
+        '200':
+          description: List of available payment methods
 
-security:
-  - ApiKeyAuth: []
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Create a payment
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency, paymentMethods, successUrl, cancelUrl]
+              properties:
+                externalId:
+                  type: string
+                amount:
+                  type: string
+                  example: "100.50"
+                currency:
+                  type: string
+                  example: BRL
+                paymentMethods:
+                  type: array
+                  items:
+                    type: string
+                  example: ["pm_pix"]
+                successUrl:
+                  type: string
+                cancelUrl:
+                  type: string
+                customer:
+                  type: object
+                  properties:
+                    firstName:
+                      type: string
+                    lastName:
+                      type: string
+                    email:
+                      type: string
+                    documentNumber:
+                      type: string
+                      description: CPF or CNPJ (digits only)
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Payment created
+        '401':
+          description: Unauthorized
+
+  /payments/{transactionId}:
+    get:
+      tags: [Payments]
+      summary: Retrieve a payment
+      parameters:
+        - $ref: '#/components/parameters/TransactionIdPath'
+      responses:
+        '200':
+          description: Payment details
+        '404':
+          description: Not found
+
+  /payouts:
+    post:
+      tags: [Payouts]
+      summary: Create a payout
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency, pixKey, pixKeyType]
+              properties:
+                amount:
+                  type: string
+                currency:
+                  type: string
+                  default: BRL
+                pixKey:
+                  type: string
+                  description: Recipient PIX key (CPF, email, phone, or random)
+                pixKeyType:
+                  type: string
+                  enum: [cpf, cnpj, email, phone, random]
+                recipientName:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Payout created
+    get:
+      tags: [Payouts]
+      summary: List payouts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of payouts
+
+  /payouts/{payoutId}:
+    get:
+      tags: [Payouts]
+      summary: Retrieve a payout
+      parameters:
+        - name: payoutId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payout details
+        '404':
+          description: Not found
+
+  /webhooks/payments:
+    post:
+      tags: [Webhooks]
+      summary: Register webhook endpoint
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                webhookUrl:
+                  type: string
+      responses:
+        '201':
+          description: Webhook registered

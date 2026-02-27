@@ -3,6 +3,12 @@ title: Home
 nav_order: 1
 ---
 
+<div class="scope-bar">
+  <span class="scope-label">Scope:</span>
+  <a href="#" class="scope-chip argentina active">Argentina (CBU)</a>
+  <a href="brazil/" class="scope-chip brazil">Brazil (PIX)</a>
+</div>
+
 # Dinaria API Documentation
 
 The Dinaria API allows you to create, manage, and track payments through secure,
@@ -16,7 +22,7 @@ Use this documentation to understand Dinaria’s payment concepts, recommended
 integration patterns, and the APIs required to build reliable, production-ready
 payment experiences.
 
-**API scopes:** The [API Specification](https://dinariap.github.io/dinaria-api-docs/assets/api.html) includes **Argentina (CBU)** and **Brazil (PIX)**. Use the scope chips to switch between them.
+[**API Specification**](https://dinariap.github.io/dinaria-api-docs/assets/api.html) — OpenAPI reference for Argentina and Brazil.
 
 ## Guides
 
