@@ -3,8 +3,8 @@
 {% else %}
   {% assign scope_active = "argentina" %}
 {% endif %}
-<div id="scope-bar-nav" class="scope-bar">
+<div class="scope-bar-chip scope-bar">
   <span class="scope-label">Scope</span>
-  <a href="{{ '/' | relative_url }}" id="scope-chip-argentina" class="scope-chip argentina{% if scope_active == 'argentina' %} active{% endif %}">Argentina (CBU)</a>
-  <a href="{{ '/brazil/' | relative_url }}" id="scope-chip-brazil" class="scope-chip brazil{% if scope_active == 'brazil' %} active{% endif %}">Brazil (PIX)</a>
+  <a href="{{ '/' | relative_url }}" class="scope-chip argentina{% if scope_active == 'argentina' %} active{% endif %}">Argentina (CBU)</a>
+  <a href="{{ '/brazil/' | relative_url }}" class="scope-chip brazil{% if scope_active == 'brazil' %} active{% endif %}">Brazil (PIX)</a>
 </div>

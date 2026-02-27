@@ -1,35 +1,35 @@
 <script>
-// Set data-scope on <html> synchronously — before body renders, so no flash
+// Set data-scope on <html> synchronously — before body renders, no flash
 (function(){
   var scope = window.location.pathname.indexOf('/brazil') !== -1 ? 'brazil' : 'argentina';
   document.documentElement.setAttribute('data-scope', scope);
 })();
 </script>
 <style>
-/* Nav scope filtering via data-scope attribute set synchronously above */
+/* Nav scope filtering */
 html[data-scope="argentina"] .site-nav .nav-list > .nav-list-item:has(> a[href*="/brazil/"]) {
   display: none !important;
 }
 html[data-scope="brazil"] .site-nav .nav-list > .nav-list-item:has(> a:not([href*="/brazil/"])) {
   display: none !important;
 }
-
-/* Scope bar hidden until JS moves it into position */
-#scope-bar-nav {
+/* Hide scope bars until JS moves the first one into position */
+.scope-bar-chip {
   display: none;
 }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  var bar = document.getElementById('scope-bar-nav');
-  if (!bar) return;
-  // Insert after the site logo/title link in the sidebar
-  var title = document.querySelector('.site-nav .site-title') ||
-              document.querySelector('.site-nav a[class*="site-title"]') ||
-              document.querySelector('#site-nav .site-title');
-  if (title && title.parentNode) {
-    title.parentNode.insertBefore(bar, title.nextSibling);
+  // nav_footer_custom.html is included twice by Just the Docs (sidebar + mobile footer)
+  // Move only the first one to right after the site-header (logo), before the nav tree
+  var bars = document.querySelectorAll('.scope-bar-chip');
+  if (!bars.length) return;
+  var bar = bars[0];
+  // .site-header contains the logo and hamburger — insert our bar right after it
+  var siteHeader = document.querySelector('header.side-bar .site-header');
+  if (siteHeader && siteHeader.parentNode) {
+    siteHeader.parentNode.insertBefore(bar, siteHeader.nextSibling);
+    bar.style.display = 'flex';
   }
-  bar.style.display = 'flex';
 });
 </script>
