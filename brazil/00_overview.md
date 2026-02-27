@@ -1,7 +1,6 @@
 ---
 title: Overview
 nav_order: 1
-parent: Home
 ---
 
 # Payment API — Brazil (PIX)

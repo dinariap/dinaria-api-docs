@@ -1,7 +1,6 @@
 ---
 title: Quickstart First Payment
 nav_order: 3
-parent: Home
 ---
 
 # Quickstart: your first PIX payment

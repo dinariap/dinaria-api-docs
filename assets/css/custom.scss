@@ -1,59 +1,56 @@
 ---
 ---
 
-/* Scope chips: pill/badge style, not text links */
+/* Scope chips: pill/badge style */
 .scope-bar {
   padding: 10px 0 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-size: 14px;
 }
 .scope-bar.scope-bar-header {
-  padding: 0 0 0 16px;
-  margin-left: auto;
-  display: flex;
+  padding: 4px 8px;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  vertical-align: middle;
 }
 .scope-bar .scope-label {
-  color: #6b7280;
-  font-size: 13px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
+/* Base chip — looks like a grey pill when inactive */
 .scope-chip {
   display: inline-block;
-  padding: 6px 14px;
+  padding: 4px 13px;
   border-radius: 20px;
   text-decoration: none !important;
   font-weight: 600;
-  font-size: 13px;
-  transition: background 0.15s, box-shadow 0.15s;
-  border: none;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #e2e8f0;
+  color: #64748b !important;
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
 }
-.scope-chip.argentina {
+.scope-chip:hover {
+  background: #cbd5e1;
+  color: #334155 !important;
+}
+/* Active chip: colored */
+.scope-chip.active.argentina,
+.scope-chip.argentina:hover {
   background: #0ea5e9;
   color: #fff !important;
 }
-.scope-chip.argentina:hover {
-  background: #0284c7;
-  color: #fff !important;
-}
-.scope-chip.brazil {
+.scope-chip.active.brazil,
+.scope-chip.brazil:hover {
   background: #009c3b;
   color: #fff !important;
-}
-.scope-chip.brazil:hover {
-  background: #007a2f;
-  color: #fff !important;
-}
-.scope-chip.active {
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
-}
-.scope-chip.active.argentina {
-  box-shadow: 0 0 0 2px #fff;
-}
-.scope-chip.active.brazil {
-  box-shadow: 0 0 0 2px #fff;
 }
 
 .site-title {

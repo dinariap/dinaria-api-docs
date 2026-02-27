@@ -1,7 +1,6 @@
 ---
 title: Data Formats (PIX & CPF)
 nav_order: 7
-parent: Home
 ---
 
 # Data formats — Brazil

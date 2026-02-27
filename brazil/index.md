@@ -1,6 +1,6 @@
 ---
-title: Home
-nav_order: 1
+title: Brazil
+nav_exclude: true
 ---
 
 # Dinaria API — Brazil (PIX)

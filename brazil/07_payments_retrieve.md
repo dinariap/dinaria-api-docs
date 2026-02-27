@@ -1,7 +1,6 @@
 ---
 title: Retrieve Payments
 nav_order: 6
-parent: Home
 ---
 
 # Retrieve a payment — Brazil
