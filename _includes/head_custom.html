@@ -1,17 +1,35 @@
 <script>
-// Set data-scope on <html> synchronously (before body renders = no flash)
+// Set data-scope on <html> synchronously — before body renders, so no flash
 (function(){
   var scope = window.location.pathname.indexOf('/brazil') !== -1 ? 'brazil' : 'argentina';
   document.documentElement.setAttribute('data-scope', scope);
 })();
 </script>
 <style>
-/* Hide Brazil nav items when on Argentina pages */
+/* Nav scope filtering via data-scope attribute set synchronously above */
 html[data-scope="argentina"] .site-nav .nav-list > .nav-list-item:has(> a[href*="/brazil/"]) {
   display: none !important;
 }
-/* Hide Argentina nav items when on Brazil pages */
 html[data-scope="brazil"] .site-nav .nav-list > .nav-list-item:has(> a:not([href*="/brazil/"])) {
   display: none !important;
 }
+
+/* Scope bar hidden until JS moves it into position */
+#scope-bar-nav {
+  display: none;
+}
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var bar = document.getElementById('scope-bar-nav');
+  if (!bar) return;
+  // Insert after the site logo/title link in the sidebar
+  var title = document.querySelector('.site-nav .site-title') ||
+              document.querySelector('.site-nav a[class*="site-title"]') ||
+              document.querySelector('#site-nav .site-title');
+  if (title && title.parentNode) {
+    title.parentNode.insertBefore(bar, title.nextSibling);
+  }
+  bar.style.display = 'flex';
+});
+</script>
