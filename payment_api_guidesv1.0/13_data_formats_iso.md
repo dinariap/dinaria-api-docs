@@ -1,5 +1,5 @@
 ---
-title: Data Formats (CBU / CVU)
+title: Data Formats
 nav_order: 7
 ---
 
