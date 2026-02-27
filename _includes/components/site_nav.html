@@ -3,11 +3,11 @@
   Argentina/Brazil are not nav items — chips in header switch scope.
 {%- endcomment -%}
 
-{%- if page.url contains '/brazil' -%}
-  {%- assign scope_pages = site.html_pages | where_exp: "item", "item.url contains '/brazil'" -%}
-{%- else -%}
-  {%- assign scope_pages = site.html_pages | where_exp: "item", "item.url contains '/brazil' == false" -%}
-{%- endif -%}
+{% if page.url contains "brazil" %}
+  {% assign scope_pages = site.html_pages | where_exp: "item", "item.url contains 'brazil'" %}
+{% else %}
+  {% assign scope_pages = site.html_pages | where_exp: "item", "item.url contains 'brazil' == false" %}
+{% endif %}
 
 {% assign pages_top_size = scope_pages
   | where_exp:"item", "item.title != nil"

@@ -1,8 +1,8 @@
-{%- if page.url contains '/brazil' -%}
-  {%- assign scope_active = 'brazil' -%}
-{%- else -%}
-  {%- assign scope_active = 'argentina' -%}
-{%- endif -%}
+{% if page.url contains "brazil" %}
+  {% assign scope_active = "brazil" %}
+{% else %}
+  {% assign scope_active = "argentina" %}
+{% endif %}
 <div class="scope-bar scope-bar-header">
   <span class="scope-label">Scope:</span>
   <a href="{{ '/' | relative_url }}" class="scope-chip argentina{% if scope_active == 'argentina' %} active{% endif %}">Argentina (CBU)</a>

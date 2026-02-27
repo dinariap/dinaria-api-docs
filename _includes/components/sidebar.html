@@ -2,11 +2,11 @@
   Override: pass scope to site_nav for correct cache key (Argentina vs Brazil).
 {%- endcomment -%}
 
-{%- if page.url contains '/brazil' -%}
-  {%- assign nav_scope = 'brazil' -%}
-{%- else -%}
-  {%- assign nav_scope = 'argentina' -%}
-{%- endif -%}
+{% if page.url contains "brazil" %}
+  {% assign nav_scope = "brazil" %}
+{% else %}
+  {% assign nav_scope = "argentina" %}
+{% endif %}
 
 {% include title.html %}
 
