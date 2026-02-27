@@ -1,5 +1,5 @@
 ---
-title: Data Formats (PIX & CPF)
+title: Data Formats
 nav_order: 7
 ---
 
