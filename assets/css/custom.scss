@@ -1,9 +1,9 @@
 ---
 ---
 
-/* Scope bar — sidebar, below logo, dark container like api.html */
+/* Scope bar — dark container, same design as api.html */
 .scope-bar {
-  display: flex;
+  display: flex !important;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
@@ -11,7 +11,6 @@
   background: #1e293b !important;
   border-radius: 8px;
   font-family: system-ui, -apple-system, sans-serif;
-  flex-shrink: 0;
 }
 .scope-bar .scope-label {
   color: #64748b;
