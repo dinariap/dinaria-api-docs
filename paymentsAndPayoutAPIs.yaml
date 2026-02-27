@@ -6,7 +6,7 @@ info:
     \nMerchants can:\n- Create payments and redirect customers to complete checkout\n\
     - Retrieve payment details and current status\n- Discover available payment methods\
     \ (IDs)\n- Receive asynchronous updates via webhooks\n- Send money out via payouts\
-    \ (bank rails) to beneficiaries\n- Handle cash payouts (cash-out) via cash withdrawals\
+    \ (bank rails) to customers\n- Handle cash payouts (cash-out) via cash withdrawals\
     \ through partner agent networks\n\nNotes:\n- Payments are single-use: create\
     \ a new payment for each attempt.\n- Redirects to success/cancel URLs do not guarantee\
     \ the final status.\n  Confirm final state via webhooks (recommended) or by retrieving\
@@ -32,21 +32,21 @@ tags:
     description: Payments integration guides
     url: https://docs.dinaria.com/guides/payments
 - name: Payouts
-  description: 'Operations for sending money (money-out) to external beneficiaries
+  description: 'Operations for sending money (money-out) to external customers
     using bank rails (e.g. ACH/WIRE).
 
     '
   externalDocs:
     description: Payouts guides
     url: https://docs.dinaria.com/guides/payouts
-- name: Beneficiaries
-  description: 'Manage payout beneficiaries and their bank accounts for recurring
+- name: Customers
+  description: 'Manage payout customers and their bank accounts for recurring
     payouts.
 
     '
   externalDocs:
-    description: Beneficiaries guides
-    url: https://docs.dinaria.com/guides/payouts/beneficiaries
+    description: Customers guides
+    url: https://docs.dinaria.com/guides/payouts/customers
 - name: Cash
   description: Operations for cash-out (money-out) via partner agents (pickup code
     lifecycle). Cash deposits (cash-in) are modeled through Payments.
@@ -650,9 +650,9 @@ components:
             type: string
         customer:
           $ref: '#/components/schemas/Customer'
-    BeneficiaryRequest:
+    CustomerRequest:
       type: object
-      description: Beneficiary information used as a reusable payout destination owner
+      description: Customer information used as a reusable payout destination
         (person or business).
       required:
       - type
@@ -682,11 +682,11 @@ components:
           additionalProperties:
             type: string
           description: Optional key-value metadata.
-    BeneficiaryResponse:
+    CustomerResponse:
       type: object
-      description: Beneficiary resource.
+      description: Customer resource.
       properties:
-        beneficiaryId:
+        customerId:
           type: string
           example: bnf_12345
         type:
@@ -714,7 +714,7 @@ components:
           format: date-time
     BankAccountRequest:
       type: object
-      description: Bank account details for a beneficiary. Sensitive fields should
+      description: Bank account details for a customer. Sensitive fields should
         be stored securely.
       required:
       - country
@@ -773,12 +773,12 @@ components:
             type: string
     BankAccountResponse:
       type: object
-      description: Bank account resource associated with a beneficiary.
+      description: Bank account resource associated with a customer.
       properties:
         bankAccountId:
           type: string
           example: ba_67890
-        beneficiaryId:
+        customerId:
           type: string
           example: bnf_12345
         country:
@@ -816,7 +816,7 @@ components:
 
         Provide either:
 
-        - `beneficiaryId` (recommended for recurring payouts), optionally `bankAccountId`,
+        - `customerId` (recommended for recurring payouts), optionally `bankAccountId`,
         OR
 
         - `destination` (inline bank account for one-off payouts).
@@ -854,18 +854,18 @@ components:
           - PIX
           - OTHER
           example: ACH
-        beneficiaryId:
+        customerId:
           type: string
-          description: Saved beneficiary id for recurring payouts.
+          description: Saved customer id for recurring payouts.
           example: bnf_12345
         bankAccountId:
           type: string
-          description: Optional specific bank account id of the beneficiary.
+          description: Optional specific bank account id of the customer.
           example: ba_67890
         destination:
           type: object
           description: Inline bank account destination (one-off). Mutually exclusive
-            with beneficiaryId.
+            with customerId.
           properties:
             country:
               type: string
@@ -928,8 +928,8 @@ components:
           example: destination
         destinationCurrency:
           type: string
-          description: Currency the beneficiary should receive. If omitted, defaults
-            to `currency` or the beneficiary bank account currency when available.
+          description: Currency the customer should receive. If omitted, defaults
+            to `currency` or the customer bank account currency when available.
           example: MXN
       oneOf:
       - required:
@@ -968,7 +968,7 @@ components:
         rail:
           type: string
           example: ACH
-        beneficiaryId:
+        customerId:
           type: string
           nullable: true
         bankAccountId:
@@ -1286,7 +1286,7 @@ components:
 
 
         Use `amountType` to indicate whether `amount` is the source amount to be debited
-        or the destination amount the beneficiary should receive.
+        or the destination amount the customer should receive.
 
 
         A quote locks the rate until `expiresAt`.'
@@ -2020,7 +2020,7 @@ paths:
                       currency: USD
                       sourceAccountId: acc_123
                       rail: ACH
-                      beneficiaryId: bnf_456
+                      customerId: bnf_456
                       creationDate: '2026-02-25T12:00:00Z'
                       completionDate: '2026-02-25T12:04:50Z'
               cashWithdrawalPickedUp:
@@ -2063,7 +2063,7 @@ paths:
       description: 'Creates a new payout (money-out) using bank rails (e.g. ACH/WIRE).
 
 
-        For recurring payouts, create a Beneficiary + Bank Account once and reference
+        For recurring payouts, create a Customer + Bank Account once and reference
         them by ID.
 
         For one-off payouts, you may provide an inline destination bank account.
@@ -2082,14 +2082,14 @@ paths:
             schema:
               $ref: '#/components/schemas/PayoutRequest'
             examples:
-              create_payout_by_beneficiary:
-                summary: Create a payout using a saved beneficiary
+              create_payout_by_customer:
+                summary: Create a payout using a saved customer
                 value:
                   amount: '1250.00'
                   currency: USD
                   sourceAccountId: acc_123
                   rail: ACH
-                  beneficiaryId: bnf_12345
+                  customerId: bnf_12345
                   bankAccountId: ba_67890
                   externalId: PAYOUT-1001
                   description: Weekly settlement
@@ -2118,7 +2118,7 @@ paths:
                   fxQuoteId: fx_123
                   sourceAccountId: acc_usd_001
                   rail: ACH
-                  beneficiaryId: bnf_12345
+                  customerId: bnf_12345
                   externalId: PAYOUT-2001
                   metadata:
                     invoiceId: INV-0091
@@ -2127,7 +2127,7 @@ paths:
                 value:
                   sourceAccountId: acc_usd_001
                   rail: ACH
-                  beneficiaryId: bnf_12345
+                  customerId: bnf_12345
                   amount: '20000.00'
                   currency: MXN
                   amountType: destination
@@ -2153,7 +2153,7 @@ paths:
                     currency: USD
                     sourceAccountId: acc_123
                     rail: ACH
-                    beneficiaryId: bnf_12345
+                    customerId: bnf_12345
                     bankAccountId: ba_67890
                     description: Weekly settlement
                     metadata:
@@ -2319,25 +2319,25 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
-  /beneficiaries:
+  /customers:
     post:
       tags:
-      - Beneficiaries
-      summary: Create a beneficiary
-      description: Creates a beneficiary to be used as a reusable payout destination
+      - Customers
+      summary: Create a customer
+      description: Creates a customer to be used as a reusable payout destination
         owner.
       externalDocs:
-        description: Beneficiaries guide
-        url: https://docs.dinaria.com/guides/payouts/beneficiaries
+        description: Customers guide
+        url: https://docs.dinaria.com/guides/payouts/customers
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BeneficiaryRequest'
+              $ref: '#/components/schemas/CustomerRequest'
             examples:
-              create_beneficiary:
-                summary: Create a beneficiary
+              create_customer:
+                summary: Create a customer
                 value:
                   type: individual
                   name: John Doe
@@ -2347,18 +2347,18 @@ paths:
                     customerId: CUST-001
       responses:
         '201':
-          description: Beneficiary successfully created.
+          description: Customer successfully created.
           headers:
             Request-Id:
               $ref: '#/components/headers/Request-Id'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BeneficiaryResponse'
+                $ref: '#/components/schemas/CustomerResponse'
               examples:
                 created:
                   value:
-                    beneficiaryId: bnf_12345
+                    customerId: bnf_12345
                     type: individual
                     name: John Doe
                     email: john.doe@example.com
@@ -2381,9 +2381,9 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
     get:
       tags:
-      - Beneficiaries
-      summary: List beneficiaries
-      description: Returns a list of beneficiaries.
+      - Customers
+      summary: List customers
+      description: Returns a list of customers.
       parameters:
       - in: query
         name: limit
@@ -2399,7 +2399,7 @@ paths:
         description: Cursor for pagination.
       responses:
         '200':
-          description: List of beneficiaries.
+          description: List of customers.
           headers:
             Request-Id:
               $ref: '#/components/headers/Request-Id'
@@ -2408,7 +2408,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/BeneficiaryResponse'
+                  $ref: '#/components/schemas/CustomerResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2417,28 +2417,28 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
-  /beneficiaries/{beneficiaryId}:
+  /customers/{customerId}:
     get:
       tags:
-      - Beneficiaries
-      summary: Retrieve a beneficiary
-      description: Retrieves beneficiary details.
+      - Customers
+      summary: Retrieve a customer
+      description: Retrieves customer details.
       parameters:
-      - name: beneficiaryId
+      - name: customerId
         in: path
         required: true
         schema:
           type: string
       responses:
         '200':
-          description: Beneficiary details.
+          description: Customer details.
           headers:
             Request-Id:
               $ref: '#/components/headers/Request-Id'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BeneficiaryResponse'
+                $ref: '#/components/schemas/CustomerResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2449,20 +2449,20 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
-  /beneficiaries/{beneficiaryId}/bank-accounts:
+  /customers/{customerId}/bank-accounts:
     post:
       tags:
-      - Beneficiaries
-      summary: Add a bank account to a beneficiary
-      description: Adds a bank account for a beneficiary. Use the returned bankAccountId
+      - Customers
+      summary: Add a bank account to a customer
+      description: Adds a bank account for a customer. Use the returned bankAccountId
         in payouts.
       parameters:
-      - name: beneficiaryId
+      - name: customerId
         in: path
         required: true
         schema:
           type: string
-        description: Unique identifier of the beneficiary.
+        description: Unique identifier of the customer.
       requestBody:
         required: true
         content:
@@ -2494,7 +2494,7 @@ paths:
                 created:
                   value:
                     bankAccountId: ba_67890
-                    beneficiaryId: bnf_12345
+                    customerId: bnf_12345
                     country: US
                     currency: USD
                     rail: ACH
@@ -2521,11 +2521,11 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
     get:
       tags:
-      - Beneficiaries
-      summary: List bank accounts for a beneficiary
-      description: Returns bank accounts associated with the beneficiary.
+      - Customers
+      summary: List bank accounts for a customer
+      description: Returns bank accounts associated with the customer.
       parameters:
-      - name: beneficiaryId
+      - name: customerId
         in: path
         required: true
         schema:
