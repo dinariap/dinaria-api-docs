@@ -85,7 +85,7 @@ When `true`, the reconciler will match a transfer to this order even if the rece
   "status": "started",
   "amount": "1500.00",
   "currency": "ARS",
-  "coinagReference": "REF-a3f7c821",
+  "bankSystemReference": "REF-a3f7c821",
   "paymentData": {
     "type": "bank_transfer",
     "cbu": "4310009922100000122004",
