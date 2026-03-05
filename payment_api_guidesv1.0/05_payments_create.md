@@ -26,26 +26,42 @@ Idempotency-Key: <uuid>
   Always confirm using webhooks or `GET /payments/{transactionId}`.
 - `paymentMethods` must contain payment method **IDs** (not objects).
 
+## Request fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `amount` | string | ✅ | Decimal amount, e.g. `"1500.00"` |
+| `currency` | string | ✅ | ISO 4217 currency code, e.g. `"ARS"` |
+| `externalId` | string | — | Your own reference for this payment order |
+| `merchantId` | string | — | Target merchant. Set automatically from merchant-scoped API key |
+| `paymentMethods` | array | — | Payment method IDs to offer |
+| `successUrl` | string | — | Redirect URL on success |
+| `cancelUrl` | string | — | Redirect URL on cancellation |
+| `metadata` | object | — | Arbitrary key-value pairs for your records |
+| `customer` | object | — | Customer identity data (see below) |
+| `allowOverUnder` | boolean | — | If `true`, the reconciler will accept an incoming transfer even if the received amount differs slightly from the expected amount. Default: `false`. |
+
+### `allowOverUnder`
+
+When the payer sends an amount slightly above or below the expected value — due to rounding, bank fees, or manual entry — the reconciler normally rejects the match. Setting `allowOverUnder: true` on the payment order tells the reconciler to accept these near-matches. Useful for cash-in flows where exact amounts are hard to control.
+
 ## Example request
 ```json
 {
   "externalId": "ORD-1001",
   "amount": "100.50",
-  "currency": "USD",
-  "paymentMethods": ["pm_card", "pm_wallet"],
+  "currency": "ARS",
   "successUrl": "https://merchant.example/success",
   "cancelUrl": "https://merchant.example/cancel",
+  "allowOverUnder": true,
   "metadata": {
-    "orderId": "ORD-1001",
-    "cartId": "CART-7788"
+    "orderId": "ORD-1001"
   },
   "customer": {
     "firstName": "John",
     "lastName": "Doe",
     "email": "john.doe@example.com",
-    "country": "US",
-    "state": "US-CA",
-    "city": "San Francisco"
+    "cuit": "20123456789"
   }
 }
 ```
