@@ -24,7 +24,7 @@ Content-Type: application/json
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `defaultExpirationHours` | number | — | How many hours an unmatched incoming Coinag transfer is held before being automatically refunded. Must be > 0. Default: `12`. |
+| `defaultExpirationHours` | number | — | How many hours an unmatched incoming bank system transfer is held before being automatically refunded. Must be > 0. Default: `12`. |
 | `refundPolicy` | string | — | `"on_reception"` — refund immediately when no matching payment order is found. `"on_expiration"` — hold the incoming transfer for up to `defaultExpirationHours`, then refund if still unmatched. Default: `"on_reception"`. |
 
 Both fields are optional — send only the ones you want to change.
@@ -35,7 +35,7 @@ Both fields are optional — send only the ones you want to change.
 
 Payment orders (`POST /payments`) never expire on their own — they remain `started` until matched or explicitly cancelled.
 
-**Expiration** applies to **incoming Coinag transfers** (cash-ins) that arrive with no matching order:
+**Expiration** applies to **incoming bank system transfers** (cash-ins) that arrive with no matching order:
 
 - If `refundPolicy = "on_reception"`: the transfer is refunded immediately.
 - If `refundPolicy = "on_expiration"`: the reconciler re-checks for a matching order on every tick for up to `defaultExpirationHours`. If the window passes without a match, the transfer is refunded.

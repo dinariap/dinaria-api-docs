@@ -33,7 +33,7 @@ Idempotency-Key: <uuid>
 | `amount` | string | ✅ | Decimal amount, e.g. `"1500.00"` |
 | `currency` | string | ✅ | ISO 4217 currency code, e.g. `"ARS"` |
 | `merchantId` | string | ✅ | Target merchant ID. Set automatically when using a merchant-scoped API key |
-| `customer.documentNumber` | string | ✅ | Payer's CUIT/CUIL (Argentina). Used by the reconciler to match incoming Coinag transfers to this order |
+| `customer.documentNumber` | string | ✅ | Payer's CUIT/CUIL (Argentina). Used by the reconciler to match incoming bank system transfers to this order |
 | `externalId` | string | — | Your own reference for this payment order |
 | `paymentMethods` | array | — | Payment method IDs to offer |
 | `successUrl` | string | — | Redirect URL on success |
@@ -48,7 +48,7 @@ Idempotency-Key: <uuid>
 
 ### Why `customer.documentNumber` is required
 
-The matching engine links incoming Coinag bank transfers to payment orders using **CUIT + amount**. Without the payer's CUIT, the reconciler has no way to identify which order an incoming transfer belongs to — the payment will never be confirmed automatically.
+The matching engine links incoming bank system transfers to payment orders using **CUIT + amount**. Without the payer's CUIT, the reconciler has no way to identify which order an incoming transfer belongs to — the payment will never be confirmed automatically.
 
 ### `allowOverUnder`
 
