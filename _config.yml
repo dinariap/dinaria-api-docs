@@ -12,3 +12,8 @@ footer_content: "© 2026 Dinaria · support@dinaria.com"
 plugins:
   - jekyll-remote-theme
   - jekyll-include-cache
+
+exclude:
+  - payment_api_guidesv2.1/
+  - payment_api_guidesv1.0/README_STRUCTURE.md
+  - payment_api_guidesv1.0/README_REMOVALS.md
