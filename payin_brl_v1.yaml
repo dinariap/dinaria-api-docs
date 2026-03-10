@@ -15,7 +15,7 @@ info:
     email: operations@dinaria.com
 
 servers:
-  - url: https://pay.dinaria.com
+  - url: https://api.dinaria.com
     description: Production
 
 security:
