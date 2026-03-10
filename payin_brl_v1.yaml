@@ -1,0 +1,449 @@
+openapi: 3.0.3
+info:
+  title: Dinaria Pay-in API — Brazil (BRL)
+  version: 1.0.0
+  description: |
+    API for receiving funds from customers via PIX in Brazil.
+
+    Notes:
+    - Payments are single-use. Create a new payment for each attempt.
+    - BRL payments return a `paymentData` object with a static PIX deposit key.
+      There is no redirect — display the PIX key to the customer directly.
+    - Always confirm payment status via webhooks or GET /payments/{transactionId}.
+      Do not fulfill orders based on `started` status alone.
+  contact:
+    email: operations@dinaria.com
+
+servers:
+  - url: https://pay.dinaria.com
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
+      description: |
+        Include your API key in the Authorization header:
+
+        Authorization: Bearer YOUR_API_KEY
+
+        Your key is scoped to your merchant account. Do not expose it in client-side code.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        UUID v4 that prevents duplicate payments on retry.
+        Always include this on POST /payments.
+      schema:
+        type: string
+
+    TransactionIdPath:
+      name: transactionId
+      in: path
+      required: true
+      description: The transactionId returned when the payment was created.
+      schema:
+        type: string
+
+  schemas:
+    Customer:
+      type: object
+      required:
+        - name
+        - documentNumber
+      properties:
+        name:
+          type: string
+          description: Full name of the payer.
+          example: João Silva
+        documentNumber:
+          type: string
+          description: CPF (11 digits) or CNPJ (14 digits). Formatting punctuation accepted but stripped internally.
+          example: "12345678901"
+        documentType:
+          type: string
+          enum: [CPF, CNPJ]
+          description: Inferred from length if omitted.
+        email:
+          type: string
+          format: email
+          description: Payer email address.
+
+    PaymentData:
+      type: object
+      description: Payment instructions returned for BRL payments.
+      properties:
+        type:
+          type: string
+          enum: [pix_transfer]
+          description: Payment instruction type.
+        pixKey:
+          type: string
+          description: Static PIX deposit key to transfer funds to.
+          example: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        pixKeyType:
+          type: string
+          enum: [random]
+          description: Type of the PIX key.
+        reference:
+          type: string
+          description: |
+            The transactionId. Instruct the customer to include this as the
+            transfer description in their bank app, so the payment can be matched automatically.
+
+    PaymentRequest:
+      type: object
+      required:
+        - amount
+        - currency
+        - customer
+      properties:
+        amount:
+          type: string
+          description: Decimal string with two decimal places.
+          example: "100.00"
+        currency:
+          type: string
+          enum: [BRL]
+          description: ISO 4217 currency code.
+        customer:
+          $ref: "#/components/schemas/Customer"
+        externalId:
+          type: string
+          description: Your internal order or checkout reference. Returned in responses and webhooks.
+          example: ORD-1001
+        metadata:
+          type: object
+          description: Free-form key-value pairs. Returned in responses and webhooks.
+          additionalProperties:
+            type: string
+
+    PaymentResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          description: Platform-generated payment identifier. Store this.
+        externalId:
+          type: string
+          description: Your internal order reference, mirrored from the request.
+          example: ORD-1001
+        status:
+          type: string
+          enum: [started, confirmed, cancelled, expired]
+          description: |
+            Current payment status.
+            - started: Payment created. Awaiting customer PIX transfer.
+            - confirmed: PIX transfer received and matched. Terminal state.
+            - cancelled: Payment cancelled or failed. Terminal state.
+            - expired: Payment expired before customer completed it. Terminal state.
+        amount:
+          type: string
+          description: Payment amount.
+        currency:
+          type: string
+          description: Payment currency.
+        paymentData:
+          $ref: "#/components/schemas/PaymentData"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    WebhookRegistrationRequest:
+      type: object
+      required:
+        - webhookUrl
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+          description: URL on your server where payment status updates will be delivered.
+
+    WebhookRegistrationResponse:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+        webhookSecret:
+          type: string
+          description: |
+            Secret used to verify webhook signatures. Shown only once — store it securely.
+            Cannot be retrieved again.
+          example: whsec_9f3c2a1b7d5e4c3a...
+        createdAt:
+          type: string
+          format: date-time
+
+    WebhookPaymentEvent:
+      type: object
+      description: |
+        Event delivered by the platform to your registered webhook URL when a payment changes status.
+        Delivered at-least-once — your handler must be idempotent (deduplicate by transactionId).
+      properties:
+        transactionId:
+          type: string
+        externalId:
+          type: string
+          example: ORD-1001
+        status:
+          type: string
+          enum: [started, confirmed, cancelled, expired]
+        amount:
+          type: string
+        currency:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: invalid_request
+            message:
+              type: string
+              example: Invalid request payload.
+            param:
+              type: string
+              nullable: true
+
+paths:
+  /payments:
+    post:
+      summary: Create a payment
+      description: |
+        Creates a BRL payment order. Returns a `paymentData` object containing the
+        static PIX deposit key and a reference.
+
+        Display `paymentData.pixKey` to the customer and instruct them to initiate a
+        PIX transfer in their bank app using `paymentData.reference` as the transfer description.
+
+        The payment is matched automatically once the transfer is received.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
+            examples:
+              brl_cpf:
+                summary: BRL payment — CPF customer
+                value:
+                  amount: "100.00"
+                  currency: BRL
+                  externalId: ORD-1001
+                  customer:
+                    name: João Silva
+                    documentNumber: "12345678901"
+                  metadata:
+                    orderId: ORD-1001
+      responses:
+        "200":
+          description: Payment created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+              examples:
+                created:
+                  value:
+                    transactionId: f90c7c31-7a38-46dc-99ba-188a4c99da29
+                    externalId: ORD-1001
+                    status: started
+                    amount: "100.00"
+                    currency: BRL
+                    paymentData:
+                      type: pix_transfer
+                      pixKey: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+                      pixKeyType: random
+                      reference: f90c7c31-7a38-46dc-99ba-188a4c99da29
+                    metadata:
+                      orderId: ORD-1001
+        "400":
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Currency not enabled for this account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Idempotency-Key reused with a different request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "5XX":
+          description: Server error. Safe to retry with the same Idempotency-Key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/{transactionId}:
+    get:
+      summary: Retrieve a payment
+      description: |
+        Returns the current state of a payment.
+
+        Use this to check status after creation or to reconcile if webhooks are delayed.
+        Prefer webhooks for production integrations — do not poll aggressively.
+      parameters:
+        - $ref: "#/components/parameters/TransactionIdPath"
+      responses:
+        "200":
+          description: Payment details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+              examples:
+                confirmed:
+                  value:
+                    transactionId: f90c7c31-7a38-46dc-99ba-188a4c99da29
+                    externalId: ORD-1001
+                    status: confirmed
+                    amount: "100.00"
+                    currency: BRL
+                    metadata:
+                      orderId: ORD-1001
+        "401":
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Payment not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /webhooks/payments:
+    post:
+      summary: Register a webhook URL
+      description: |
+        Registers the URL on your server where the platform will deliver payment status events.
+
+        Call this once during setup, and again if your URL changes.
+        This endpoint configures delivery — it does not deliver any events itself.
+
+        The `webhookSecret` is returned only once. Store it securely in a secret manager.
+        You will use it to verify the signature on every incoming webhook event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookRegistrationRequest"
+            examples:
+              register:
+                value:
+                  webhookUrl: https://your-server.com/webhooks/payments
+      responses:
+        "201":
+          description: Webhook registered. Save the webhookSecret — shown only once.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookRegistrationResponse"
+              examples:
+                registered:
+                  value:
+                    webhookUrl: https://your-server.com/webhooks/payments
+                    webhookSecret: whsec_9f3c2a1b7d5e4c3a...
+                    createdAt: "2026-01-16T18:00:00Z"
+        "400":
+          description: Invalid webhook URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /webhooks/payments/updates:
+    post:
+      summary: Receive payment status events (called by the platform)
+      description: |
+        This endpoint is on YOUR server. The platform calls it when a payment changes status.
+        Do not call this endpoint yourself.
+
+        Signature verification (before processing any event):
+        1. Read the raw request body — do not parse first.
+        2. Check X-Webhook-Timestamp is within ±5 minutes of now.
+        3. Build signed payload: <timestamp>.<raw_body>
+        4. Compute HMAC_SHA256(webhookSecret, signed_payload)
+        5. Compare with the v1= value in X-Webhook-Signature using constant-time comparison.
+        6. Reject if verification fails.
+
+        Respond with HTTP 200 immediately. Process the event asynchronously.
+        Delivery is at-least-once — deduplicate by transactionId.
+      parameters:
+        - name: X-Webhook-Timestamp
+          in: header
+          required: true
+          description: Unix timestamp in seconds.
+          schema:
+            type: integer
+        - name: X-Webhook-Signature
+          in: header
+          required: true
+          description: "Format: t=<timestamp>,v1=<hex_hmac_sha256>"
+          schema:
+            type: string
+          example: t=1737000000,v1=9d0c...ab12
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookPaymentEvent"
+            examples:
+              confirmed:
+                value:
+                  transactionId: f90c7c31-7a38-46dc-99ba-188a4c99da29
+                  externalId: ORD-1001
+                  status: confirmed
+                  amount: "100.00"
+                  currency: BRL
+                  metadata:
+                    orderId: ORD-1001
+      responses:
+        "200":
+          description: Event received. Always respond 200 quickly.
