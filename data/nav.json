@@ -30,17 +30,16 @@
   {
     "title": "Money In",
     "children": [
-      { "title": "Overview",                "file": "content/04_payments_overview.md" },
-      { "title": "Getting Started",         "file": "content/01_getting_started.md" },
+      { "title": "Overview",                 "file": "content/04_payments_overview.md" },
+      { "title": "Getting Started",          "file": "content/01_getting_started.md" },
       { "title": "Quickstart: First Payment","file": "content/02_quickstart_first_payment.md" },
-      { "title": "Payment Lifecycle",       "file": "content/03_payment_lifecycle_states.md" },
-      { "title": "Create a Payment",        "file": "content/05_payments_create.md" },
-      { "title": "Redirect Flow",           "file": "content/06_payments_redirect_flow.md" },
-      { "title": "Retrieve a Payment",      "file": "content/07_payments_retrieve.md" },
-      { "title": "Errors & Retries",        "file": "content/12_errors_and_retries.md" },
-      { "title": "Best Practices",          "file": "content/14_payment_best_practices.md" },
-      { "title": "Step-by-Step Example",    "file": "content/15_step_by_step_payment_example.md" },
-      { "title": "Merchant Tools",          "file": "content/tools.md" }
+      { "title": "Payment Lifecycle",        "file": "content/03_payment_lifecycle_states.md" },
+      { "title": "Create a Payment",         "file": "content/05_payments_create.md" },
+      { "title": "Redirect Flow",            "file": "content/06_payments_redirect_flow.md" },
+      { "title": "Retrieve a Payment",       "file": "content/07_payments_retrieve.md" },
+      { "title": "Errors & Retries",         "file": "content/12_errors_and_retries.md" },
+      { "title": "Best Practices",           "file": "content/14_payment_best_practices.md" },
+      { "title": "Step-by-Step Example",     "file": "content/15_step_by_step_payment_example.md" }
     ]
   },
 
@@ -58,14 +57,22 @@
   {
     "title": "Webhooks",
     "children": [
-      { "title": "Overview",                "file": "content/08_webhooks_overview.md" },
-      { "title": "Registration",            "file": "content/09_webhooks_registration.md" },
-      { "title": "Receiving",               "file": "content/10_webhooks_receiving.md" },
-      { "title": "Security",                "file": "content/13_webhooks_security.md" },
-      { "title": "Verification Examples",   "file": "content/webkhooks-vexamples.md" },
-      { "title": "Best Practices",          "file": "content/11_webhooks_best_practices.md" },
-      { "title": "Rotate Secret",           "file": "content/11_rotate-webhook-secret.md" },
-      { "title": "Event Types",             "file": "content/35_webhook_event_types.md" }
+      { "title": "Overview",              "file": "content/08_webhooks_overview.md" },
+      { "title": "Registration",          "file": "content/09_webhooks_registration.md" },
+      { "title": "Receiving",             "file": "content/10_webhooks_receiving.md" },
+      { "title": "Security",              "file": "content/13_webhooks_security.md" },
+      { "title": "Verification Examples", "file": "content/webkhooks-vexamples.md" },
+      { "title": "Best Practices",        "file": "content/11_webhooks_best_practices.md" },
+      { "title": "Rotate Secret",         "file": "content/11_rotate-webhook-secret.md" },
+      { "title": "Event Types",           "file": "content/35_webhook_event_types.md" }
+    ]
+  },
+
+  {
+    "title": "Accounts",
+    "children": [
+      { "title": "Balance",         "file": "content/20_balance.md" },
+      { "title": "Merchant Tools",  "file": "content/tools.md" }
     ]
   },
 
