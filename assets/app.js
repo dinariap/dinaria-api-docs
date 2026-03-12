@@ -27,6 +27,9 @@ function applyCountry(c) {
   });
 }
 
+/* ── Marked config — allow HTML blocks ──────────────────────────── */
+marked.use({ breaks: false, gfm: true, html: true });
+
 /* ── Bootstrap ──────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   NAV = await fetchNav();
@@ -144,7 +147,7 @@ async function loadPage(file, title) {
     let md = await r.text();
     // Strip Jekyll / YAML front matter (handles optional leading whitespace)
     md = md.replace(/^\s*---[\s\S]*?---\s*\n?/, '');
-    inner.innerHTML = marked.parse(md);
+    inner.innerHTML = marked.parse(md, { html: true });
 
     const h1 = inner.querySelector('h1');
     document.getElementById('topbar-title').textContent =
