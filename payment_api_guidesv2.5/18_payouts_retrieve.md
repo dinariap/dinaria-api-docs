@@ -6,7 +6,6 @@ parent: Money Out
 
 # Retrieve & List Payouts
 
-{% include country_toggle.html %}
 
 ---
 

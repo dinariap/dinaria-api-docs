@@ -6,7 +6,6 @@ parent: Money Out
 
 # Create a Payout
 
-{% include country_toggle.html %}
 
 `POST /payouts`
 

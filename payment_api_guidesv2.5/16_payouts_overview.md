@@ -6,7 +6,6 @@ parent: Money Out
 
 # Payouts Overview
 
-{% include country_toggle.html %}
 
 A payout sends money from your Dinaria merchant balance to a recipient via the local payment rail.
 

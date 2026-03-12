@@ -6,7 +6,6 @@ parent: Guides
 
 # Create a payment
 
-{% include country_toggle.html %}
 
 Use this endpoint to create a payment and start a checkout flow.
 

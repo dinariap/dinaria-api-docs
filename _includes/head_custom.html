@@ -1,0 +1,54 @@
+<script>
+// Inject country toggle bar into main content on every page
+(function () {
+  var STORAGE_KEY = 'dinaria_country';
+  var COUNTRIES = ['ar', 'br'];
+
+  function applyFilter(country) {
+    COUNTRIES.forEach(function (c) {
+      document.querySelectorAll('.country-' + c).forEach(function (el) {
+        el.style.display = (country && country !== c) ? 'none' : '';
+      });
+      var btn = document.getElementById('country-btn-' + c);
+      if (btn) btn.classList.toggle('active', country === c);
+    });
+    var hint = document.getElementById('country-hint');
+    if (hint) hint.textContent = country ? 'Click again to show all' : 'Click to filter · click again to show all';
+  }
+
+  function selectCountry(country) {
+    var current = localStorage.getItem(STORAGE_KEY);
+    var next = (current === country) ? null : country;
+    next ? localStorage.setItem(STORAGE_KEY, next) : localStorage.removeItem(STORAGE_KEY);
+    applyFilter(next);
+  }
+
+  function injectToggle() {
+    if (document.getElementById('country-toggle')) return;
+    var main = document.getElementById('main-content');
+    if (!main) return;
+
+    var bar = document.createElement('div');
+    bar.id = 'country-toggle';
+    bar.innerHTML =
+      '<span class="toggle-label">Show:</span>' +
+      '<button id="country-btn-ar" data-country="ar">&#127462;&#127479; Argentina</button>' +
+      '<button id="country-btn-br" data-country="br">&#127463;&#127479; Brasil</button>' +
+      '<span class="toggle-hint" id="country-hint">Click to filter &middot; click again to show all</span>';
+
+    bar.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-country]');
+      if (btn) selectCountry(btn.dataset.country);
+    });
+
+    main.insertBefore(bar, main.firstChild);
+    applyFilter(localStorage.getItem(STORAGE_KEY));
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectToggle);
+  } else {
+    injectToggle();
+  }
+})();
+</script>
