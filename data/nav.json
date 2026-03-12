@@ -72,7 +72,7 @@
     "title": "Accounts",
     "children": [
       { "title": "Balance",         "file": "content/20_balance.md" },
-      { "title": "Merchant Tools",  "file": "content/tools.md" }
+      { "title": "Tools",  "file": "content/tools.md" }
     ]
   },
 
