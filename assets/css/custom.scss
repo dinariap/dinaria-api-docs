@@ -19,3 +19,61 @@
 .footer {
   font-size: 12px;
 }
+
+/* ── Country toggle ───────────────────────────────────────────────────── */
+#country-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 1.5rem 0;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+#country-toggle .toggle-label {
+  color: #64748b;
+  font-weight: 500;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+#country-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.83rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+#country-toggle button:hover {
+  border-color: #1b6ff0;
+  color: #1b6ff0;
+}
+
+#country-toggle button.active {
+  background: #1b6ff0;
+  border-color: #1b6ff0;
+  color: #ffffff;
+}
+
+#country-toggle .toggle-hint {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  margin-left: auto;
+}
+
+/* Country sections */
+.country-ar,
+.country-br {
+  transition: opacity 0.15s;
+}

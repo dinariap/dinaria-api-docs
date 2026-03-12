@@ -1,10 +1,12 @@
 ---
 title: Retrieve & List Payouts
 nav_order: 3
-parent: Payouts
+parent: Money Out
 ---
 
 # Retrieve & List Payouts
+
+{% include country_toggle.html %}
 
 ---
 
@@ -15,30 +17,67 @@ parent: Payouts
 Returns the current state of a payout.
 
 ```http
-GET /payouts/1078d6c2-a452-44fb-94f4-525390231ce2
-Authorization: Bearer sk_live_<your-merchant-key>
+GET /payouts/d1e2f3a4-b5c6-7890-abcd-ef0123456789
+Authorization: Bearer di_live_<your-merchant-key>
 ```
 
-### Response
+<div class="country-ar" markdown="1">
+
+### Response — ARS completed
 
 ```json
 {
   "id": "1078d6c2-a452-44fb-94f4-525390231ce2",
-  "accountId": "paypaga",
-  "merchantId": "merchant1",
+  "accountId": "acme_ars",
+  "merchantId": "acme_ars_merch1",
   "amount": "1500.00",
   "currency": "ARS",
-  "destinationCbu": "0070327530004025541644",
-  "destinationName": "Gerardo Ratto",
-  "destinationCuit": "20221370075",
+  "destination": {
+    "identifierType": "cbu",
+    "identifierValue": "0070327530004025541644",
+    "taxId": "20221370075",
+    "taxIdCountry": "AR",
+    "name": "Ana Martínez"
+  },
   "status": "completed",
   "bankSystemTrxId": "3D5W612E65ZJKDJW2GXYVR",
   "attempts": 1,
-  "submittedAt": "2026-02-25T12:00:15Z",
-  "completedAt": "2026-02-25T12:00:18Z",
-  "createdAt": "2026-02-25T12:00:00Z"
+  "createdAt": "2026-03-10T15:00:00Z",
+  "submittedAt": "2026-03-10T15:00:05Z",
+  "completedAt": "2026-03-10T15:00:08Z"
 }
 ```
+
+</div>
+
+<div class="country-br" markdown="1">
+
+### Response — BRL completed
+
+```json
+{
+  "id": "d1e2f3a4-b5c6-7890-abcd-ef0123456789",
+  "accountId": "acme_br",
+  "merchantId": "acme_br_merch1",
+  "amount": "2.00",
+  "currency": "BRL",
+  "destination": {
+    "identifierType": "pix_key_cpf",
+    "identifierValue": "98765432100",
+    "taxId": "98765432100",
+    "taxIdCountry": "BR",
+    "name": "Carlos Menezes"
+  },
+  "status": "completed",
+  "bankSystemTrxId": "f4e3d2c1-b0a9-8765-4321-fedcba987654",
+  "attempts": 1,
+  "createdAt": "2026-03-11T23:01:17Z",
+  "submittedAt": "2026-03-11T23:01:32Z",
+  "completedAt": "2026-03-11T23:01:44Z"
+}
+```
+
+</div>
 
 ---
 
@@ -46,20 +85,30 @@ Authorization: Bearer sk_live_<your-merchant-key>
 
 `GET /payouts`
 
-Returns your payouts, most recent first. Use query parameters to filter.
+Returns your payouts, most recent first.
 
 ```http
 GET /payouts?status=pending&limit=20
-Authorization: Bearer sk_live_<your-merchant-key>
+Authorization: Bearer di_live_<your-merchant-key>
 ```
 
 ### Query parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | Filter by status: `pending`, `completed`, `failed`, `cancelled` |
+| `status` | string | Filter by status: `pending`, `processing`, `completed`, `failed`, `cancelled` |
 | `limit` | integer | Max results (1–200, default 50) |
-| `startingAfter` | string | Cursor for pagination (payout ID) |
+| `startingAfter` | string | Cursor for pagination — pass the `id` of the last item in the previous page |
+
+### Response
+
+```json
+{
+  "object": "list",
+  "data": [ ... ],
+  "hasMore": false
+}
+```
 
 ---
 
@@ -67,14 +116,21 @@ Authorization: Bearer sk_live_<your-merchant-key>
 
 `POST /payouts/{payoutId}/cancel`
 
-Attempts to cancel a payout. Only payouts still in **`pending`** status (not yet submitted to the CBU rail) can be cancelled. Once submitted, cancellation is not possible.
+Cancels a payout that is still in **`pending`** status — before the processor submits it to the payment network. Once it reaches `processing` or `completed`, cancellation is not possible.
 
 ```http
-POST /payouts/1078d6c2-a452-44fb-94f4-525390231ce2/cancel
-Authorization: Bearer sk_live_<your-merchant-key>
+POST /payouts/d1e2f3a4-b5c6-7890-abcd-ef0123456789/cancel
+Authorization: Bearer di_live_<your-merchant-key>
 ```
 
-On success the payout moves to `cancelled` and the reserved amount is returned to your merchant balance.
+On success the payout moves to `cancelled` and the reserved amount is immediately returned to your merchant balance.
+
+**Error responses:**
+
+| Status | Code | Cause |
+|--------|------|-------|
+| `404` | `not_found` | Payout not found. |
+| `409` | `not_cancelable` | Payout is not in `pending` status. |
 
 ---
 
@@ -82,11 +138,27 @@ On success the payout moves to `cancelled` and the reserved amount is returned t
 
 | Field | Description |
 |-------|-------------|
-| `id` | Unique payout identifier. |
-| `status` | Current status: `pending`, `completed`, `failed`, `cancelled`. |
-| `bankSystemTrxId` | CBU transfer transaction ID (set after submission). |
-| `attempts` | Number of submission attempts made. |
-| `submittedAt` | Timestamp when the transfer was first submitted. |
-| `completedAt` | Timestamp when the transfer was confirmed. |
-| `errorMessage` | Populated on `failed` payouts; describes the failure reason. |
-| `createdAt` | Timestamp when the payout was created. |
+| `id` | Unique payout identifier (UUID — no prefix). |
+| `accountId` | Account that owns this payout. |
+| `merchantId` | Merchant the payout was created for. |
+| `amount` | Payout amount as a decimal string. |
+| `currency` | `ARS` or `BRL`. |
+| `destination` | Object with `identifierType`, `identifierValue`, `taxId`, `taxIdCountry`, `name`. |
+| `status` | See status table below. |
+| `bankSystemTrxId` | Banking/payment network transaction ID, set on completion. **ARS**: COELSA clearing ID. **BRL**: PIX network transaction ID. |
+| `errorMessage` | Present when `status` is `failed`. Describes the rejection reason. |
+| `attempts` | Number of submission attempts made. Max 3 before permanent failure. |
+| `externalId` | Your reference, if provided at creation. |
+| `createdAt` | When the payout was created. |
+| `submittedAt` | When the payout was first submitted to the payment network. |
+| `completedAt` | When the transfer was confirmed. |
+
+### Status values
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Queued. Balance reserved. Not yet submitted. |
+| `processing` | Submitted to the payment network (BRL only). Awaiting confirmation. |
+| `completed` | Transfer confirmed. Terminal. |
+| `failed` | Permanently rejected after 3 attempts. Balance restored. Terminal. |
+| `cancelled` | Cancelled before processing. Balance restored. Terminal. |
