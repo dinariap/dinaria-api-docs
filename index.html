@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dinaria API Docs</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico"/>
+  <link rel="stylesheet" href="assets/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+  <!-- Overlay for mobile sidebar -->
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a class="logo" href="#" onclick="goHome(); return false;">
+        <img src="assets/logo-dinaria.png" alt="Dinaria" class="logo-img"/>
+      </a>
+    </div>
+    <nav class="nav-tree" id="nav-tree"></nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="layout">
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+      <span class="topbar-title" id="topbar-title">Dinaria API Docs</span>
+    </header>
+    <main class="content" id="content">
+      <div class="content-inner" id="content-inner">
+        <div class="loading">Loading…</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

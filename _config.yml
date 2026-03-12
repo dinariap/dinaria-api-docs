@@ -15,6 +15,6 @@ plugins:
 
 exclude:
   - payment_api_guidesv2.1/
-  - payment_api_guidesv1.0/
-  - payment_api_guidesv2.5/README_STRUCTURE.md
-  - payment_api_guidesv2.5/README_REMOVALS.md
+  - payment_api_guidesv2.5/
+  - payment_api_guidesv1.0/README_STRUCTURE.md
+  - payment_api_guidesv1.0/README_REMOVALS.md
