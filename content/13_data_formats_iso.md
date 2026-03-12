@@ -3,7 +3,9 @@ title: Data Formats
 nav_order: 7
 ---
 
-# Data formats — Argentina
+# Data Formats
+
+<div class="country-ar">
 
 ## Currency
 
@@ -16,7 +18,7 @@ nav_order: 7
 | DNI       | 7–8 digits                | `12345678`       |
 | CUIT/CUIL | 11 digits (XX-XXXXXXXX-X) | `20-12345678-9`  |
 
-No spaces; use hyphens for CUIT/CUIL as shown.
+Digits only; hyphens for CUIT/CUIL are accepted but stripped internally.
 
 ## Bank account identifiers
 
@@ -27,25 +29,26 @@ No spaces; use hyphens for CUIT/CUIL as shown.
 
 Digits only; no spaces or dashes.
 
-## Payment destination
-
-When creating a payout, provide either a CBU or CVU:
+## Payout destination
 
 ```json
 {
   "destination": {
-    "cbu": "0000003100012345678901"
+    "identifierType": "cbu",
+    "identifierValue": "0070327530004025541644",
+    "name": "Ana Martínez",
+    "taxId": "20123456789"
   }
 }
 ```
 
 ## Amounts
 
-Decimal string, e.g. `"100.50"`. Two decimal places for ARS.
+Decimal string, e.g. `"1500.50"`. Two decimal places for ARS.
 
----
+</div>
 
-# Data formats — Brazil
+<div class="country-br">
 
 ## Currency
 
@@ -53,28 +56,28 @@ Decimal string, e.g. `"100.50"`. Two decimal places for ARS.
 
 ## Document numbers
 
-| Type  | Format                      | Example              |
-|-------|-----------------------------|----------------------|
-| CPF   | 11 digits (XXX.XXX.XXX-XX)  | `123.456.789-09`     |
+| Type  | Format                         | Example              |
+|-------|--------------------------------|----------------------|
+| CPF   | 11 digits (XXX.XXX.XXX-XX)     | `123.456.789-09`     |
 | CNPJ  | 14 digits (XX.XXX.XXX/XXXX-XX) | `58.084.921/0001-60` |
 
 Digits only when sending via API; formatting punctuation is accepted but stripped internally.
 
-## Payment keys (PIX)
+## PIX key types
 
-PIX keys are used to receive payments. Supported key types:
+| `identifierType`   | Example                                |
+|--------------------|----------------------------------------|
+| `pix_key_cpf`      | `12345678909`                          |
+| `pix_key_cnpj`     | `58084921000160`                       |
+| `pix_key_phone`    | `+5511999999999`                       |
+| `pix_key_email`    | `payer@example.com`                    |
+| `pix_key_random`   | `bc8ba248-fb33-4022-bea1-c9fab2efd341` |
 
-| Type        | Example                                |
-|-------------|----------------------------------------|
-| CPF         | `12345678909`                          |
-| CNPJ        | `58084921000160`                       |
-| Phone       | `+5511999999999`                       |
-| Email       | `payer@example.com`                    |
-| Random key  | `bc8ba248-fb33-4022-bea1-c9fab2efd341` |
+For `pix_key_phone`, `pix_key_email`, and `pix_key_random`, `taxId` (CPF/CNPJ) is required.
 
-## Payment method
+## Pay-in — PIX response
 
-BRL payments use PIX via a static deposit key. The API response includes a `paymentData` object with the PIX key to send funds to and the `transactionId` as the payment reference.
+BRL payments use PIX via a static deposit key. The `paymentData` object contains the key and reference:
 
 ```json
 {
@@ -91,24 +94,33 @@ BRL payments use PIX via a static deposit key. The API response includes a `paym
 }
 ```
 
-The payer opens their bank app, selects PIX, enters the key, and sends exactly the requested amount. Payment confirmation arrives via webhook once the transfer is matched.
+The customer opens their bank app, selects PIX, enters the key, and sends exactly the requested amount. Payment confirmation arrives via webhook once the transfer is matched.
+
+## Payout destination
+
+```json
+{
+  "destination": {
+    "identifierType": "pix_key_cpf",
+    "identifierValue": "12345678901",
+    "name": "João Silva"
+  }
+}
+```
 
 ## Amounts
 
 Decimal string, e.g. `"100.50"`. Two decimal places for BRL.
 
+</div>
+
 ---
 
-# Data formats (ISO standards)
+## ISO standards (both countries)
 
-### Country
-ISO 3166-1 alpha-2 (e.g. `AR`, `UY`, `MX`).
-
-### State / region
-Recommended: ISO 3166-2 (e.g. `AR-B`, `AR-C`). If the merchant does not know the ISO code, send a commonly used region name.
-
-### City
-Free-text string (no universally practical standard for city codes).
-
-### Currency
-ISO 4217 (e.g. `ARS`, `USD`).
+| Field          | Standard                | Example          |
+|----------------|-------------------------|------------------|
+| Country        | ISO 3166-1 alpha-2      | `AR`, `BR`       |
+| State / region | ISO 3166-2 (recommended)| `AR-B`, `BR-SP`  |
+| City           | Free-text string        | `Buenos Aires`   |
+| Currency       | ISO 4217                | `ARS`, `BRL`     |
