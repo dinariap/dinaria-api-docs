@@ -324,6 +324,41 @@ body {
 }
 .nav-link-apiref:hover { color: #93c5fd !important; }
 
+/* ── Country toggle ──────────────────────────────────────────────── */
+.country-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 20px;
+}
+
+.country-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 20px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s, color .15s;
+  font-family: inherit;
+}
+.country-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+.country-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
 /* ── Mobile ──────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   body { display: block; }

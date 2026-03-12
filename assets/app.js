@@ -7,10 +7,31 @@ const DEFAULT_PAGE = 'content/index.md';
 const REDOC_CDN    = 'https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js';
 const SPEC_URL     = 'dinaria_api_v1.yaml';
 
+/* ── Country filter ─────────────────────────────────────────────── */
+const COUNTRY_KEY = 'dinaria_country';
+
+function selectCountry(c) {
+  const current = localStorage.getItem(COUNTRY_KEY);
+  const next = current === c ? null : c;
+  next ? localStorage.setItem(COUNTRY_KEY, next) : localStorage.removeItem(COUNTRY_KEY);
+  applyCountry(next);
+}
+
+function applyCountry(c) {
+  ['ar', 'br'].forEach(code => {
+    const btn = document.getElementById('cbtn-' + code);
+    if (btn) btn.classList.toggle('active', c === code);
+    document.querySelectorAll('.country-' + code).forEach(el => {
+      el.style.display = (c && c !== code) ? 'none' : '';
+    });
+  });
+}
+
 /* ── Bootstrap ──────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   NAV = await fetchNav();
   renderNav();
+  applyCountry(localStorage.getItem(COUNTRY_KEY));
 
   const hash = decodeURIComponent(window.location.hash.slice(1));
   if (hash === 'apiref') {
@@ -143,6 +164,7 @@ async function loadPage(file, title) {
       }
     });
 
+    applyCountry(localStorage.getItem(COUNTRY_KEY));
     document.getElementById('content').scrollTop = 0;
   } catch (e) {
     inner.innerHTML = `<div class="error-msg">
