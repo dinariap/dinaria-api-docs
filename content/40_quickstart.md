@@ -12,31 +12,58 @@ Dinaria supports two independent capabilities:
 - **Payments (Pay-in)** — receive funds from customers
 - **Payouts (Money-out)** — send funds to recipients
 
-These flows can be integrated independently.
-
-Typical money movement looks like this:
-
-Pay-in → Balance → Payout
-        ↑
-     Prefunding
-
 ---
 
-# 1. Authentication
+## 1. Authentication
 
-All API requests must include your API key.
+All API requests must include your API key in the `Authorization` header.
 
-Example request:
-
-POST /payments
-Authorization: Bearer YOUR_API_KEY
+```http
+Authorization: Bearer di_live_<your-api-key>
 Content-Type: application/json
+```
 
 ---
 
-# 2. Create your first payment (Pay-in)
+## 2. Create your first payment
 
-POST /payments
+`POST /payments`
+
+<div class="country-ar">
+
+### Argentina (ARS)
+
+```json
+{
+  "amount": "1500.00",
+  "currency": "ARS",
+  "externalId": "ORD-1001",
+  "customer": {
+    "name": "Juan Pérez",
+    "documentNumber": "20123456789"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
+  "status": "started",
+  "amount": "1500.00",
+  "currency": "ARS",
+  "actionUrl": "https://pay.dinaria.com/checkout/f90c7c31-7a38-46dc-99ba-188a4c99da29"
+}
+```
+
+Redirect the customer to `actionUrl`. They will see CBU/CVU bank transfer instructions with a reference number to include in the transfer description.
+
+</div>
+
+<div class="country-br">
+
+### Brasil (BRL)
 
 ```json
 {
@@ -50,7 +77,7 @@ POST /payments
 }
 ```
 
-Example response (BRL):
+**Response:**
 
 ```json
 {
@@ -60,74 +87,83 @@ Example response (BRL):
   "currency": "BRL",
   "paymentData": {
     "type": "pix_transfer",
-    "pixKey": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "pixKey": "bc8ba248-fb33-4022-bea1-c9fab2efd341",
     "pixKeyType": "random",
     "reference": "f90c7c31-7a38-46dc-99ba-188a4c99da29"
   }
 }
 ```
 
-> **Note:** Response fields differ by country and contracted services. ARS payments include `actionUrl` (hosted checkout with bank transfer instructions). BRL payments include `paymentData` with a static PIX deposit key.
+Display `paymentData.pixKey` to the customer. Instruct them to open their bank app, initiate a PIX transfer to that key, and use `paymentData.reference` as the transfer description. The payment is matched automatically once received.
+
+</div>
 
 ---
 
-# 3. Complete the payment
+## 3. Receive payment confirmation
 
-**ARS:** Redirect the customer to `actionUrl`. The hosted page shows bank transfer instructions (CBU + reference).
+Listen for the webhook event:
 
-**BRL:** Display the `paymentData.pixKey` to the customer and instruct them to initiate a PIX transfer in their bank app, using `paymentData.reference` as the transfer description.
+```
+payment.status_changed  (status: "confirmed")
+```
 
----
-
-# 4. Receive payment confirmation
-
-Webhook event:
-
-payment.succeeded
+Always confirm status via webhook or `GET /payments/{transactionId}` — never rely solely on a redirect.
 
 ---
 
-# 5. Send your first payout
+## 4. Send your first payout
 
-## Create beneficiary
+`POST /payouts`
 
-POST /beneficiaries
+Requires a **merchant-scoped API key** with payouts enabled.
+
+<div class="country-ar">
+
+### Argentina (ARS)
 
 ```json
 {
-  "firstName": "Maria",
-  "lastName": "Silva"
+  "amount": "1500.00",
+  "currency": "ARS",
+  "destination": {
+    "identifierType": "cbu",
+    "identifierValue": "0070327530004025541644",
+    "name": "Ana Martínez"
+  }
 }
 ```
 
-## Add destination
+ARS payouts are **synchronous** — status goes directly from `pending` to `completed`.
 
-POST /beneficiaries/{beneficiaryId}/proxy-keys
+</div>
 
-```json
-{
-  "scheme": "PIX",
-  "keyType": "EMAIL",
-  "key": "maria@email.com"
-}
-```
+<div class="country-br">
 
-## Create payout
-
-POST /payouts
+### Brasil (BRL)
 
 ```json
 {
   "amount": "100.00",
   "currency": "BRL",
-  "beneficiaryId": "ben_123"
+  "destination": {
+    "identifierType": "pix_key_cpf",
+    "identifierValue": "12345678901",
+    "name": "João Silva"
+  }
 }
 ```
 
+BRL payouts are **asynchronous** — status moves to `processing` after submission, then to `completed` once the PIX network confirms (typically within seconds).
+
+</div>
+
 ---
 
-# 6. Receive payout confirmation
+## 5. Receive payout confirmation
 
-Webhook event:
+Listen for the webhook event:
 
-payout.completed
+```
+payout.status_changed  (status: "completed")
+```
