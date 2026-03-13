@@ -142,7 +142,7 @@ async function loadPage(file, title) {
   inner.innerHTML = '<div class="loading">Loading…</div>';
 
   try {
-    const r = await fetch(file);
+    const r = await fetch(file, { cache: 'no-cache' });
     if (!r.ok) throw new Error(`${r.status} — ${file}`);
     let md = await r.text();
     // Strip Jekyll / YAML front matter (handles optional leading whitespace)
