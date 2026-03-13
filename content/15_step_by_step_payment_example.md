@@ -4,25 +4,22 @@ nav_order: 17
 parent: Guides
 ---
 
-# Step-by-step payment example (for merchants)
+# Step-by-step payment example
 
-This guide shows a complete, minimal flow using curl: register webhook, create a payment,
-redirect the customer, and confirm the final status.
+A complete minimal flow: register webhook, create a payment, instruct the customer, and confirm the final status.
 
-## 1) Choose your environment
-1. Sandbox: `https://api.sandbox.dinaria.com/v1`
-2. Production: `https://api.dinaria.com/v1`
+---
 
-Set your base URL and API key once:
+## 1. Set your environment
 
 ```bash
-BASE_URL="https://api.sandbox.dinaria.com/v1"
-API_KEY="di_test_xxx"
+BASE_URL="https://pay.dinaria.com"
+API_KEY="di_live_your_api_key"
 ```
 
-Contact support@dinaria.com to request an API key for your account.
+---
 
-## 2) Register your webhook URL (one-time)
+## 2. Register your webhook URL (one-time)
 
 ```bash
 curl -X POST "$BASE_URL/webhooks/payments" \
@@ -33,7 +30,8 @@ curl -X POST "$BASE_URL/webhooks/payments" \
   }'
 ```
 
-**Response (save this!)**
+**Response — save the secret, shown only once:**
+
 ```json
 {
   "webhookUrl": "https://merchant.example/webhooks/payments",
@@ -42,16 +40,23 @@ curl -X POST "$BASE_URL/webhooks/payments" \
 }
 ```
 
-Store `webhookSecret` securely. It is shown only once and is required to verify signatures.
+---
 
-## 3) Create a payment
+## 3. Create a payment
+
+`POST /payments`
+
+<div class="country-ar">
+
+### Argentina (ARS)
 
 ```bash
 curl -X POST "$BASE_URL/payments" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
   -d '{
-    "amount": "5.00",
+    "amount": "1500.00",
     "currency": "ARS",
     "externalId": "ORD-1001",
     "customer": {
@@ -59,71 +64,124 @@ curl -X POST "$BASE_URL/payments" \
       "documentNumber": "20123456789"
     },
     "successUrl": "https://merchant.example/success",
-    "cancelUrl": "https://merchant.example/cancel",
-    "metadata": {
-      "orderId": "ORD-1001"
+    "cancelUrl": "https://merchant.example/cancel"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
+  "status": "started",
+  "amount": "1500.00",
+  "currency": "ARS",
+  "externalId": "ORD-1001",
+  "actionUrl": "https://pay.dinaria.com/checkout/f90c7c31-7a38-46dc-99ba-188a4c99da29"
+}
+```
+
+Redirect the customer to `actionUrl`. The hosted page shows the CBU/CVU and a reference number to include in the bank transfer description.
+
+</div>
+
+<div class="country-br">
+
+### Brasil (BRL)
+
+```bash
+curl -X POST "$BASE_URL/payments" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{
+    "amount": "100.00",
+    "currency": "BRL",
+    "externalId": "ORD-1001",
+    "customer": {
+      "name": "João Silva",
+      "documentNumber": "12345678901"
     }
   }'
 ```
 
-**Response**
+**Response:**
+
 ```json
 {
-  "transactionId": "trx_123456",
+  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
   "status": "started",
-  "actionUrl": "https://checkout.example/...",
+  "amount": "100.00",
+  "currency": "BRL",
   "externalId": "ORD-1001",
-  "metadata": { "orderId": "ORD-1001", "cartId": "CART-7788" }
+  "paymentData": {
+    "type": "pix_transfer",
+    "pixKey": "bc8ba248-fb33-4022-bea1-c9fab2efd341",
+    "pixKeyType": "random",
+    "reference": "f90c7c31-7a38-46dc-99ba-188a4c99da29"
+  }
 }
 ```
 
-## 4) Redirect the customer to pay
-Use the `actionUrl` from the response to redirect your customer to complete payment.
+Display `paymentData.pixKey` to the customer. Instruct them to open their bank app, initiate a PIX transfer to that key, and use `paymentData.reference` as the transfer description. There is no redirect for BRL.
 
-**Sandbox note:** in sandbox you can simulate payment confirmation by calling the PSP
-endpoint directly:
+</div>
 
-```bash
-curl -X POST "https://psp.sandbox.dinaria.com/psp/simulate" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "trx_123456",
-    "status": "approved"
-  }'
-```
+---
 
-## 5) Confirm the final status
-Do **not** rely on redirects for confirmation. Use webhooks (recommended) or retrieve:
+## 4. Confirm the final status
+
+Do **not** rely on redirects for confirmation. Use webhooks (recommended) or poll:
 
 ```bash
-curl -X GET "$BASE_URL/payments/trx_123456" \
+curl "$BASE_URL/payments/f90c7c31-7a38-46dc-99ba-188a4c99da29" \
   -H "Authorization: Bearer $API_KEY"
 ```
 
-## 6) Handle the webhook
-Your server receives `POST /webhooks/payments/updates`:
+---
+
+## 5. Handle the webhook
+
+Your server receives `POST` to your registered webhook URL:
+
+<div class="country-ar">
 
 ```json
 {
-  "transactionId": "trx_123456",
+  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
   "externalId": "ORD-1001",
   "status": "confirmed",
-  "amount": "5.00",
-  "currency": "ARS",
-  "metadata": { "orderId": "ORD-1001", "cartId": "CART-7788" },
+  "amount": "1500.00",
+  "currency": "ARS"
 }
 ```
 
-Verify signatures using:
-- `X-Webhook-Timestamp`
-- `X-Webhook-Signature`
+</div>
 
-Signed payload format:
+<div class="country-br">
+
+```json
+{
+  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
+  "externalId": "ORD-1001",
+  "status": "confirmed",
+  "amount": "100.00",
+  "currency": "BRL"
+}
+```
+
+</div>
+
+Verify signatures using `X-Webhook-Timestamp` and `X-Webhook-Signature`. Signed payload format:
+
 ```
 <timestamp>.<raw_body>
 ```
 
-## 7) Idempotency and retries
-- Webhooks are delivered **at least once**.
-- Store `eventId` (if present) to dedupe.
+---
+
+## 6. Idempotency and retries
+
+- Webhooks are delivered **at least once** — use `transactionId` to deduplicate.
 - Process asynchronously and return HTTP 200 quickly.
+- Use `Idempotency-Key` on payment creation to safely retry on network errors.
