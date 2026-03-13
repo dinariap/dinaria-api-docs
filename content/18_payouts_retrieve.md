@@ -12,20 +12,20 @@ parent: Money Out
 
 `GET /payouts/{payoutId}`
 
-Returns the current state of a payout.
-
 ```http
 GET /payouts/d1e2f3a4-b5c6-7890-abcd-ef0123456789
 Authorization: Bearer di_live_<your-merchant-key>
 ```
 
-### Response — ARS completed
+<div class="country-ar">
+
+### Argentina (ARS) — completed
 
 ```json
 {
   "id": "1078d6c2-a452-44fb-94f4-525390231ce2",
-  "accountId": "acme_ars",
-  "merchantId": "acme_ars_merch1",
+  "accountId": "acme_ar",
+  "merchantId": "acme_ar_merch1",
   "amount": "1500.00",
   "currency": "ARS",
   "destination": {
@@ -44,21 +44,25 @@ Authorization: Bearer di_live_<your-merchant-key>
 }
 ```
 
-### Response — BRL completed
+</div>
+
+<div class="country-br">
+
+### Brasil (BRL) — completed
 
 ```json
 {
   "id": "d1e2f3a4-b5c6-7890-abcd-ef0123456789",
   "accountId": "acme_br",
   "merchantId": "acme_br_merch1",
-  "amount": "2.00",
+  "amount": "150.00",
   "currency": "BRL",
   "destination": {
     "identifierType": "pix_key_cpf",
-    "identifierValue": "98765432100",
-    "taxId": "98765432100",
+    "identifierValue": "12345678901",
+    "taxId": "12345678901",
     "taxIdCountry": "BR",
-    "name": "Carlos Menezes"
+    "name": "João Silva"
   },
   "status": "completed",
   "bankSystemTrxId": "f4e3d2c1-b0a9-8765-4321-fedcba987654",
@@ -69,13 +73,13 @@ Authorization: Bearer di_live_<your-merchant-key>
 }
 ```
 
+</div>
+
 ---
 
 ## List payouts
 
 `GET /payouts`
-
-Returns your payouts, most recent first.
 
 ```http
 GET /payouts?status=pending&limit=20
@@ -86,9 +90,9 @@ Authorization: Bearer di_live_<your-merchant-key>
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | Filter by status: `pending`, `processing`, `completed`, `failed`, `cancelled` |
+| `status` | string | Filter: `pending`, `processing`, `completed`, `failed`, `cancelled` |
 | `limit` | integer | Max results (1–200, default 50) |
-| `startingAfter` | string | Cursor for pagination — pass the `id` of the last item in the previous page |
+| `startingAfter` | string | Cursor — `id` of the last item on the previous page |
 
 ### Response
 
@@ -106,16 +110,14 @@ Authorization: Bearer di_live_<your-merchant-key>
 
 `POST /payouts/{payoutId}/cancel`
 
-Cancels a payout that is still in **`pending`** status — before the processor submits it to the payment network. Once it reaches `processing` or `completed`, cancellation is not possible.
+Only possible while status is **`pending`** — before the processor submits to the network.
 
 ```http
 POST /payouts/d1e2f3a4-b5c6-7890-abcd-ef0123456789/cancel
 Authorization: Bearer di_live_<your-merchant-key>
 ```
 
-On success the payout moves to `cancelled` and the reserved amount is immediately returned to your merchant balance.
-
-**Error responses:**
+On success, payout moves to `cancelled` and the reserved amount is returned to your balance immediately.
 
 | Status | Code | Cause |
 |--------|------|-------|
@@ -124,23 +126,23 @@ On success the payout moves to `cancelled` and the reserved amount is immediatel
 
 ---
 
-## Payout response fields
+## Response fields
 
 | Field | Description |
 |-------|-------------|
-| `id` | Unique payout identifier (UUID — no prefix). |
+| `id` | Unique payout identifier (UUID). |
 | `accountId` | Account that owns this payout. |
 | `merchantId` | Merchant the payout was created for. |
-| `amount` | Payout amount as a decimal string. |
+| `amount` | Decimal string. |
 | `currency` | `ARS` or `BRL`. |
 | `destination` | Object with `identifierType`, `identifierValue`, `taxId`, `taxIdCountry`, `name`. |
-| `status` | See status table below. |
-| `bankSystemTrxId` | Banking/payment network transaction ID, set on completion. **ARS**: COELSA clearing ID. **BRL**: payment network transaction ID. |
-| `errorMessage` | Present when `status` is `failed`. Describes the rejection reason. |
-| `attempts` | Number of submission attempts made. Max 3 before permanent failure. |
+| `status` | Current state — see table below. |
+| `bankSystemTrxId` | Network transaction ID on completion. ARS: COELSA clearing ID. BRL: PIX network ID. |
+| `errorMessage` | Present when `status` is `failed`. |
+| `attempts` | Submission attempts made. Max 3 before permanent failure. |
 | `externalId` | Your reference, if provided at creation. |
 | `createdAt` | When the payout was created. |
-| `submittedAt` | When the payout was first submitted to the payment network. |
+| `submittedAt` | When first submitted to the network. |
 | `completedAt` | When the transfer was confirmed. |
 
 ### Status values
@@ -148,7 +150,7 @@ On success the payout moves to `cancelled` and the reserved amount is immediatel
 | Status | Description |
 |--------|-------------|
 | `pending` | Queued. Balance reserved. Not yet submitted. |
-| `processing` | Submitted to the payment network (BRL only). Awaiting confirmation. |
+| `processing` | Submitted (BRL only). Awaiting network confirmation. |
 | `completed` | Transfer confirmed. Terminal. |
 | `failed` | Permanently rejected after 3 attempts. Balance restored. Terminal. |
 | `cancelled` | Cancelled before processing. Balance restored. Terminal. |
