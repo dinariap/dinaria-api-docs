@@ -1326,7 +1326,7 @@ paths:
       description: |
         Cancels a `pending` payout before the processor picks it up.
         The debited amount is immediately restored to the merchant's balance.
-        Returns `409` if the payout has already been processed.
+        Returns `404` if the payout does not exist or is not in `pending` status.
       parameters:
         - $ref: "#/components/parameters/PayoutIdPath"
       responses:
@@ -1341,17 +1341,15 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          description: Payout is not in `pending` status.
+          description: Payout not found or not in a cancellable state.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
               example:
                 error:
-                  code: not_cancelable
-                  message: Only pending payouts can be cancelled.
+                  code: not_found
+                  message: Payout not found or not in a cancellable state.
 
   # ── Merchant settings ─────────────────────────────────────
 
