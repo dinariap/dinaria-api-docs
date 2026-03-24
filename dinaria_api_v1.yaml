@@ -1225,7 +1225,7 @@ paths:
               brl_pix_random:
                 $ref: "#/components/examples/PayoutRequestBRLPixRandom"
       responses:
-        "200":
+        "201":
           description: Payout created. Status will be `pending` until processed.
           content:
             application/json:
