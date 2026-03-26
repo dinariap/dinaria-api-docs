@@ -116,7 +116,7 @@ Decimal string, e.g. `"100.50"`. Two decimal places for BRL.
 
 ---
 
-## ISO standards (both countries)
+## ISO standards
 
 | Field          | Standard                | Example          |
 |----------------|-------------------------|------------------|

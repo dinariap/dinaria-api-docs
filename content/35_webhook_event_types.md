@@ -4,25 +4,40 @@ nav_order: 20
 parent: Webhooks
 ---
 
-# Webhook Event Types
+# Webhook event types
 
-Dinaria sends webhook events using a single envelope with a `type` field. Your handler should route logic based on `type` and deduplicate by `eventId`.
+Every webhook delivery includes an `eventType` field. Route your handler logic on this field and deduplicate by `eventId`.
 
 ## Payment events
 
-- `payment.created`
-- `payment.status_changed`
+| Event type | Triggered when |
+|------------|----------------|
+| `payment.status_changed` | A payment transitions to `confirmed`, `cancelled`, or `expired` |
 
 ## Payout events
 
-- `payout.created`
-- `payout.status_changed`
-- `payout.succeeded`
-- `payout.failed`
+| Event type | Triggered when |
+|------------|----------------|
+| `payout.status_changed` | A payout transitions to `completed` or `failed` |
 
-## Cash withdrawal events
+---
 
-- `cash.withdrawal.created`
-- `cash.withdrawal.status_changed`
-- `cash.withdrawal.picked_up`
-- `cash.withdrawal.failed`
+## Envelope fields (all events)
+
+| Field | Always present | Description |
+|-------|----------------|-------------|
+| `eventType` | ✅ | One of the values above |
+| `eventId` | ✅ | Unique per delivery — use for deduplication |
+| `status` | ✅ | Current status of the resource |
+| `amount` | ✅ | Resource amount |
+| `currency` | ✅ | ISO 4217 currency code |
+| `transactionId` | Payment only | Payment platform ID |
+| `payoutId` | Payout only | Payout platform ID |
+| `merchantId` | ✅ | Merchant that owns the resource |
+| `externalId` | When provided | Your reference from creation |
+| `confirmationDate` | When confirmed | ISO 8601 timestamp |
+| `receivedAmount` | BRL payments | Actual received amount |
+| `bankSystemTrxId` | When available | Provider transaction reference |
+| `customer` | When provided | Customer object from creation |
+| `metadata` | When provided | Your metadata from creation |
+| `errorMessage` | Failed payouts | Failure reason |

@@ -4,32 +4,23 @@ nav_order: 11
 parent: Webhooks
 ---
 
-# Registering (configuration)
+# Webhook registration
 
-Use this endpoint to register the URL where payment status updates will be delivered.
+## Register a URL
 
-This is a **configuration** endpoint called by the merchant.
-
-
-## Endpoint
 ```
 POST /webhooks/payments
 ```
 
-## Example request
 ```json
 {
   "webhookUrl": "https://merchant.example/webhooks/payments"
 }
 ```
 
-## Notes
-- Call once during setup, and again if your URL changes.
-- This endpoint does **not** deliver events.
+Call once during setup, and again if your URL changes. Registering the same URL a second time rotates the secret.
 
-## Webhook secret (shown once)
-
-When registering a webhook endpoint, the API returns a `webhookSecret`.
+### Response (201)
 
 ```json
 {
@@ -39,9 +30,56 @@ When registering a webhook endpoint, the API returns a `webhookSecret`.
 }
 ```
 
-### Important
-- The `webhookSecret` is shown **only once**
-- It cannot be retrieved again
-- Store it securely (for example, in a secret manager)
+> The `webhookSecret` is shown **only once**. Store it securely (e.g. in a secret manager). It cannot be retrieved again.
 
-You will use this secret to verify webhook signatures.
+---
+
+## List registered webhooks
+
+```
+GET /webhooks/payments
+```
+
+Returns all webhook URLs registered for your API key scope. Secrets are **not** included.
+
+### Response
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "webhookUrl": "https://merchant.example/webhooks/payments",
+      "scope": "merchant",
+      "createdAt": "2026-01-16T18:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Deregister a URL
+
+```
+DELETE /webhooks/payments
+```
+
+```json
+{
+  "webhookUrl": "https://merchant.example/webhooks/payments"
+}
+```
+
+Returns `204 No Content` on success. Any pending deliveries for this URL are also removed.
+
+---
+
+## Scoping
+
+The scope of events delivered depends on the API key used to register:
+
+| Key type | Events delivered |
+|----------|-----------------|
+| Merchant-scoped key | Only events for that merchant |
+| Account-scoped key | Events for all merchants under the account |
