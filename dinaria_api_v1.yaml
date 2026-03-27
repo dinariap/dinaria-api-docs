@@ -1648,7 +1648,7 @@ paths:
         6. Reject with HTTP 401 if verification fails.
 
         Respond with **HTTP 200 immediately**. Process the event asynchronously.
-        Delivery is at-least-once — deduplicate by `transactionId`.
+        Delivery is at-least-once — deduplicate by **`eventId`** (unique per delivery; the same payment may be referenced across retries with the same `eventId`).
       parameters:
         - name: X-Webhook-Timestamp
           in: header
