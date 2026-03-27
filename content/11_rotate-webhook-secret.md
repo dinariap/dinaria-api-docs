@@ -14,7 +14,22 @@ POST /webhooks/payments/rotate-secret
 
 ## Request
 
-To rotate a **merchant-scoped** registration:
+JSON body — fields are optional unless you need to disambiguate:
+
+| Field | When to use |
+|-------|-------------|
+| `webhookUrl` | When you have **more than one** URL registered under the same API key scope. |
+| `merchantId` | **Account-scoped keys only:** rotate that **merchant’s** webhook; omit for the **account-level** registration. **Do not send** with a **merchant-scoped** key (merchant is implied by the key). |
+
+**Merchant-scoped API key** (typical — no `merchantId`):
+
+```json
+{
+  "webhookUrl": "https://merchant.example/webhooks/payments"
+}
+```
+
+**Account-scoped API key** — merchant-specific webhook:
 
 ```json
 {
@@ -23,7 +38,9 @@ To rotate a **merchant-scoped** registration:
 }
 ```
 
-To rotate an **account-scoped** registration (omit `merchantId`):
+Equivalent paths: `/webhooks/payments/rotate`, `/webhooks/rotate-secret`, `/webhooks/rotate`.
+
+**Account-scoped API key** — account-level webhook (omit `merchantId`; use `webhookUrl` if you have multiple URLs):
 
 ```json
 {
@@ -32,6 +49,8 @@ To rotate an **account-scoped** registration (omit `merchantId`):
 ```
 
 ## Response
+
+HTTP **200** on success.
 
 ```json
 {
@@ -52,3 +71,4 @@ To rotate an **account-scoped** registration (omit `merchantId`):
   ```
 - Update your stored secret and verify with `v1`. If `v1` fails and `v2` is present, fall back to verifying with the old secret. This ensures zero-downtime rotation.
 - Once `previousSecretExpiresAt` has passed, only `v1` is sent.
+- Reverse proxies must forward **`/webhooks/`** subpaths (rotate URLs), not only an exact `/webhooks/payments` match, or rotation may return 404 at the edge.

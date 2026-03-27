@@ -77,9 +77,13 @@ Returns `204 No Content` on success. Any pending deliveries for this URL are als
 
 ## Scoping
 
-The scope of events delivered depends on the API key used to register:
+The scope of events delivered, and how the registration is stored, depends on the API key used:
 
-| Key type | Events delivered |
-|----------|-----------------|
-| Merchant-scoped key | Only events for that merchant |
-| Account-scoped key | Events for all merchants under the account |
+| Key type | Stored as | Events delivered |
+|----------|-----------|------------------|
+| Merchant-scoped key | That merchant webhook row | Only events for that merchant |
+| Account-scoped key | Account-level webhook row | Events for all merchants under the account |
+
+**List** returns `{ "object": "list", "data": [ ... ] }` with `webhookUrl`, `scope` (`merchant` or `account`), and `createdAt`. Secrets are never returned.
+
+**Rotate secret** follows the same rules: with a merchant-scoped key, do not send `merchantId` (see [Rotate Secret](11_rotate-webhook-secret.md)).

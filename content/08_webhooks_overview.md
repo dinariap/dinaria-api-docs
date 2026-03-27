@@ -33,5 +33,9 @@ After 5 failed attempts the event is marked **dead** and no further retries occu
 
 ## Scoping
 
-- **Merchant-scoped API key** → webhook fires only for that merchant's events.
-- **Account-scoped API key** → webhook fires for all events across all merchants under your account.
+- **Merchant-scoped API key** → webhook fires only for that merchant's events; registration and rotate use that merchant implicitly (no `merchantId` in the rotate body).
+- **Account-scoped API key** → webhook fires for all events across all merchants under your account; rotate may include `merchantId` when targeting a merchant-specific registration.
+
+## Reverse proxies
+
+If you terminate TLS or route traffic through nginx (or similar), forward **`/webhooks/`** prefix routes to the API — including **`/webhooks/payments/rotate-secret`** and related paths — not only an exact match on `/webhooks/payments`, or secret rotation calls may return 404 at the edge.

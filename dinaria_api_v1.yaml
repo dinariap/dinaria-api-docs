@@ -555,7 +555,10 @@ components:
         webhookUrl:
           type: string
           format: uri
-          description: HTTPS URL on your server where payment events will be delivered.
+          description: |
+            HTTPS URL on your server where payment events will be delivered.
+            With a **merchant-scoped** API key, the registration is stored for that merchant only.
+            With an **account-scoped** key, the registration applies to all merchants under the account.
           example: https://your-server.com/webhooks/dinaria
 
     WebhookRegistrationResponse:
@@ -592,6 +595,57 @@ components:
           format: date-time
           nullable: true
           description: When the old secret stops being accepted (grace period).
+
+    WebhookRotateRequest:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+          description: |
+            Registered URL to rotate. Include this when you have **more than one** webhook URL
+            under the same API key scope so the correct row is selected.
+        merchantId:
+          type: string
+          description: |
+            **Account-scoped API keys only:** set this to rotate the webhook registered for a
+            **specific merchant** under your account. Omit to rotate the **account-level** registration
+            (the webhook you registered with the account-wide key).
+            With a **merchant-scoped** API key, do **not** send `merchantId` — the merchant is implied by the key.
+
+    WebhookListItem:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+        scope:
+          type: string
+          enum: [merchant, account]
+        createdAt:
+          type: string
+          format: date-time
+
+    WebhookListResponse:
+      type: object
+      required: [object, data]
+      properties:
+        object:
+          type: string
+          enum: [list]
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookListItem"
+
+    WebhookDeleteRequest:
+      type: object
+      required: [webhookUrl]
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+          description: The exact URL previously registered to remove.
 
     WebhookPaymentEvent:
       type: object
@@ -973,7 +1027,7 @@ paths:
 
         Requires an **account-scoped API key** — not a merchant key.
       security:
-        - bearerAuth: []
+        - ApiKeyAuth: []
       responses:
         '200':
           description: Account balance
@@ -1422,6 +1476,27 @@ paths:
   # ── Webhooks ──────────────────────────────────────────────
 
   /webhooks/payments:
+    get:
+      tags: [Webhooks]
+      summary: List registered webhook URLs
+      description: |
+        Returns webhook URLs for your API key scope. **Secrets are never returned.**
+        Use a **merchant-scoped** or **account-scoped** key consistent with how you registered.
+      responses:
+        "200":
+          description: List of registrations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookListResponse"
+              example:
+                object: list
+                data:
+                  - webhookUrl: https://your-server.com/webhooks/dinaria
+                    scope: merchant
+                    createdAt: "2026-03-10T12:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Webhooks]
       summary: Register a webhook URL
@@ -1430,6 +1505,9 @@ paths:
 
         Call this once during setup. If your URL changes, call again to update it.
         This endpoint is called **by you** — it does not deliver any events itself.
+
+        **Scope** matches your API key: a **merchant-scoped** key ties the registration to that merchant;
+        an **account-scoped** key registers at account level (all merchants under the account).
 
         The `webhookSecret` is returned **only once**. Store it securely in a secret manager.
         You will use it to verify the `X-Webhook-Signature` on every incoming event.
@@ -1460,6 +1538,36 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+    delete:
+      tags: [Webhooks]
+      summary: Deregister a webhook URL
+      description: |
+        Removes the registration for the given `webhookUrl` within your API key scope.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookDeleteRequest"
+            example:
+              webhookUrl: https://your-server.com/webhooks/dinaria
+      responses:
+        "204":
+          description: Webhook removed.
+        "400":
+          description: Missing or invalid body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No registration found for this URL and scope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /webhooks/payments/rotate-secret:
     post:
@@ -1469,8 +1577,37 @@ paths:
         Issues a new signing secret for your registered webhook endpoint.
         The new `webhookSecret` is returned only once — store it immediately.
 
+        **Merchant-scoped API key:** send `webhookUrl` when you have multiple URLs registered; otherwise
+        the single registration for that merchant is rotated. Do **not** send `merchantId`.
+
+        **Account-scoped API key:** omit `merchantId` to rotate the account-level registration, or set
+        `merchantId` to rotate that merchant's registration. Use `webhookUrl` when needed to pick a URL.
+
+        Equivalent paths (same handler): `/webhooks/payments/rotate`, `/webhooks/rotate-secret`, `/webhooks/rotate`.
+        If you terminate TLS on a reverse proxy, ensure these paths are forwarded (not only an exact match on `/webhooks/payments`).
+
         If `previousSecretExpiresAt` is set, the old secret remains valid until that time
         (grace period), giving you time to deploy the new secret before the old one stops working.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookRotateRequest"
+            examples:
+              merchantScoped:
+                summary: Merchant-scoped key (typical)
+                value:
+                  webhookUrl: https://your-server.com/webhooks/dinaria
+              accountScoped:
+                summary: Account-scoped key, account-level webhook
+                value:
+                  webhookUrl: https://your-server.com/webhooks/dinaria
+              accountScopedMerchant:
+                summary: Account-scoped key, merchant-specific webhook
+                value:
+                  merchantId: acme_merch_1
+                  webhookUrl: https://your-server.com/webhooks/dinaria
       responses:
         "200":
           description: Secret rotated. Save the new `webhookSecret`.
@@ -1485,6 +1622,14 @@ paths:
                 previousSecretExpiresAt: "2026-03-11T13:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: No matching webhook registration for this key and request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /webhooks/payments/updates:
     post:
