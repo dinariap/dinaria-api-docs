@@ -2,7 +2,7 @@
 
 A settlement converts BRL from your Dinaria balance into USDT and delivers it on-chain to any Tron address you specify.
 
-Settlement is executed through **Transfero OTC** and completed atomically within the API call — no polling required.
+Settlement is executed through the **Exchange** and completed atomically within the API call — no polling required.
 
 ---
 
@@ -15,7 +15,7 @@ Your Dinaria BRL balance
    DinaCore debit (BRL)
          │
          ▼
-  Transfero OTC (quote + confirm, ~5 s)
+  Exchange (quote + confirm, ~5 s)
          │
          ▼
    DinaCore credit (USDT)
@@ -26,11 +26,11 @@ Your Dinaria BRL balance
 
 1. **You call `POST /payouts`** with `destination.identifierType = "tron_address"`.
 2. Dinapay atomically:
-   - Locks a live BRL/USDT price with Transfero OTC (session TTL ~7 s, handled internally).
+   - Locks a live BRL/USDT price with the Exchange (session TTL ~7 s, handled internally).
    - Debits your BRL balance in DinaCore.
-   - Confirms the trade with Transfero.
+   - Confirms the trade.
    - Credits your USDT balance in DinaCore.
-3. Transfero sends USDT on-chain to your address.
+3. USDT is sent on-chain to your address.
 4. The API response is returned with `status: "completed"` and the confirmed exchange details.
 
 ---
@@ -136,7 +136,7 @@ Use your standard **merchant-scoped** API key — the same key you use for BRL p
 | `destinationCurrency` | Always `"USDT"` for crypto settlements. |
 | `destinationAmount` | USDT amount credited, as a 6-decimal string. |
 | `exchangeRate` | Confirmed BRL/USDT rate as an 8-decimal string. |
-| `bankSystemTrxId` | Settlement ID from Transfero OTC, for reconciliation. |
+| `bankSystemTrxId` | Settlement ID from the Exchange, for reconciliation. |
 
 ### Error Responses
 
@@ -145,7 +145,7 @@ Use your standard **merchant-scoped** API key — the same key you use for BRL p
 | 400 | `invalid_request` | Malformed Tron address or missing fields. |
 | 402 | `insufficient_balance` | Not enough BRL in your account. |
 | 503 | `not_configured` | Crypto settlement is not enabled for this environment. |
-| 502 | `upstream_error` | Transfero OTC is unavailable or market is closed. |
+| 502 | `upstream_error` | Exchange is unavailable or market is closed. |
 
 ---
 
@@ -175,7 +175,7 @@ D0 typically offers a slightly wider spread than D1/D2.
 
 ## Market Hours
 
-Transfero OTC operates during Brazilian business hours (BRT). Settlement requests outside market hours will return a `502` error with message `"market closed"`. Check the indicative rates endpoint — if it returns a price, the market is open.
+The Exchange operates during Brazilian business hours (BRT). Settlement requests outside market hours will return a `502` error with message `"market closed"`. Check the indicative rates endpoint — if it returns a price, the market is open.
 
 ---
 

@@ -5,7 +5,7 @@ Dinaria supports two on-chain operations on the Tron network (TRC-20):
 | Operation | What it does |
 |-----------|--------------|
 | **Relay** | Broadcast a raw, pre-signed Tron transaction through Dinaria's node. You sign locally; Dinaria never holds your private key. |
-| **Settlement** | Convert BRL from your Dinaria balance into USDT and deliver it to any Tron address. Handled atomically through Transfero OTC. |
+| **Settlement** | Convert BRL from your Dinaria balance into USDT and deliver it to any Tron address. Handled atomically through the Exchange. |
 
 Both operations use the same `Authorization: Bearer <api-key>` scheme as the rest of the Dinaria API.
 
