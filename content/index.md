@@ -76,6 +76,16 @@ Move money across payment methods, currencies, and payout rails through a single
 
 ---
 
+## Crypto
+
+| | |
+|---|---|
+| [**Overview**](#50_crypto_overview.md) | Supported on-chain operations and authentication. |
+| [**Relay**](#51_crypto_relay.md) | Broadcast a pre-signed Tron transaction through Dinaria's node. |
+| [**Settlement**](#52_crypto_settlement.md) | Convert BRL to USDT and deliver on-chain to any Tron address. |
+
+---
+
 ## API Reference
 
 The full OpenAPI specification is available in the [**API Reference**](#apiref) section.
