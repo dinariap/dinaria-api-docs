@@ -1,89 +1,194 @@
 [
-  { "title": "Home", "file": "content/index.md" },
-
+  {
+    "title": "Home",
+    "file": "content/index.md"
+  },
   {
     "title": "Get Started",
     "children": [
-      { "title": "Quickstart",            "file": "content/40_quickstart.md" },
-      { "title": "15-Minute Integration", "file": "content/41_15_minute_integration.md" },
-      { "title": "Common Pitfalls",       "file": "content/42_common_pitfalls.md" }
+      {
+        "title": "Quickstart",
+        "file": "content/40_quickstart.md"
+      },
+      {
+        "title": "15-Minute Integration",
+        "file": "content/41_15_minute_integration.md"
+      },
+      {
+        "title": "Common Pitfalls",
+        "file": "content/42_common_pitfalls.md"
+      }
     ]
   },
-
   {
     "title": "Core Concepts",
     "children": [
-      { "title": "Money Movement Model",  "file": "content/30_money_movement_model.md" },
-      { "title": "Participants",          "file": "content/31_participants.md" },
-      { "title": "FX Handling",           "file": "content/32_fx.md" },
-      { "title": "Data Formats",          "file": "content/13_data_formats_iso.md" }
+      {
+        "title": "Money Movement Model",
+        "file": "content/30_money_movement_model.md"
+      },
+      {
+        "title": "Participants",
+        "file": "content/31_participants.md"
+      },
+      {
+        "title": "FX Handling",
+        "file": "content/32_fx.md"
+      },
+      {
+        "title": "Data Formats",
+        "file": "content/13_data_formats_iso.md"
+      }
     ]
   },
-
   {
     "title": "Configuration",
     "children": [
-      { "title": "Merchant Settings", "file": "content/06_merchant_settings.md" }
+      {
+        "title": "Merchant Settings",
+        "file": "content/06_merchant_settings.md"
+      }
     ]
   },
-
   {
     "title": "Money In",
     "children": [
-      { "title": "Getting Started",          "file": "content/01_getting_started.md" },
-      { "title": "Quickstart: First Payment","file": "content/02_quickstart_first_payment.md" },
-      { "title": "Payment Lifecycle",        "file": "content/03_payment_lifecycle_states.md" },
-      { "title": "Create a Payment",         "file": "content/05_payments_create.md" },
-      { "title": "Retrieve a Payment",       "file": "content/07_payments_retrieve.md" },
-      { "title": "Errors & Retries",         "file": "content/12_errors_and_retries.md" },
-      { "title": "Best Practices",           "file": "content/14_payment_best_practices.md" },
-      { "title": "Step-by-Step Example",     "file": "content/15_step_by_step_payment_example.md" },
-      { "title": "Redirect Flow (Future)",   "file": "content/06_payments_redirect_flow.md" },
-      { "title": "QR (Future)",              "file": "content/04_payments_overview.md" }
+      {
+        "title": "Getting Started",
+        "file": "content/01_getting_started.md"
+      },
+      {
+        "title": "Quickstart: First Payment",
+        "file": "content/02_quickstart_first_payment.md"
+      },
+      {
+        "title": "Payment Lifecycle",
+        "file": "content/03_payment_lifecycle_states.md"
+      },
+      {
+        "title": "Create a Payment",
+        "file": "content/05_payments_create.md"
+      },
+      {
+        "title": "Retrieve a Payment",
+        "file": "content/07_payments_retrieve.md"
+      },
+      {
+        "title": "Errors & Retries",
+        "file": "content/12_errors_and_retries.md"
+      },
+      {
+        "title": "Best Practices",
+        "file": "content/14_payment_best_practices.md"
+      },
+      {
+        "title": "Step-by-Step Example",
+        "file": "content/15_step_by_step_payment_example.md"
+      },
+      {
+        "title": "Redirect Flow (Future)",
+        "file": "content/06_payments_redirect_flow.md"
+      },
+      {
+        "title": "QR (Future)",
+        "file": "content/04_payments_overview.md"
+      }
     ]
   },
-
   {
     "title": "Money Out",
     "children": [
-      { "title": "Overview",                "file": "content/16_payouts_overview.md" },
-      { "title": "Payout Flow",             "file": "content/33_payout_flow.md" },
-      { "title": "Create a Payout",         "file": "content/17_payouts_create.md" },
-      { "title": "Retrieve & List Payouts", "file": "content/18_payouts_retrieve.md" },
-      { "title": "Cash Withdrawals",        "file": "content/34_cash_withdrawals.md" }
+      {
+        "title": "Overview",
+        "file": "content/16_payouts_overview.md"
+      },
+      {
+        "title": "Payout Flow",
+        "file": "content/33_payout_flow.md"
+      },
+      {
+        "title": "Create a Payout",
+        "file": "content/17_payouts_create.md"
+      },
+      {
+        "title": "Retrieve & List Payouts",
+        "file": "content/18_payouts_retrieve.md"
+      },
+      {
+        "title": "Cash Withdrawals",
+        "file": "content/34_cash_withdrawals.md"
+      }
     ]
   },
-
   {
     "title": "Webhooks",
     "children": [
-      { "title": "Overview",              "file": "content/08_webhooks_overview.md" },
-      { "title": "Registration",          "file": "content/09_webhooks_registration.md" },
-      { "title": "Receiving",             "file": "content/10_webhooks_receiving.md" },
-      { "title": "Security",              "file": "content/13_webhooks_security.md" },
-      { "title": "Verification Examples", "file": "content/webkhooks-vexamples.md" },
-      { "title": "Best Practices",        "file": "content/11_webhooks_best_practices.md" },
-      { "title": "Rotate Secret",         "file": "content/11_rotate-webhook-secret.md" },
-      { "title": "Event Types",           "file": "content/35_webhook_event_types.md" }
+      {
+        "title": "Overview",
+        "file": "content/08_webhooks_overview.md"
+      },
+      {
+        "title": "Registration",
+        "file": "content/09_webhooks_registration.md"
+      },
+      {
+        "title": "Receiving",
+        "file": "content/10_webhooks_receiving.md"
+      },
+      {
+        "title": "Security",
+        "file": "content/13_webhooks_security.md"
+      },
+      {
+        "title": "Verification Examples",
+        "file": "content/webkhooks-vexamples.md"
+      },
+      {
+        "title": "Best Practices",
+        "file": "content/11_webhooks_best_practices.md"
+      },
+      {
+        "title": "Rotate Secret",
+        "file": "content/11_rotate-webhook-secret.md"
+      },
+      {
+        "title": "Event Types",
+        "file": "content/35_webhook_event_types.md"
+      }
     ]
   },
-
   {
     "title": "Accounts",
     "children": [
-      { "title": "Balance",         "file": "content/20_balance.md" },
-      { "title": "Tools",  "file": "content/tools.md" }
+      {
+        "title": "Balance",
+        "file": "content/20_balance.md"
+      },
+      {
+        "title": "Tools",
+        "file": "content/tools.md"
+      }
     ]
   },
-
   {
-    "title": "Crypto",
+    "title": "Stablecoin Settlement",
     "children": [
-      { "title": "Overview",    "file": "content/50_crypto_overview.md" },
-      { "title": "Relay",       "file": "content/51_crypto_relay.md" },
-      { "title": "Settlement",  "file": "content/52_crypto_settlement.md" }
+      {
+        "title": "Overview",
+        "file": "content/50_crypto_overview.md"
+      },
+      {
+        "title": "Blockchain Access",
+        "file": "content/51_crypto_relay.md"
+      },
+      {
+        "title": "On-ramp",
+        "file": "content/52_crypto_settlement.md"
+      }
     ]
   },
-
-  { "title": "API Reference", "file": "apiref" }
+  {
+    "title": "API Reference",
+    "file": "apiref"
+  }
 ]
