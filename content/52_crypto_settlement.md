@@ -1,8 +1,8 @@
-# Crypto — Settlement (BRL → USDT)
+# On-ramp (BRL → USDT)
 
-A settlement converts BRL from your Dinaria balance into USDT and delivers it on-chain to any Tron address you specify.
+An on-ramp converts BRL from your Dinaria balance into USDT and delivers it on-chain to any Tron address you specify.
 
-Settlement is executed through the **Exchange** and completed atomically within the API call — no polling required.
+The operation is executed through the **Exchange** and completed atomically within the API call — no polling required.
 
 ---
 
@@ -67,7 +67,7 @@ GET /payouts/rates?fromCurrency=BRL&toCurrency=USDT&settlement=D0
 
 ---
 
-## Create a Settlement
+## Execute an On-ramp
 
 ```
 POST /payouts
@@ -102,7 +102,7 @@ POST /payouts
 
 ### Authentication
 
-Use your standard **merchant-scoped** API key — the same key you use for BRL payouts. Include `merchantId` in the body if using an account-level key.
+Use your standard **merchant-scoped** API key — the same key you use for BRL payouts. Include `merchantId` in the body if operating under a sub-account.
 
 ### Response — `201 Created`
 
@@ -133,10 +133,10 @@ Use your standard **merchant-scoped** API key — the same key you use for BRL p
 | Field | Description |
 |-------|-------------|
 | `status` | `"completed"` on success, `"failed"` if the trade could not be confirmed. |
-| `destinationCurrency` | Always `"USDT"` for crypto settlements. |
+| `destinationCurrency` | Always `"USDT"` for on-ramp operations. |
 | `destinationAmount` | USDT amount credited, as a 6-decimal string. |
 | `exchangeRate` | Confirmed BRL/USDT rate as an 8-decimal string. |
-| `bankSystemTrxId` | Settlement ID from the Exchange, for reconciliation. |
+| `bankSystemTrxId` | Reference ID from the Exchange, for reconciliation. |
 
 ### Error Responses
 
@@ -144,20 +144,20 @@ Use your standard **merchant-scoped** API key — the same key you use for BRL p
 |--------|--------|---------|
 | 400 | `invalid_request` | Malformed Tron address or missing fields. |
 | 402 | `insufficient_balance` | Not enough BRL in your account. |
-| 503 | `not_configured` | Crypto settlement is not enabled for this environment. |
+| 503 | `not_configured` | On-ramp is not enabled for this environment. |
 | 502 | `upstream_error` | Exchange is unavailable or market is closed. |
 
 ---
 
-## Retrieve a Settlement
+## Retrieve an On-ramp Record
 
-Settlements are stored as standard payouts and are accessible with the same merchant-scoped key used to create them.
+On-ramp operations are stored as standard payouts and are accessible with the same merchant-scoped key used to create them.
 
 ```
 GET /payouts/{id}
 ```
 
-`GET /payouts` (list) also returns settlements alongside regular BRL payouts — no special filter needed.
+`GET /payouts` (list) also returns on-ramp records alongside regular BRL payouts — no special filter needed.
 
 ---
 
@@ -175,13 +175,13 @@ D0 typically offers a slightly wider spread than D1/D2.
 
 ## Market Hours
 
-The Exchange operates during Brazilian business hours (BRT). Settlement requests outside market hours will return a `502` error with message `"market closed"`. Check the indicative rates endpoint — if it returns a price, the market is open.
+The Exchange operates during Brazilian business hours (BRT). On-ramp requests outside market hours will return a `502` error with message `"market closed"`. Check the indicative rates endpoint — if it returns a price, the market is open.
 
 ---
 
 ## Idempotency
 
-Settlements are not idempotent by default. If you need to retry, use the `Idempotency-Key` header:
+On-ramp operations are not idempotent by default. If you need to retry, use the `Idempotency-Key` header:
 
 ```
 Idempotency-Key: <your-unique-key>
@@ -198,7 +198,7 @@ Repeating the same key with the same body returns the original response.
 curl https://api.dinaria.com/payouts/rates?settlement=D0 \
   -H "Authorization: Bearer di_live_..."
 
-# 2. Execute settlement (synchronous — no polling needed)
+# 2. Execute on-ramp (synchronous — no polling needed)
 curl -X POST https://api.dinaria.com/payouts \
   -H "Authorization: Bearer di_live_..." \
   -H "Content-Type: application/json" \

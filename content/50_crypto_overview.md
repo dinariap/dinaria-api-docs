@@ -1,16 +1,16 @@
-# Crypto — Overview
+# Stablecoin Settlement — Overview
 
 Dinaria supports two on-chain operations on the Tron network (TRC-20):
 
 | Operation | What it does |
 |-----------|--------------|
-| **Relay** | Broadcast a raw, pre-signed Tron transaction through Dinaria's node. You sign locally; Dinaria never holds your private key. |
-| **Settlement** | Convert BRL from your Dinaria balance into USDT and deliver it to any Tron address. Handled atomically through the Exchange. |
+| **On-ramp** | Convert BRL from your Dinaria balance into USDT and deliver it to any Tron address. Executed atomically through the Exchange — no polling required. |
+| **Blockchain Access** | Query balances and allowances, broadcast pre-signed transactions, and check submission status through Dinaria's Tron full node. You sign locally; Dinaria never holds your private key. |
 
 Both operations use the same `Authorization: Bearer <api-key>` scheme as the rest of the Dinaria API.
 
-- **Settlement** (`POST /payouts` with `tron_address`) uses your **merchant-scoped** key — the same key used for BRL payouts.
-- **Relay** (`POST /v1/relay/broadcast`) uses an **account-level** key.
+- **On-ramp** (`POST /payouts` with `tron_address`) uses your **merchant-scoped** key — the same key used for BRL payouts.
+- **Blockchain Access** (`/v1/chains/tron/...`) uses an **account-level** key.
 
 ---
 
@@ -24,7 +24,7 @@ Authorization: Bearer di_live_...
 
 ## Network
 
-All production operations run on **Tron mainnet**. A `network` parameter is accepted on settlement endpoints to target the **Shasta testnet** during integration.
+All production operations run on **Tron mainnet**. A `network` parameter is accepted on on-ramp and blockchain access endpoints to target the **Shasta testnet** during integration.
 
 | Value | Chain |
 |-------|-------|
@@ -44,5 +44,5 @@ All production operations run on **Tron mainnet**. A `network` parameter is acce
 
 ## Related
 
-- [Relay — Broadcast a Transaction](51_crypto_relay.md)
-- [Settlement — BRL to USDT](52_crypto_settlement.md)
+- [Blockchain Access — Tron Node](51_crypto_relay.md)
+- [On-ramp — BRL to USDT](52_crypto_settlement.md)

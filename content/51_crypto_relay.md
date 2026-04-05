@@ -1,6 +1,6 @@
-# Crypto — Relay (Tron Node Access)
+# Blockchain Access (Tron Node)
 
-The relay gives you authenticated access to Dinaria's Tron full node. You can query balances and allowances, broadcast pre-signed transactions, and check submission status — all without exposing your private key to Dinaria.
+Blockchain Access gives you authenticated access to Dinaria's Tron full node. You can query balances and allowances, broadcast pre-signed transactions, and check submission status — all without exposing your private key to Dinaria.
 
 **Base path:** `/v1/chains/tron`
 
@@ -8,7 +8,7 @@ The relay gives you authenticated access to Dinaria's Tron full node. You can qu
 
 ## Authentication
 
-All relay endpoints use an **account-level** API key:
+All Blockchain Access endpoints use an **account-level** API key:
 
 ```
 Authorization: Bearer di_live_...
@@ -227,7 +227,7 @@ GET /v1/chains/tron/transactions/{submissionId}
 
 ### List Networks
 
-Returns the networks Dinaria's relay supports.
+Returns the networks Dinaria supports.
 
 ```
 GET /v1/chains/networks
@@ -261,7 +261,7 @@ TX=$(curl -s -X POST https://api.trongrid.io/wallet/triggersmartcontract \
 # 2. Sign locally (private key never leaves your system)
 SIGNED=$(your-signing-tool sign "$TX")
 
-# 3. Broadcast via Dinaria relay
+# 3. Broadcast via Dinaria Blockchain Access
 curl -X POST https://api.dinaria.com/v1/chains/tron/transactions/broadcast \
   -H "Authorization: Bearer di_live_..." \
   -H "Content-Type: application/json" \
