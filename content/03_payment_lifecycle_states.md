@@ -32,7 +32,7 @@ started → confirmed
 
 | Status      | Recommended action |
 |-------------|--------------------|
-| `started`   | For ARS: redirect customer to `actionUrl`. For BRL: display PIX key from `paymentData`. |
+| `started`   | For ARS: display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` — instruct the customer to initiate a bank transfer. For BRL: display PIX key from `paymentData`. |
 | `confirmed` | Fulfill the order — this is a terminal state. |
 | `cancelled` | Allow retry (create a new payment). |
 | `expired`   | Create a new payment. |

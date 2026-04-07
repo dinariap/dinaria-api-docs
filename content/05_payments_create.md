@@ -81,12 +81,17 @@ Idempotency-Key: <uuid>
   "status": "started",
   "amount": "1500.00",
   "currency": "ARS",
-  "actionUrl": "https://pay.dinaria.com/checkout/f90c7c31-7a38-46dc-99ba-188a4c99da29",
+  "paymentData": {
+    "type": "bank_transfer",
+    "cbu": "4310009922100000122004",
+    "alias": "DINARIA.ARS",
+    "reference": "9032000000000000023"
+  },
   "metadata": { "orderId": "ORD-1001" }
 }
 ```
 
-Redirect the customer to `actionUrl`. The hosted page displays the CBU/CVU and a reference number to include in the bank transfer description.
+Display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` to the customer. Instruct them to initiate a bank transfer (CBU/CVU) to that destination and include the reference in the transfer description.
 
 </div>
 

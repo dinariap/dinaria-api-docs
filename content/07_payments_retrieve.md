@@ -35,8 +35,9 @@ curl "https://pay.dinaria.com/payments/f90c7c31-7a38-46dc-99ba-188a4c99da29" \
   "currency": "ARS",
   "createdAt": "2026-03-11T22:57:40Z",
   "paymentData": {
-    "type": "transfer_to_cbu",
+    "type": "bank_transfer",
     "cbu": "4310009922100000122004",
+    "alias": "DINARIA.ARS",
     "reference": "9032000000000000023"
   }
 }
@@ -122,8 +123,9 @@ curl "https://pay.dinaria.com/payments?limit=50&startingAfter=f90c7c31-7a38-46dc
       "status": "confirmed",
       "createdAt": "2026-03-11T22:57:40Z",
       "paymentData": {
-        "type": "transfer_to_cbu",
+        "type": "bank_transfer",
         "cbu": "4310009922100000122004",
+        "alias": "DINARIA.ARS",
         "reference": "9032000000000000023"
       }
     }
