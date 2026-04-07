@@ -8,38 +8,30 @@ parent: Guides
 
 Payments are the core resource of the Payment API.
 
-A payment represents a transaction initiated by the merchant and completed by the customer through a redirect-based flow.
+A payment represents a transaction initiated by the merchant and completed by the customer.
 
 ## Key fields
 - `transactionId`: platform-generated payment identifier
 - `externalId`: merchant-provided identifier (order/checkout reference)
 - `metadata`: payment-level free-form key-value data
 
-
 ## Where funds go
 
-Payments are credited to an **operating account**.
+Payments are credited to an **operating account** for the payment currency.
 
-Funds are credited to your operating account for the payment currency.
+## Payment instructions — `paymentData`
 
-## Hosted vs Advanced UI (uiMode)
+After creating a payment, the response includes a `paymentData` object with the instructions the customer needs to complete the transfer.
 
-Dinaria supports two integration modes:
-
-- **Hosted mode (default):** redirect the payer to `actionUrl`. Dinaria collects any missing required information and guides the payer to complete the payment.
-- **Advanced mode:** set `uiMode=advanced`. If required customer information is missing, Dinaria rejects the request with `CUSTOMER_DATA_REQUIRED` and returns the missing fields so you can collect them in your UI.
-
-### Response fields
-
-- `actionUrl`: hosted URL that allows the payer to complete the payment (redirect/instructions/voucher).
-- `nextAction`: action-specific payload for advanced UI integrations (voucher details, transfer instructions, or required customer fields).
-
-
+| Currency | `paymentData.type` | What to display |
+|---|---|---|
+| ARS | `bank_transfer` | `cbu` or `alias` + `reference` — instruct the customer to make a bank transfer |
+| BRL | `pix_transfer` | `pixKey` + `reference` — instruct the customer to send a PIX to that key |
 
 ## nextAction (Advanced UI)
 
-`nextAction` is optional and is intended for advanced integrations that want to build their own UI instead of redirecting.
-Hosted integrations can always use `actionUrl`.
+`nextAction` is optional and intended for advanced integrations building their own UI.
+It carries action-specific payloads (voucher details, QR codes, or required customer fields).
 
 ### Types
 

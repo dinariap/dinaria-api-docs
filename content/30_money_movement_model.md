@@ -18,10 +18,7 @@ Payment (money-in) → Account balance → Payout (money-out)
 
 Payments represent funds coming into Dinaria. Depending on the payment method, the payer may need to complete additional steps.
 
-Dinaria supports two integration modes:
-
-- **Hosted mode (default):** redirect the payer to `actionUrl`.
-- **Advanced mode:** use `nextAction` details to render your own UI.
+After creating a payment, the response includes `paymentData` with transfer instructions (CBU/alias for ARS, PIX key for BRL). Display these to the customer to complete the transfer.
 
 ## Funds live in Accounts
 

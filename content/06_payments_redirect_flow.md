@@ -4,29 +4,26 @@ nav_order: 8
 parent: Guides
 ---
 
-# Redirecting the customer
+# Completing a payment
 
-Payments use a redirect-based flow to securely collect payment details.
+After creating a payment, the response includes a `paymentData` object with the instructions the customer needs to complete the transfer.
 
-## How the redirect works
+## How it works
 1. Merchant creates a payment (`POST /payments`)
-2. API returns `actionUrl`
-3. Merchant redirects the customer to `actionUrl`
-4. Customer completes the payment
-5. Customer is redirected back to `successUrl` or `cancelUrl`
+2. API returns `paymentData` with transfer instructions
+3. Merchant displays those instructions to the customer
+4. Customer completes the bank transfer or PIX
+5. Dinaria reconciles the incoming funds and marks the payment `confirmed`
+
+## ARS — bank transfer
+
+Display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` to the customer. Instruct them to initiate a CBU/CVU bank transfer and include the reference in the transfer description.
+
+## BRL — PIX
+
+Display `paymentData.pixKey` to the customer. Instruct them to open their bank app, initiate a PIX transfer to that key, and use `paymentData.reference` as the transfer description.
 
 ## Important
-Redirects do **not** guarantee final payment status.
-Always confirm final state using:
-- Webhooks (recommended), or
+Never rely on a redirect for confirmation. Always confirm final state using:
+- Webhooks (recommended) — listen for `payment.status_changed` with `status: "confirmed"`
 - `GET /payments/{transactionId}`
-
-## Hosted vs Advanced
-
-In hosted mode, your integration can remain minimal:
-
-1. Create a payment
-2. Redirect the payer to `actionUrl`
-3. Listen for webhook updates (`payment.status_changed`)
-
-For advanced UIs, use the `nextAction` object to render your own experience (voucher, bank instructions, or missing customer fields). `actionUrl` remains available as a universal fallback.
