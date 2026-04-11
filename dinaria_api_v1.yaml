@@ -40,6 +40,11 @@ tags:
       Convert BRL from your Dinaria balance into USDT and deliver it on-chain to any Tron address.
       The on-ramp executes synchronously through the Exchange — no polling required.
       Use `GET /payouts/rates` for indicative prices, then `POST /payouts` with `destination.identifierType: tron_address` to execute.
+  - name: Blockchain Access
+    description: |
+      Authenticated access to Dinaria's Tron full node. Query TRX and TRC-20 balances, check
+      allowances, broadcast pre-signed transactions, and check submission status — all without
+      exposing your private key to Dinaria. Base path: `/v1/chains`.
 
 # ─────────────────────────────────────────────────────────────
 # Components
@@ -562,6 +567,250 @@ components:
             $ref: "#/components/schemas/PayoutResponse"
         hasMore:
           type: boolean
+
+    # ── Blockchain Access schemas ──────────────────────────────
+
+    TronAddressBalanceResponse:
+      type: object
+      properties:
+        address:
+          type: string
+          description: Tron address queried.
+          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
+        network:
+          type: string
+          description: Network code (`mainnet` or `shasta`).
+          example: mainnet
+        trxSun:
+          type: string
+          description: TRX balance in sun (1 TRX = 1,000,000 sun).
+          example: "1500000000"
+        tokens:
+          type: array
+          description: TRC-20 token balances for each requested contract.
+          items:
+            $ref: "#/components/schemas/TronTokenBalanceEntry"
+
+    TronTokenBalanceEntry:
+      type: object
+      properties:
+        contract:
+          type: string
+          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+        symbol:
+          type: string
+          example: USDT
+        decimals:
+          type: integer
+          example: 6
+        balance:
+          type: string
+          description: Raw balance in the token's smallest unit. Divide by 10^decimals for human-readable amount.
+          example: "50000000"
+
+    TronContractBalanceResponse:
+      type: object
+      properties:
+        contract:
+          type: string
+          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+        owner:
+          type: string
+          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
+        balance:
+          type: string
+          description: Raw balance in token's smallest unit.
+          example: "50000000"
+        decimals:
+          type: integer
+          example: 6
+
+    TronAllowanceResponse:
+      type: object
+      properties:
+        contract:
+          type: string
+          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+        owner:
+          type: string
+          example: TOwnerAddr...
+        spender:
+          type: string
+          example: TSpenderAddr...
+        allowance:
+          type: string
+          description: Approved amount in token's smallest unit.
+          example: "0"
+        decimals:
+          type: integer
+          example: 6
+
+    TronBroadcastRequest:
+      type: object
+      required: [signedTransaction]
+      properties:
+        network:
+          type: string
+          enum: [mainnet, shasta]
+          default: mainnet
+          description: Target network. Can also be set via the `X-Network` header.
+        signedTransaction:
+          type: object
+          description: |
+            The signed transaction object from Tron's `triggersmartcontract` after adding the signature.
+            Must include `raw_data`, `raw_data_hex`, `txID`, and `signature` fields.
+        clientReference:
+          type: string
+          description: Optional caller-defined reference stored with the submission.
+
+    TronBroadcastResponse:
+      type: object
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+          description: Dinaria-internal UUID for polling status.
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+          example: pending
+        network:
+          type: string
+          example: mainnet
+        txid:
+          type: string
+          nullable: true
+          description: On-chain transaction ID once confirmed.
+          example: a1b2c3d4...
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        clientReference:
+          type: string
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+
+    TronSubmissionResponse:
+      type: object
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+          description: |
+            `pending` — submitted, not yet on-chain.
+            `confirmed` — included in a block.
+            `failed` — node rejected or dropped.
+          example: confirmed
+        network:
+          type: string
+          example: mainnet
+        txid:
+          type: string
+          nullable: true
+          example: a1b2c3d4...
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        clientReference:
+          type: string
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+
+    TronNetworkListResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum: [list]
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TronNetworkItem"
+
+    TronNetworkItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: mainnet
+        type:
+          type: string
+          example: tron
+        displayName:
+          type: string
+          example: Tron Mainnet
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    TronNetworkDetailResponse:
+      type: object
+      properties:
+        network:
+          $ref: "#/components/schemas/TronNetworkItem"
+        assets:
+          type: array
+          description: TRC-20 tokens registered in Dinaria's catalog for this network.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              contractAddress:
+                type: string
+                example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+              symbol:
+                type: string
+                example: USDT
+              decimals:
+                type: integer
+                example: 6
+              tokenStandard:
+                type: string
+                example: TRC-20
+              isBroadcastAllowed:
+                type: boolean
+              isActive:
+                type: boolean
+        rpcNodes:
+          type: array
+          description: RPC endpoint configuration for the network.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              baseUrl:
+                type: string
+                example: https://api.trongrid.io
+              priority:
+                type: integer
+              isActive:
+                type: boolean
 
     MerchantSettingsRequest:
       type: object
@@ -1336,7 +1585,7 @@ paths:
 
   /payouts:
     post:
-      tags: [Payouts]
+      tags: [Payouts, Stablecoin Settlement]
       summary: Create a payout
       description: |
         Sends money out to a customer's bank account.
@@ -1499,6 +1748,402 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "503":
           description: On-ramp not configured for this environment.
+
+  # ── Blockchain Access ─────────────────────────────────────
+
+  /v1/chains/networks:
+    get:
+      tags: [Blockchain Access]
+      summary: List networks
+      description: Returns all blockchain networks Dinaria supports.
+      responses:
+        "200":
+          description: List of networks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TronNetworkListResponse"
+              example:
+                object: list
+                data:
+                  - code: mainnet
+                    type: tron
+                    displayName: Tron Mainnet
+                    isActive: true
+                  - code: shasta
+                    type: tron
+                    displayName: Tron Shasta (Testnet)
+                    isActive: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/chains/networks/{code}:
+    get:
+      tags: [Blockchain Access]
+      summary: Get network details
+      description: Returns RPC configuration, catalog assets, and status for a specific network.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [mainnet, shasta]
+          description: Network code.
+      responses:
+        "200":
+          description: Network detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TronNetworkDetailResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/chains/tron/addresses/{address}/balance:
+    get:
+      tags: [Blockchain Access]
+      summary: Get address balance
+      description: |
+        Returns the TRX balance (in sun) for any Tron address, and optionally one or more
+        TRC-20 token balances. Pass `contracts` once or multiple times, or as a comma-separated value.
+
+        `trxSun` is the TRX balance in sun (1 TRX = 1,000,000 sun). Token `balance` is in the
+        token's smallest unit — divide by `10^decimals` for the human-readable amount.
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tron address in base58check format (`T…`).
+          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
+        - name: network
+          in: query
+          schema:
+            type: string
+            enum: [mainnet, shasta]
+            default: mainnet
+          description: Target network. Can also be set via `X-Network` header.
+        - name: contracts
+          in: query
+          schema:
+            type: string
+          description: |
+            Optional. TRC-20 contract address(es) to include token balances for.
+            Repeat the parameter or use comma-separated values. Contract must exist in Dinaria's catalog.
+          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+      responses:
+        "200":
+          description: Address balance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TronAddressBalanceResponse"
+              example:
+                address: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
+                network: mainnet
+                trxSun: "1500000000"
+                tokens:
+                  - contract: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+                    symbol: USDT
+                    decimals: 6
+                    balance: "50000000"
+        "400":
+          description: Invalid address or contract.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Unknown contract in catalog.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/chains/tron/contracts/{contract}/balance:
+    get:
+      tags: [Blockchain Access]
+      summary: Get TRC-20 token balance
+      description: Returns the TRC-20 token balance of a specific owner address for a given contract.
+      parameters:
+        - name: contract
+          in: path
+          required: true
+          schema:
+            type: string
+          description: TRC-20 contract address. Must exist in Dinaria's catalog.
+          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+        - name: owner
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Address whose balance to query.
+          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
+        - name: network
+          in: query
+          schema:
+            type: string
+            enum: [mainnet, shasta]
+            default: mainnet
+      responses:
+        "200":
+          description: Token balance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TronContractBalanceResponse"
+              example:
+                contract: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+                owner: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
+                balance: "50000000"
+                decimals: 6
+        "400":
+          description: Invalid address or missing owner.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Unknown contract in catalog.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/chains/tron/contracts/{contract}/allowance:
+    get:
+      tags: [Blockchain Access]
+      summary: Get TRC-20 allowance
+      description: Returns how much a spender is approved to transfer on behalf of an owner.
+      parameters:
+        - name: contract
+          in: path
+          required: true
+          schema:
+            type: string
+          description: TRC-20 contract address.
+          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+        - name: owner
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Address that granted the allowance.
+          example: TOwnerAddress...
+        - name: spender
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Address that may spend on owner's behalf.
+          example: TSpenderAddress...
+        - name: network
+          in: query
+          schema:
+            type: string
+            enum: [mainnet, shasta]
+            default: mainnet
+      responses:
+        "200":
+          description: Allowance amount.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TronAllowanceResponse"
+              example:
+                contract: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+                owner: TOwnerAddress...
+                spender: TSpenderAddress...
+                allowance: "0"
+                decimals: 6
+        "400":
+          description: Invalid address or missing parameters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Unknown contract in catalog.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/chains/tron/transactions/broadcast:
+    post:
+      tags: [Blockchain Access]
+      summary: Broadcast a transaction
+      description: |
+        Submits a pre-signed Tron transaction to the network via Dinaria's full node.
+        Your private key **never** leaves your system — you sign locally and pass only the signed transaction object.
+
+        The `X-Idempotency-Key` header is required. Reusing the same key with the same body returns
+        the original response without re-broadcasting.
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: UUID or unique string to prevent duplicate broadcasts on retry.
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TronBroadcastRequest"
+            example:
+              network: mainnet
+              signedTransaction:
+                raw_data:
+                  contract: []
+                  timestamp: 1712000000000
+                  expiration: 1712003600000
+                raw_data_hex: "0a02..."
+                txID: a1b2c3...
+                signature: ["3045..."]
+      responses:
+        "200":
+          description: Transaction submitted. Poll `GET /v1/chains/tron/transactions/{submissionId}` for confirmation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TronBroadcastResponse"
+              example:
+                submissionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                status: pending
+                network: mainnet
+                txid: a1b2c3d4...
+                submittedAt: "2026-04-03T14:01:05Z"
+        "400":
+          description: Invalid request or node rejection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "502":
+          description: All configured RPC nodes failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/chains/tron/transactions/dry-run:
+    post:
+      tags: [Blockchain Access]
+      summary: Dry-run a transaction
+      description: |
+        Estimates energy consumption without broadcasting. Use before submitting to check fee cost.
+        Passes the signed transaction through Tron's `triggerconstantcontract` and returns the wrapped result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TronBroadcastRequest"
+            example:
+              network: mainnet
+              signedTransaction:
+                raw_data_hex: "0a02..."
+                txID: a1b2c3...
+                signature: ["3045..."]
+      responses:
+        "200":
+          description: Dry-run result from the Tron node.
+          content:
+            application/json:
+              example:
+                httpStatus: 200
+                result:
+                  energy_used: 13382
+                  constant_result: ["..."]
+                  result:
+                    result: true
+        "400":
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /v1/chains/tron/transactions/{submissionId}:
+    get:
+      tags: [Blockchain Access]
+      summary: Get submission status
+      description: Retrieve the status of a previously broadcast transaction by its Dinaria submission ID.
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The `submissionId` returned by `POST /v1/chains/tron/transactions/broadcast`.
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      responses:
+        "200":
+          description: Submission status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TronSubmissionResponse"
+              examples:
+                pending:
+                  summary: Transaction pending on-chain
+                  value:
+                    submissionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                    status: pending
+                    network: mainnet
+                    txid: null
+                    submittedAt: "2026-04-03T14:01:05Z"
+                confirmed:
+                  summary: Transaction confirmed
+                  value:
+                    submissionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                    status: confirmed
+                    network: mainnet
+                    txid: a1b2c3d4e5f6...
+                    submittedAt: "2026-04-03T14:01:05Z"
+        "400":
+          description: Invalid submission ID format.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /payouts/{payoutId}:
     get:
