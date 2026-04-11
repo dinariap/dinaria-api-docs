@@ -35,6 +35,11 @@ tags:
     description: Configure per-merchant reconciliation behaviour.
   - name: Webhooks
     description: Register webhook URLs and receive payment events.
+  - name: Stablecoin Settlement
+    description: |
+      Convert BRL from your Dinaria balance into USDT and deliver it on-chain to any Tron address.
+      The on-ramp executes synchronously through the Exchange — no polling required.
+      Use `GET /payouts/rates` for indicative prices, then `POST /payouts` with `destination.identifierType: tron_address` to execute.
 
 # ─────────────────────────────────────────────────────────────
 # Components
@@ -1452,7 +1457,7 @@ paths:
 
   /payouts/rates:
     get:
-      tags: [Payouts]
+      tags: [Stablecoin Settlement]
       summary: Get indicative BRL/USDT rate
       description: |
         Returns an indicative BRL→USDT exchange rate without locking a quote.
