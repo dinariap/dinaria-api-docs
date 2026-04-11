@@ -376,6 +376,11 @@ components:
 
         For `pix_key_cpf` and `pix_key_cnpj` the `taxId` field is inferred from
         `identifierValue` if not provided. For other PIX key types `taxId` is required.
+
+        **On-ramp (BRL → USDT)**
+        | `identifierType` | Meaning |
+        |---|---|
+        | `tron_address` | Tron wallet address (`T` + 33 base58 chars). Triggers synchronous BRL→USDT conversion. |
       properties:
         identifierType:
           type: string
@@ -395,6 +400,20 @@ components:
           type: string
           description: Recipient name. Auto-resolved for ARS CBU/alias if not provided.
           example: Ana Martínez
+        destinationCurrency:
+          type: string
+          description: "On-ramp only. Destination currency. `USDT` is the only supported value."
+          example: USDT
+        network:
+          type: string
+          description: "On-ramp only. Tron network: `mainnet` (default) or `shasta` (testnet)."
+          enum: [mainnet, shasta]
+          example: mainnet
+        settlement:
+          type: string
+          description: "On-ramp only. Settlement window: `D0` = same-day (default), `D1` = next business day, `D2` = two business days."
+          enum: [D0, D1, D2]
+          example: D0
 
     PayoutRequest:
       type: object
@@ -490,6 +509,39 @@ components:
           format: date-time
           description: When the payout was submitted to the payment network.
         completedAt:
+          type: string
+          format: date-time
+        destinationCurrency:
+          type: string
+          description: "On-ramp only. Always `USDT`."
+          example: USDT
+        destinationAmount:
+          type: string
+          description: "On-ramp only. USDT amount credited (6-decimal string)."
+          example: "174.825874"
+        exchangeRate:
+          type: string
+          description: "On-ramp only. Confirmed BRL/USDT rate (8-decimal string). BRL per 1 USDT."
+          example: "5.72000000"
+
+    PayoutRatesResponse:
+      type: object
+      properties:
+        fromCurrency:
+          type: string
+          example: BRL
+        toCurrency:
+          type: string
+          example: USDT
+        price:
+          type: number
+          description: Exchange rate — BRL per 1 USDT.
+          example: 5.72
+        settlement:
+          type: string
+          enum: [D0, D1, D2]
+          example: D0
+        indicativeAt:
           type: string
           format: date-time
 
@@ -913,6 +965,42 @@ components:
         submittedAt: "2026-03-11T23:01:32Z"
         completedAt: "2026-03-11T23:01:44Z"
 
+    PayoutRequestOnRamp:
+      summary: "On-ramp (BRL → USDT on Tron)"
+      value:
+        amount: "1000.00"
+        currency: BRL
+        destination:
+          identifierType: tron_address
+          identifierValue: TUcVE7YGbVJ2oXe7e3MiHAGiDqEbVz1GkB
+          name: My USDT Wallet
+          destinationCurrency: USDT
+          network: mainnet
+          settlement: D0
+
+    PayoutResponseOnRamp:
+      summary: "On-ramp completed (BRL → USDT)"
+      value:
+        id: a1b2c3d4-e5f6-7890-abcd-ef0123456789
+        accountId: acme_br
+        merchantId: acme_br_merch1
+        status: completed
+        amount: "1000.00"
+        currency: BRL
+        destination:
+          identifierType: tron_address
+          identifierValue: TUcVE7YGbVJ2oXe7e3MiHAGiDqEbVz1GkB
+          network: mainnet
+          settlement: D0
+        destinationCurrency: USDT
+        destinationAmount: "174.825874"
+        exchangeRate: "5.72000000"
+        bankSystemTrxId: ord_abc123
+        attempts: 1
+        createdAt: "2026-04-03T14:01:00Z"
+        submittedAt: "2026-04-03T14:01:00Z"
+        completedAt: "2026-04-03T14:01:05Z"
+
     # Webhook events
     WebhookConfirmedARS:
       summary: "ARS — payment confirmed"
@@ -1260,6 +1348,12 @@ paths:
         **BRL PIX key**: use `destination.identifierType` of `pix_key_cpf`, `pix_key_cnpj`,
         `pix_key_email`, `pix_key_phone`, or `pix_key_random`. The value must be the recipient's
         registered PIX key — a CNPJ is only valid if explicitly registered as a PIX key by the recipient.
+
+        **On-ramp (BRL → USDT)**: set `destination.identifierType` to `tron_address` and
+        `destination.identifierValue` to the recipient's Tron wallet address. The conversion is
+        executed synchronously — the response is returned with `status: "completed"` and the confirmed
+        `exchangeRate`, `destinationAmount`, and `destinationCurrency`. Use `GET /payouts/rates` first
+        to check indicative prices. Optionally set `destination.settlement` to `D0` (default), `D1`, or `D2`.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -1277,9 +1371,14 @@ paths:
                 $ref: "#/components/examples/PayoutRequestBRLPix"
               brl_pix_random:
                 $ref: "#/components/examples/PayoutRequestBRLPixRandom"
+              on_ramp:
+                $ref: "#/components/examples/PayoutRequestOnRamp"
       responses:
         "201":
-          description: Payout created. Status will be `pending` until processed.
+          description: |
+            Payout created. For standard payouts (ARS/BRL) status will be `pending` until the
+            processor submits the transfer. For on-ramp (`tron_address`) the conversion is
+            synchronous and status is `completed` in the same response.
           content:
             application/json:
               schema:
@@ -1287,6 +1386,8 @@ paths:
               examples:
                 pending:
                   $ref: "#/components/examples/PayoutResponsePending"
+                on_ramp:
+                  $ref: "#/components/examples/PayoutResponseOnRamp"
         "400":
           description: Invalid request.
           content:
@@ -1348,6 +1449,51 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+
+  /payouts/rates:
+    get:
+      tags: [Payouts]
+      summary: Get indicative BRL/USDT rate
+      description: |
+        Returns an indicative BRL→USDT exchange rate without locking a quote.
+        If this endpoint returns a price, the market is open and on-ramp is available.
+      parameters:
+        - name: fromCurrency
+          in: query
+          schema:
+            type: string
+            default: BRL
+          description: Source currency. Currently only `BRL` is supported.
+        - name: toCurrency
+          in: query
+          schema:
+            type: string
+            default: USDT
+          description: Destination currency. Currently only `USDT` is supported.
+        - name: settlement
+          in: query
+          schema:
+            type: string
+            enum: [D0, D1, D2]
+            default: D0
+          description: Settlement window.
+      responses:
+        "200":
+          description: Indicative rate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutRatesResponse"
+              example:
+                fromCurrency: BRL
+                toCurrency: USDT
+                price: 5.72
+                settlement: D0
+                indicativeAt: "2026-04-03T14:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: On-ramp not configured for this environment.
 
   /payouts/{payoutId}:
     get:
