@@ -95,7 +95,7 @@ Authorization: Bearer di_live_<your-merchant-key>
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `status` | string | Filter by status: `pending`, `processing`, `completed`, `failed`, `cancelled` |
+| `status` | string | Filter by status: `pending`, `processing`, `completed`, `failed` |
 | `limit` | integer | Max results (1–200, default 50) |
 | `startingAfter` | string | Cursor for pagination — pass the `id` of the last item in the previous page |
 
@@ -108,28 +108,6 @@ Authorization: Bearer di_live_<your-merchant-key>
   "hasMore": false
 }
 ```
-
----
-
-## Cancel a payout
-
-`POST /payouts/{payoutId}/cancel`
-
-Cancels a payout that is still in **`pending`** status — before the processor submits it to the payment network. Once it reaches `processing` or `completed`, cancellation is not possible.
-
-```http
-POST /payouts/d1e2f3a4-b5c6-7890-abcd-ef0123456789/cancel
-Authorization: Bearer di_live_<your-merchant-key>
-```
-
-On success the payout moves to `cancelled` and the reserved amount is immediately returned to your merchant balance.
-
-**Error responses:**
-
-| Status | Code | Cause |
-|--------|------|-------|
-| `404` | `not_found` | Payout not found. |
-| `409` | `not_cancelable` | Payout is not in `pending` status. |
 
 ---
 
@@ -160,4 +138,3 @@ On success the payout moves to `cancelled` and the reserved amount is immediatel
 | `processing` | Submitted to the payment network (BRL only). Awaiting confirmation. |
 | `completed` | Transfer confirmed. Terminal. |
 | `failed` | Permanently rejected after 3 attempts. Balance restored. Terminal. |
-| `cancelled` | Cancelled before processing. Balance restored. Terminal. |

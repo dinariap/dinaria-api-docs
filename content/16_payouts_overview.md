@@ -20,7 +20,6 @@ A payout sends money from your Dinaria merchant balance to a recipient via the l
 ```
 pending → processing → completed
                      → failed
-pending → cancelled  (if you cancel before processing starts)
 ```
 
 ---
@@ -102,7 +101,6 @@ Funds are sent via PIX to the recipient's registered PIX key.
 | `processing` | Submitted (BRL only). Awaiting final confirmation. |
 | `completed` | Transfer confirmed. Terminal. |
 | `failed` | Permanently rejected after max retries. Balance restored. Terminal. |
-| `cancelled` | Cancelled before processing. Balance restored. Terminal. |
 
 ---
 
@@ -113,7 +111,6 @@ Funds are sent via PIX to the recipient's registered PIX key.
 | Payment confirmed | `+ payment.amount` |
 | `POST /payouts` accepted | `- payout.amount` (reserved immediately) |
 | Payout failed (max retries) | `+ payout.amount` (restored) |
-| Payout cancelled | `+ payout.amount` (restored) |
 | Payout completed | no change (already deducted at creation) |
 
 A payout returns `402 insufficient_balance` if your balance is below the payout amount.

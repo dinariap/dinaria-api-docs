@@ -14,14 +14,13 @@ A payout sends money from your Dinaria merchant balance to a recipient via the l
 ## How payouts work
 
 1. You call `POST /payouts` with the amount, currency, and destination.
-2. The merchant's balance is **reserved immediately** — the funds are not available until the payout is completed or cancelled.
+2. The merchant's balance is **reserved immediately** — the funds are not available until the payout is completed or fails.
 3. A background processor submits the transfer to the payment network asynchronously.
 4. The payout moves through the following states:
 
 ```
 pending → processing → completed
                      → failed
-pending → cancelled  (if you cancel before processing starts)
 ```
 
 ---
@@ -110,7 +109,6 @@ Funds are sent via PIX to the recipient's registered PIX key.
 | `processing` | Submitted to the payment network (BRL/PIX only). Awaiting final confirmation. |
 | `completed` | Transfer confirmed by the payment network. Terminal. |
 | `failed` | Permanently rejected after max retry attempts. Balance restored. Terminal. |
-| `cancelled` | Cancelled by you before the processor picked it up. Balance restored. Terminal. |
 
 ---
 
@@ -123,7 +121,6 @@ The merchant's `balance` is a virtual ledger of funds Dinaria holds on your beha
 | Payment confirmed (customer pays in) | `+ payment.amount` |
 | `POST /payouts` accepted | `- payout.amount` (reserved immediately) |
 | Payout permanently failed (3 attempts) | `+ payout.amount` (restored) |
-| Payout cancelled | `+ payout.amount` (restored) |
 | Payout completed | no change (already deducted at creation) |
 
 A payout request returns `402 insufficient_balance` if your balance is below the payout amount at creation time.

@@ -455,13 +455,12 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, processing, completed, failed, cancelled]
+          enum: [pending, processing, completed, failed]
           description: |
             - `pending`: Queued, not yet submitted to the payment network.
             - `processing`: Submitted and awaiting final confirmation (BRL/PIX only).
             - `completed`: Transfer confirmed by the banking/payment system. Terminal.
             - `failed`: Permanently rejected after max retry attempts. Balance restored. Terminal.
-            - `cancelled`: Cancelled before processing. Balance restored. Terminal.
         amount:
           type: string
           example: "500.00"
@@ -1324,7 +1323,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [pending, processing, completed, failed, cancelled]
+            enum: [pending, processing, completed, failed]
           description: Filter by status.
         - name: limit
           in: query
@@ -1372,38 +1371,6 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-
-  /payouts/{payoutId}/cancel:
-    post:
-      tags: [Payouts]
-      summary: Cancel a payout
-      description: |
-        Cancels a `pending` payout before the processor picks it up.
-        The debited amount is immediately restored to the merchant's balance.
-        Returns `404` if the payout does not exist or is not in `pending` status.
-      parameters:
-        - $ref: "#/components/parameters/PayoutIdPath"
-      responses:
-        "200":
-          description: Payout cancelled. Balance restored.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PayoutResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: Payout not found or not in a cancellable state.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: not_found
-                  message: Payout not found or not in a cancellable state.
 
   # ── Merchant settings ─────────────────────────────────────
 
