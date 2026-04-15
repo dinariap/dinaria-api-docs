@@ -243,12 +243,22 @@ components:
             **ARS only.** When `true`, the reconciler will match this order even if the
             received transfer amount differs slightly from `amount` (rounding, bank fees).
             The most recently created matching order takes priority.
+        expiresAfter:
+          type: integer
+          description: |
+            Lifetime of this payment order in **seconds** from creation time.
+            When set, the order will transition to `expired` status after this many seconds.
+            Takes precedence over the legacy `expiration` field and the merchant's
+            `defaultOrderExpirationHours` setting.
+            If neither `expiresAfter` nor `expiration` is provided, the platform default
+            applies (currently 24 hours / 86 400 s).
+          example: 3600
         expiration:
           type: string
           format: date-time
           description: |
-            ISO 8601 datetime after which the order expires. If omitted, the merchant's
-            `defaultOrderExpirationHours` setting applies (0 = never expires automatically).
+            **Deprecated in favour of `expiresAfter`.**
+            ISO 8601 absolute datetime after which the order expires.
         metadata:
           type: object
           description: Free-form key-value pairs. Returned in responses and webhooks.
@@ -349,9 +359,16 @@ components:
         refundedAmount:
           type: string
           nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          description: |
+            ISO 8601 timestamp when this payment order will expire (or has expired).
+            Identical to `expirationDate`; prefer this field for new integrations.
         expirationDate:
           type: string
           format: date-time
+          description: "Deprecated alias for `expiresAt`. Both fields are always present."
         metadata:
           type: object
           additionalProperties:
