@@ -25,7 +25,7 @@ All fields are optional — send only the ones you want to change.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `defaultTransferExpirationHours` | number | `0` | How many hours an **unmatched incoming transfer** (funds received from your provider with no matching order) is held before being automatically refunded. `0` means hold indefinitely. Must be `0` or greater. |
-| `defaultOrderExpirationHours` | number | `0` | How many hours a **payment order** (created via `POST /payments`) stays open before expiring. `0` means orders never expire automatically. If the customer passes an explicit `expiration` field on order creation, that value takes precedence. |
+| `defaultOrderExpirationHours` | number | `0` | How many hours a **payment order** (created via `POST /payments`) stays open before expiring. `0` means orders never expire automatically. Per-order overrides take precedence (see note below). |
 | `refundPolicy` | string | `"on_reception"` | Applies to unmatched incoming transfers only. `"on_reception"` — refund immediately when no matching order is found. `"on_expiration"` — hold and retry matching until `defaultTransferExpirationHours` elapses (or indefinitely if `0`). |
 
 ---
@@ -88,4 +88,8 @@ All fields are optional — send only the ones you want to change.
 - This endpoint requires an **account-level API key**. Merchant-scoped keys do not have access to settings.
 - Settings take effect immediately on the next reconciler cycle.
 - **`defaultTransferExpirationHours` and `refundPolicy`** govern **incoming transfers with no matching order** (provider side — ARS only today).
-- **`defaultOrderExpirationHours`** governs **payment orders created by the customer** (`POST /payments`). An explicit `expiration` value on the order creation request always takes precedence over the merchant default.
+- **`defaultOrderExpirationHours`** governs **payment orders created by the customer** (`POST /payments`). Per-order expiry fields take precedence over the merchant default in this order (highest wins):
+  1. **`expiresAfter`** (integer, seconds from now) — e.g. `"expiresAfter": 3600` expires the order in 1 hour. **Recommended** for precise control.
+  2. **`expiration`** (ISO 8601 absolute timestamp, deprecated) — e.g. `"expiration": "2025-12-31T23:59:59Z"`.
+  3. **`defaultOrderExpirationHours`** on the merchant (this setting).
+  4. Platform default of **24 hours** (applies when none of the above are set).
