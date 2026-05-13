@@ -100,6 +100,8 @@ curl -X POST "https://pay.dinaria.com/payments" \
 
 Store `transactionId`. Display `paymentData.pixKey` to the customer — instruct them to open their bank app, initiate a PIX transfer to that key, and use `paymentData.reference` as the transfer description.
 
+> **Prefer a QR code?** Pass `"paymentMethod": "pix_qr"` on the same request and the response will carry a per-order dynamic PIX QR (`qrCodeString` + `qrCodeBase64`, valid for 15 minutes) instead of the static key. See [Create a payment](05_payments_create.md) for the full QR flow and rendering tips.
+
 </div>
 
 ---

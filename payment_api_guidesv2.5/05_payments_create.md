@@ -95,9 +95,18 @@ Redirect the customer to `actionUrl`. They will see CBU + reference transfer ins
 
 ## Brasil (BRL) — PIX
 
-For BRL payments there is no redirect. The response includes a `paymentData` object with a static PIX deposit key. Display the PIX key to the customer and instruct them to initiate the transfer in their bank app, using the `reference` (the `transactionId`) as the transfer description.
+For BRL payments there is no redirect. Two collection methods are available, chosen at create time via `paymentMethod`:
 
-### Example request
+| `paymentMethod` | What you display | Order expiration |
+|---|---|---|
+| `instant_bank_transfer` *(default)* | Static PIX deposit key + reference | Merchant-controlled (`expiresAfter` / `expiration`) |
+| `pix_qr` | Dynamic PIX QR (BR-Code) — `qrCodeString` + `qrCodeBase64` | **Forced to 15 minutes** |
+
+### Method 1 — Static PIX key (`instant_bank_transfer`)
+
+The response includes a `paymentData` object with a static PIX deposit key. Display the PIX key to the customer and instruct them to initiate the transfer in their bank app, using the `reference` (the `transactionId`) as the transfer description.
+
+#### Example request
 
 ```json
 {
@@ -111,7 +120,7 @@ For BRL payments there is no redirect. The response includes a `paymentData` obj
 }
 ```
 
-### Example response
+#### Example response
 
 ```json
 {
@@ -120,6 +129,7 @@ For BRL payments there is no redirect. The response includes a `paymentData` obj
   "status": "started",
   "amount": "100.00",
   "currency": "BRL",
+  "paymentMethod": "instant_bank_transfer",
   "paymentData": {
     "type": "pix_transfer",
     "pixKey": "bc8ba248-fb33-4022-bea1-c9fab2efd341",
@@ -128,6 +138,50 @@ For BRL payments there is no redirect. The response includes a `paymentData` obj
   }
 }
 ```
+
+### Method 2 — Dynamic PIX QR (`pix_qr`)
+
+Pass `"paymentMethod": "pix_qr"` and Dinaria mints a per-order BR-Code via Transfero. The response carries both an EMV string (`qrCodeString`, for QR libraries or copy-and-paste PIX) and a base64 PNG (`qrCodeBase64`, drop-in `<img>` tag). The QR — and the order — expire 15 minutes after creation; any `expiresAfter` / `expiration` you pass is ignored for this method.
+
+#### Example request
+
+```json
+{
+  "amount": "100.00",
+  "currency": "BRL",
+  "paymentMethod": "pix_qr",
+  "externalId": "ORD-2003",
+  "customer": {
+    "name": "Belo Brasil Ltda",
+    "documentType": "CNPJ",
+    "documentNumber": "58084921000160"
+  }
+}
+```
+
+#### Example response
+
+```json
+{
+  "transactionId": "3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1",
+  "externalId": "ORD-2003",
+  "status": "started",
+  "amount": "100.00",
+  "currency": "BRL",
+  "paymentMethod": "pix_qr",
+  "expirationDate": "2026-05-13T16:34:26Z",
+  "expiresAt":      "2026-05-13T16:34:26Z",
+  "paymentData": {
+    "type": "pix_qr",
+    "qrCodeString": "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/...6304ABCD",
+    "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "qrExpiresAt":  "2026-05-13T16:34:26Z",
+    "reference":    "3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1"
+  }
+}
+```
+
+Reconciliation for `pix_qr` orders matches the incoming PIX credit by the QR's embedded `externalId` (the `transactionId`), giving guaranteed 1:1 matching — even if multiple customers send the same amount at the same time and you don't know their CPF/CNPJ in advance.
 
 </div>
 

@@ -101,6 +101,17 @@ Display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` t
 
 `documentNumber` — CPF (11 digits) or CNPJ (14 digits).
 
+Brazil supports two collection methods, selected at create time via `paymentMethod`. Pick whichever fits your checkout UX best — both are reconciled automatically.
+
+| `paymentMethod` | What the merchant displays | Expiration |
+|---|---|---|
+| `instant_bank_transfer` *(default)* | Static PIX deposit key + reference | Merchant-controlled (`expiresAfter` / `expiration`) |
+| `pix_qr` | Per-order dynamic PIX QR (BR-Code) | **Forced to 15 minutes** (matches the QR's hard expiry) |
+
+#### Method 1 — Static PIX deposit key (`instant_bank_transfer`)
+
+This is the default when `paymentMethod` is omitted.
+
 ```json
 {
   "amount": "100.00",
@@ -125,6 +136,7 @@ Display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` t
   "status": "started",
   "amount": "100.00",
   "currency": "BRL",
+  "paymentMethod": "instant_bank_transfer",
   "paymentData": {
     "type": "pix_transfer",
     "pixKey": "bc8ba248-fb33-4022-bea1-c9fab2efd341",
@@ -135,7 +147,64 @@ Display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` t
 }
 ```
 
-Display `paymentData.pixKey` to the customer. Instruct them to open their bank app, initiate a PIX transfer to that key, and use `paymentData.reference` as the transfer description. There is no redirect for BRL payments.
+Display `paymentData.pixKey` to the customer. Instruct them to open their bank app, initiate a PIX transfer to that key, and use `paymentData.reference` as the transfer description. Dinaria matches the transfer by the payer's CPF/CNPJ + amount.
+
+#### Method 2 — Dynamic PIX QR (`pix_qr`)
+
+Pass `"paymentMethod": "pix_qr"` to mint a per-order BR-Code via Transfero. The response contains both the EMV string (for QR-rendering libraries or copy-and-paste PIX) and a base64 PNG (drop-in `<img>` tag).
+
+```json
+{
+  "amount": "100.00",
+  "currency": "BRL",
+  "paymentMethod": "pix_qr",
+  "externalId": "ORD-2003",
+  "customer": {
+    "name": "Belo Brasil Ltda",
+    "documentType": "CNPJ",
+    "documentNumber": "58084921000160"
+  },
+  "metadata": { "orderId": "ORD-2003" }
+}
+```
+
+**Response:**
+
+```json
+{
+  "transactionId": "3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1",
+  "externalId": "ORD-2003",
+  "status": "started",
+  "amount": "100.00",
+  "currency": "BRL",
+  "paymentMethod": "pix_qr",
+  "expirationDate": "2026-05-13T16:34:26Z",
+  "expiresAt":      "2026-05-13T16:34:26Z",
+  "paymentData": {
+    "type": "pix_qr",
+    "qrCodeString": "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/...6304ABCD",
+    "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "qrExpiresAt":  "2026-05-13T16:34:26Z",
+    "reference":    "3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1"
+  }
+}
+```
+
+Two rendering options:
+
+```html
+<!-- Drop-in PNG, no extra dependencies -->
+<img src="data:image/png;base64,{{paymentData.qrCodeBase64}}" alt="Pague com PIX" />
+
+<!-- Or render the EMV string with any QR library -->
+<div data-qr="{{paymentData.qrCodeString}}"></div>
+```
+
+Also show `paymentData.qrCodeString` as a "copy PIX code" button — many Brazilian bank apps support pasting it directly.
+
+> **Note:** `pix_qr` orders expire after **15 minutes** (the QR's hard limit). Any `expiresAfter` or `expiration` you pass is ignored for this method. If the customer doesn't pay in time, create a new payment.
+
+**How reconciliation works.** The QR has Dinaria's `transactionId` baked in as the BR-Code's `externalId`. When Transfero receives the customer's PIX, it echoes that ID back to us, so we bind the credit to the exact payment order — no CPF/CNPJ lookup needed and no ambiguity if multiple customers send the same amount at the same time.
 
 </div>
 

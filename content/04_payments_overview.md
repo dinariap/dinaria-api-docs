@@ -23,10 +23,28 @@ Payments are credited to an **operating account** for the payment currency.
 
 After creating a payment, the response includes a `paymentData` object with the instructions the customer needs to complete the transfer.
 
-| Currency | `paymentData.type` | What to display |
-|---|---|---|
-| ARS | `bank_transfer` | `cbu` or `alias` + `reference` — instruct the customer to make a bank transfer |
-| BRL | `pix_transfer` | `pixKey` + `reference` — instruct the customer to send a PIX to that key |
+| Currency | `paymentMethod` (request)  | `paymentData.type` (response) | What to display |
+|---|---|---|---|
+| ARS | `bank_transfer` *(default)* | `bank_transfer` | `cbu` or `alias` + `reference` — customer makes a bank transfer |
+| BRL | `instant_bank_transfer` *(default)* | `pix_transfer` | `pixKey` + `reference` — customer sends a PIX to that key |
+| BRL | `pix_qr` | `pix_qr` | `qrCodeString` / `qrCodeBase64` + `qrExpiresAt` — customer scans the dynamic QR |
+
+<div class="country-br">
+
+### Brazil — choosing a method
+
+Brazil supports two PIX collection methods that you select per-payment via `paymentMethod`:
+
+- **`instant_bank_transfer`** *(default)* — a static PIX deposit key is returned. Reconciliation matches the incoming credit by the payer's CPF/CNPJ + amount, and the order expiration is fully controlled by `expiresAfter` / `expiration` (default 24h).
+- **`pix_qr`** — a per-order **dynamic** PIX QR (BR-Code) is minted via Transfero at create time. The response includes `qrCodeString` (EMV/TLV string for QR libraries or copy-and-paste PIX) and `qrCodeBase64` (drop-in PNG). The QR — and the order — expire in **15 minutes**. Reconciliation uses the QR's embedded `externalId` for guaranteed 1:1 matching, which is the most reliable option when the same amount may be paid by multiple customers or when you don't know the payer's CPF/CNPJ in advance.
+
+</div>
+
+<div class="country-ar">
+
+> Dynamic-QR collection is not yet available for ARS. Static CBU/CVU transfers remain the default and only method for Argentina today.
+
+</div>
 
 ## nextAction (Advanced UI)
 

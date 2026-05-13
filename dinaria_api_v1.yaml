@@ -182,24 +182,65 @@ components:
 
     PaymentDataBRL:
       type: object
-      description: PIX transfer instructions for BRL payments.
+      description: |
+        PIX collection instructions for BRL payments. Two shapes are returned
+        depending on `paymentMethod`:
+
+        - `paymentMethod=instant_bank_transfer` (default) → `type=pix_transfer`:
+          a static PIX deposit key (`pixKey` / `pixKeyType`) plus a `reference`
+          to include in the transfer description. Reconciled by CPF/CNPJ + amount.
+        - `paymentMethod=pix_qr` → `type=pix_qr`: a per-order dynamic BR-Code
+          (`qrCodeString` + `qrCodeBase64`) that the customer scans in their
+          bank app. Expires in 15 minutes. Reconciled by the QR's embedded
+          `externalId` for guaranteed 1:1 matching.
       properties:
         type:
           type: string
-          enum: [pix_transfer]
+          enum: [pix_transfer, pix_qr]
+          description: |
+            - `pix_transfer`: returned for `paymentMethod=instant_bank_transfer`.
+            - `pix_qr`: returned for `paymentMethod=pix_qr`.
         pixKey:
           type: string
-          description: Dinaria's static PIX deposit key. Customer initiates a PIX transfer here.
+          description: |
+            Present only when `type=pix_transfer`. Dinaria's static PIX deposit key.
+            The customer initiates a PIX transfer to this key from their bank app.
           example: "bc8ba248-fb33-4022-bea1-c9fab2efd341"
         pixKeyType:
           type: string
           enum: [random]
-          description: Type of the PIX key (EVP/random).
+          description: Present only when `type=pix_transfer`. Type of the PIX key (EVP/random).
+        qrCodeString:
+          type: string
+          description: |
+            Present only when `type=pix_qr`. The EMV/BR-Code TLV payload as a
+            single string — render it with any standard QR encoder, or display
+            it verbatim for "copy-and-paste PIX". Customers scan this with their
+            bank app to pay the exact amount.
+          example: "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/...6304ABCD"
+        qrCodeBase64:
+          type: string
+          description: |
+            Present only when `type=pix_qr`. Base64-encoded PNG of the QR code,
+            ready to embed directly in HTML via
+            `<img src="data:image/png;base64,...">` — no extra rendering step.
+        qrExpiresAt:
+          type: string
+          format: date-time
+          description: |
+            Present only when `type=pix_qr`. ISO 8601 timestamp at which the QR
+            becomes invalid (15 minutes from creation). For `pix_qr` orders this
+            value is identical to the order's top-level `expiresAt` /
+            `expirationDate`. After this instant the merchant must create a
+            new payment if the customer wants to retry.
+          example: "2026-05-13T16:34:26Z"
         reference:
           type: string
           description: |
-            The transactionId. Instruct the customer to include this in the PIX transfer
-            description so the reconciler can match the payment automatically.
+            The transactionId. For `pix_transfer` payments, instruct the customer
+            to include this in the PIX transfer description so the reconciler can
+            match the payment. For `pix_qr` payments, the reference is already
+            embedded in the QR code's `externalId` — exposed here for traceability.
           example: "f90c7c31-7a38-46dc-99ba-188a4c99da29"
 
     PaymentRequest:
@@ -225,11 +266,22 @@ components:
           description: ISO 4217 currency code.
         paymentMethod:
           type: string
-          enum: [bank_transfer, instant_bank_transfer]
+          enum: [bank_transfer, instant_bank_transfer, pix_qr]
           description: |
             Payment method to use. If omitted, the platform selects the default for the currency:
-            - `ARS` → `bank_transfer` (CBU/CVU bank transfer)
-            - `BRL` → `instant_bank_transfer` (PIX instant transfer)
+            - `ARS` → `bank_transfer` (CBU/CVU bank transfer).
+            - `BRL` → `instant_bank_transfer` (static PIX deposit key; reconciled
+              by CPF/CNPJ + amount).
+
+            **Brazil only — opt-in alternative:**
+            - `pix_qr`: a per-order **dynamic** PIX QR (BR-Code) is minted at
+              creation time. The response carries `paymentData.qrCodeString` and
+              `paymentData.qrCodeBase64`. Reconciliation uses the QR's embedded
+              `externalId` for guaranteed 1:1 matching. The QR (and the order)
+              expires in 15 minutes regardless of `expiresAfter` / `expiration`.
+
+            `pix_qr` is **not yet available for ARS** — Coinag QR support is
+            on the roadmap.
         customer:
           $ref: "#/components/schemas/Customer"
         externalId:
@@ -252,6 +304,11 @@ components:
             `defaultOrderExpirationHours` setting.
             If neither `expiresAfter` nor `expiration` is provided, the platform default
             applies (currently 24 hours / 86 400 s).
+
+            **Note:** ignored when `paymentMethod=pix_qr` — the QR code carries
+            its own hard 15-minute expiry and the order expiration is aligned
+            to it so the customer can never see a still-open order with a dead
+            QR.
           example: 3600
         expiration:
           type: string
@@ -259,6 +316,7 @@ components:
           description: |
             **Deprecated in favour of `expiresAfter`.**
             ISO 8601 absolute datetime after which the order expires.
+            Ignored for `paymentMethod=pix_qr` (forced to creation + 15 minutes).
         metadata:
           type: object
           description: Free-form key-value pairs. Returned in responses and webhooks.
@@ -1062,6 +1120,21 @@ components:
           documentType: CNPJ
           documentNumber: "58084921000160"
 
+    PaymentRequestBRLPixQR:
+      summary: "BRL — dynamic PIX QR (Brazil only)"
+      value:
+        merchantId: bpn_merch_1
+        amount: "100.00"
+        currency: BRL
+        paymentMethod: pix_qr
+        externalId: ORD-2003
+        customer:
+          name: Belo Brasil Ltda
+          documentType: CNPJ
+          documentNumber: "58084921000160"
+        metadata:
+          orderId: ORD-2003
+
     # POST /payments — response
     PaymentResponseARS:
       summary: "ARS — started"
@@ -1107,7 +1180,7 @@ components:
           documentNumber: "20221370075"
 
     PaymentResponseBRL:
-      summary: "BRL — started"
+      summary: "BRL — started (static PIX key)"
       value:
         transactionId: f90c7c31-7a38-46dc-99ba-188a4c99da29
         merchantId: bpn_merch_1
@@ -1126,6 +1199,31 @@ components:
           name: João Silva
           documentType: CPF
           documentNumber: "12345678901"
+        reconciliationStatus: unknown
+
+    PaymentResponseBRLPixQR:
+      summary: "BRL — started (dynamic PIX QR)"
+      value:
+        transactionId: 3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1
+        merchantId: bpn_merch_1
+        externalId: ORD-2003
+        status: started
+        amount: "100.00"
+        currency: BRL
+        paymentMethod: pix_qr
+        rail: pix
+        expirationDate: "2026-05-13T16:34:26Z"
+        expiresAt: "2026-05-13T16:34:26Z"
+        paymentData:
+          type: pix_qr
+          qrCodeString: "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/e9570fcb77f94a27adb462e9b09591ce5204000053039865802BR5909Transfero6014Rio de Janeiro62070503***6304B634"
+          qrCodeBase64: "iVBORw0KGgoAAAANSUhEUgAAAVkAAAFZAQAAAAAaiWF2AAA...(truncated)"
+          qrExpiresAt: "2026-05-13T16:34:26Z"
+          reference: 3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1
+        customer:
+          name: Belo Brasil Ltda
+          documentType: CNPJ
+          documentNumber: "58084921000160"
         reconciliationStatus: unknown
 
     # POST /payouts — request
@@ -1435,8 +1533,22 @@ paths:
         initiates a CBU/CVU bank transfer and **must include the reference in the
         transfer concept/description field**. The reconciler matches it automatically.
 
-        **BRL**: Display `paymentData.pixKey`. The customer initiates a PIX transfer
-        using `paymentData.reference` as the transfer description.
+        **BRL** — two methods (choose with `paymentMethod`):
+
+        - `instant_bank_transfer` *(default)* — `paymentData.type = "pix_transfer"`:
+          display `paymentData.pixKey` and `paymentData.reference`. The customer
+          initiates a PIX transfer using the reference as the description. The
+          reconciler matches by CPF/CNPJ + amount. Order expiration is
+          merchant-controlled.
+        - `pix_qr` — `paymentData.type = "pix_qr"`: a per-order dynamic PIX QR
+          (BR-Code) is minted by Transfero. Display `paymentData.qrCodeBase64`
+          inline (`<img src="data:image/png;base64,...">`) or render
+          `paymentData.qrCodeString` with any QR encoder; "copy-and-paste PIX"
+          is supported by showing the same string verbatim. **The QR (and
+          order) expire in 15 minutes** — any merchant-supplied `expiresAfter`
+          or `expiration` is ignored. The reconciler binds the credit to this
+          order via the QR's embedded `externalId`, giving guaranteed 1:1
+          matching even when the payer's tax ID is unknown ahead of time.
 
         Payments are single-use. Create a new one for each attempt.
       parameters:
@@ -1456,6 +1568,8 @@ paths:
                 $ref: "#/components/examples/PaymentRequestBRL"
               brl_cnpj:
                 $ref: "#/components/examples/PaymentRequestBRLCNPJ"
+              brl_pix_qr:
+                $ref: "#/components/examples/PaymentRequestBRLPixQR"
       responses:
         "200":
           description: Payment created successfully.
@@ -1468,6 +1582,8 @@ paths:
                   $ref: "#/components/examples/PaymentResponseARS"
                 brl_started:
                   $ref: "#/components/examples/PaymentResponseBRL"
+                brl_pix_qr_started:
+                  $ref: "#/components/examples/PaymentResponseBRLPixQR"
         "400":
           description: Invalid request.
           content:
