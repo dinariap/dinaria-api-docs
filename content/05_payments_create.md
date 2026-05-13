@@ -151,7 +151,7 @@ Display `paymentData.pixKey` to the customer. Instruct them to open their bank a
 
 #### Method 2 — Dynamic PIX QR (`pix_qr`)
 
-Pass `"paymentMethod": "pix_qr"` to mint a per-order BR-Code via Transfero. The response contains both the EMV string (for QR-rendering libraries or copy-and-paste PIX) and a base64 PNG (drop-in `<img>` tag).
+Pass `"paymentMethod": "pix_qr"` to mint a per-order BR-Code. The response contains both the EMV string (for QR-rendering libraries or copy-and-paste PIX) and a base64 PNG (drop-in `<img>` tag).
 
 ```json
 {
@@ -182,7 +182,7 @@ Pass `"paymentMethod": "pix_qr"` to mint a per-order BR-Code via Transfero. The 
   "expiresAt":      "2026-05-13T16:34:26Z",
   "paymentData": {
     "type": "pix_qr",
-    "qrCodeString": "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/...6304ABCD",
+    "qrCodeString": "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/...6304ABCD",
     "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
     "qrExpiresAt":  "2026-05-13T16:34:26Z",
     "reference":    "3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1"
@@ -204,7 +204,7 @@ Also show `paymentData.qrCodeString` as a "copy PIX code" button — many Brazil
 
 > **Note:** `pix_qr` orders expire after **15 minutes** (the QR's hard limit). Any `expiresAfter` or `expiration` you pass is ignored for this method. If the customer doesn't pay in time, create a new payment.
 
-**How reconciliation works.** The QR has Dinaria's `transactionId` baked in as the BR-Code's `externalId`. When Transfero receives the customer's PIX, it echoes that ID back to us, so we bind the credit to the exact payment order — no CPF/CNPJ lookup needed and no ambiguity if multiple customers send the same amount at the same time.
+**How reconciliation works.** The QR has Dinaria's `transactionId` baked in as the BR-Code's `externalId`. When the customer pays, that ID flows back with the incoming PIX credit, so we bind it to the exact payment order — no CPF/CNPJ lookup needed and no ambiguity if multiple customers send the same amount at the same time.
 
 </div>
 

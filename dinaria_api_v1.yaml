@@ -217,7 +217,7 @@ components:
             single string — render it with any standard QR encoder, or display
             it verbatim for "copy-and-paste PIX". Customers scan this with their
             bank app to pay the exact amount.
-          example: "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/...6304ABCD"
+          example: "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/...6304ABCD"
         qrCodeBase64:
           type: string
           description: |
@@ -280,8 +280,8 @@ components:
               `externalId` for guaranteed 1:1 matching. The QR (and the order)
               expires in 15 minutes regardless of `expiresAfter` / `expiration`.
 
-            `pix_qr` is **not yet available for ARS** — Coinag QR support is
-            on the roadmap.
+            `pix_qr` is **not yet available for ARS** — dynamic-QR support
+            for Argentina is on the roadmap.
         customer:
           $ref: "#/components/schemas/Customer"
         externalId:
@@ -1216,7 +1216,7 @@ components:
         expiresAt: "2026-05-13T16:34:26Z"
         paymentData:
           type: pix_qr
-          qrCodeString: "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/e9570fcb77f94a27adb462e9b09591ce5204000053039865802BR5909Transfero6014Rio de Janeiro62070503***6304B634"
+          qrCodeString: "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/e9570fcb77f94a27adb462e9b09591ce5204000053039865802BR5907Dinaria6014Rio de Janeiro62070503***6304ABCD"
           qrCodeBase64: "iVBORw0KGgoAAAANSUhEUgAAAVkAAAFZAQAAAAAaiWF2AAA...(truncated)"
           qrExpiresAt: "2026-05-13T16:34:26Z"
           reference: 3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1
@@ -1541,7 +1541,7 @@ paths:
           reconciler matches by CPF/CNPJ + amount. Order expiration is
           merchant-controlled.
         - `pix_qr` — `paymentData.type = "pix_qr"`: a per-order dynamic PIX QR
-          (BR-Code) is minted by Transfero. Display `paymentData.qrCodeBase64`
+          (BR-Code) is minted by Dinaria. Display `paymentData.qrCodeBase64`
           inline (`<img src="data:image/png;base64,...">`) or render
           `paymentData.qrCodeString` with any QR encoder; "copy-and-paste PIX"
           is supported by showing the same string verbatim. **The QR (and

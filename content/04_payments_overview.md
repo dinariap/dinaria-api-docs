@@ -47,7 +47,7 @@ After creating a payment, the response includes a `paymentData` object with the 
 **Choosing a method.** Brazil supports two PIX collection methods that you select per-payment via `paymentMethod`:
 
 - **`instant_bank_transfer`** *(default)* — a static PIX deposit key is returned. Reconciliation matches the incoming credit by the payer's CPF/CNPJ + amount, and the order expiration is fully controlled by `expiresAfter` / `expiration` (default 24h).
-- **`pix_qr`** — a per-order **dynamic** PIX QR (BR-Code) is minted via Transfero at create time. The response includes `qrCodeString` (EMV/TLV string for QR libraries or copy-and-paste PIX) and `qrCodeBase64` (drop-in PNG). The QR — and the order — expire in **15 minutes**. Reconciliation uses the QR's embedded `externalId` for guaranteed 1:1 matching, which is the most reliable option when the same amount may be paid by multiple customers or when you don't know the payer's CPF/CNPJ in advance.
+- **`pix_qr`** — a per-order **dynamic** PIX QR (BR-Code) is minted by Dinaria at create time. The response includes `qrCodeString` (EMV/TLV string for QR libraries or copy-and-paste PIX) and `qrCodeBase64` (drop-in PNG). The QR — and the order — expire in **15 minutes**. Reconciliation uses the QR's embedded `externalId` for guaranteed 1:1 matching, which is the most reliable option when the same amount may be paid by multiple customers or when you don't know the payer's CPF/CNPJ in advance.
 
 </div>
 

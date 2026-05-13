@@ -12,8 +12,8 @@ info:
       deposit key** (`paymentData.type = "pix_transfer"`). The customer
       transfers from their bank app. Reconciliation is by CPF/CNPJ + amount;
       the order expiration is merchant-controlled.
-    - `pix_qr` — Dinaria mints a **per-order dynamic PIX QR (BR-Code)** via
-      Transfero (`paymentData.type = "pix_qr"`). The response contains
+    - `pix_qr` — Dinaria mints a **per-order dynamic PIX QR (BR-Code)**
+      (`paymentData.type = "pix_qr"`). The response contains
       `qrCodeString` and `qrCodeBase64`; the QR (and the order) expire in
       15 minutes. Reconciliation is by the QR's embedded `externalId` and
       gives guaranteed 1:1 matching.
@@ -123,7 +123,7 @@ components:
             Present only when `type=pix_qr`. The EMV/BR-Code TLV payload as a
             single string — render with any QR encoder, or display verbatim
             for copy-and-paste PIX.
-          example: "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/...6304ABCD"
+          example: "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/...6304ABCD"
         qrCodeBase64:
           type: string
           description: |
@@ -172,7 +172,7 @@ components:
               Customer transfers from their bank app and reconciliation runs
               on CPF/CNPJ + amount. Order expiration is merchant-controlled.
             - `pix_qr`: per-order dynamic PIX QR (BR-Code) minted by
-              Transfero at creation time. Response includes `qrCodeString` and
+              Dinaria at creation time. Response includes `qrCodeString` and
               `qrCodeBase64`. The QR (and the order) expire in 15 minutes;
               any merchant-supplied expiration override is ignored.
               Reconciliation uses the QR's embedded `externalId` for
@@ -384,7 +384,7 @@ paths:
                     expiresAt: "2026-05-13T16:34:26Z"
                     paymentData:
                       type: pix_qr
-                      qrCodeString: "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/e9570fcb77f94a27adb462e9b09591ce5204000053039865802BR5909Transfero6014Rio de Janeiro62070503***6304B634"
+                      qrCodeString: "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/e9570fcb77f94a27adb462e9b09591ce5204000053039865802BR5907Dinaria6014Rio de Janeiro62070503***6304ABCD"
                       qrCodeBase64: "iVBORw0KGgoAAAANSUhEUgAAAVkAAAFZAQAAAAAaiWF2AAA...(truncated)"
                       qrExpiresAt: "2026-05-13T16:34:26Z"
                       reference: 3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1

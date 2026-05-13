@@ -141,7 +141,7 @@ The response includes a `paymentData` object with a static PIX deposit key. Disp
 
 ### Method 2 — Dynamic PIX QR (`pix_qr`)
 
-Pass `"paymentMethod": "pix_qr"` and Dinaria mints a per-order BR-Code via Transfero. The response carries both an EMV string (`qrCodeString`, for QR libraries or copy-and-paste PIX) and a base64 PNG (`qrCodeBase64`, drop-in `<img>` tag). The QR — and the order — expire 15 minutes after creation; any `expiresAfter` / `expiration` you pass is ignored for this method.
+Pass `"paymentMethod": "pix_qr"` and Dinaria mints a per-order BR-Code on the underlying PIX rail. The response carries both an EMV string (`qrCodeString`, for QR libraries or copy-and-paste PIX) and a base64 PNG (`qrCodeBase64`, drop-in `<img>` tag). The QR — and the order — expire 15 minutes after creation; any `expiresAfter` / `expiration` you pass is ignored for this method.
 
 #### Example request
 
@@ -173,7 +173,7 @@ Pass `"paymentMethod": "pix_qr"` and Dinaria mints a per-order BR-Code via Trans
   "expiresAt":      "2026-05-13T16:34:26Z",
   "paymentData": {
     "type": "pix_qr",
-    "qrCodeString": "00020101021226790014br.gov.bcb.pix2557brcode.starkinfra.com/v2/...6304ABCD",
+    "qrCodeString": "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/...6304ABCD",
     "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
     "qrExpiresAt":  "2026-05-13T16:34:26Z",
     "reference":    "3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1"
