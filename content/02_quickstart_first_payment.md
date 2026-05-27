@@ -33,7 +33,7 @@ curl -X POST "https://pay.dinaria.com/payments" \
     "cancelUrl": "https://merchant.example/cancel",
     "customer": {
       "name": "Juan Pérez",
-      "documentNumber": "20123456789"
+      "documentNumber": "20234567897"
     }
   }'
 ```

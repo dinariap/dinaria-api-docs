@@ -32,7 +32,7 @@ Payouts may also be executed from pre-funded balances.
   "externalId": "ORD-1001",
   "customer": {
     "name": "Juan Pérez",
-    "documentNumber": "20123456789"
+    "documentNumber": "20234567897"
   }
 }
 ```
@@ -129,7 +129,7 @@ Requires a **merchant-scoped API key** with payouts enabled.
     "identifierType": "cbu",
     "identifierValue": "0070327530004025541644",
     "name": "Ana Martínez",
-    "taxId": "20123456789"
+    "taxId": "20234567897"
   }
 }
 ```
@@ -148,7 +148,7 @@ Requires a **merchant-scoped API key** with payouts enabled.
     "identifierType": "cbu",
     "identifierValue": "0070327530004025541644",
     "name": "Ana Martínez",
-    "taxId": "20123456789"
+    "taxId": "20234567897"
   },
   "createdAt": "2026-01-01T12:00:00Z"
 }

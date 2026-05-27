@@ -63,7 +63,7 @@ Idempotency-Key: <unique-key>
     "identifierType": "cbu",
     "identifierValue": "0070327530004025541644",
     "name": "Ana Martínez",
-    "taxId": "20123456789"
+    "taxId": "20234567897"
   }
 }
 ```
@@ -148,7 +148,7 @@ Returned immediately in `pending` status. Use `id` to track progress.
   "destination": {
     "identifierType": "cbu",
     "identifierValue": "0070327530004025541644",
-    "taxId": "20123456789",
+    "taxId": "20234567897",
     "taxIdCountry": "AR",
     "name": "Ana Martínez"
   },

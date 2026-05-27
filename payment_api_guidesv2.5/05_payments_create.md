@@ -69,7 +69,7 @@ The customer is redirected to `actionUrl`, where they receive CBU/CVU bank trans
   "externalId": "ORD-1001",
   "customer": {
     "name": "Juan Pérez",
-    "documentNumber": "20123456789"
+    "documentNumber": "20234567897"
   }
 }
 ```

@@ -62,7 +62,7 @@ Idempotency-Key: <uuid>
   "externalId": "ORD-1001",
   "customer": {
     "name": "Juan Pérez",
-    "documentNumber": "20123456789"
+    "documentNumber": "20234567897"
   },
   "metadata": {
     "orderId": "ORD-1001"

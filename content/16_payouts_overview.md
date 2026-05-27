@@ -51,7 +51,7 @@ Funds are sent via the COELSA clearing network to the recipient's CBU or CVU.
     "identifierType": "cbu",
     "identifierValue": "0070327530004025541644",
     "name": "Ana Martínez",
-    "taxId": "20123456789"
+    "taxId": "20234567897"
   }
 }
 ```
