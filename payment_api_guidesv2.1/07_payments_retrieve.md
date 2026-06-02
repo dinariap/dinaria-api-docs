@@ -16,7 +16,7 @@ GET /payments/{transactionId}
 
 ## Example request
 ```bash
-curl -X GET "https://api.tuservicio.com/v1/payments/trx_123456" \
+curl -X GET "https://api.dinaria.com/payments/trx_123456" \
   -H "Authorization: Bearer sk_test_xxx"
 ```
 

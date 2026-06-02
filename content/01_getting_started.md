@@ -9,8 +9,12 @@ parent: Guides
 ## Base URL
 Use the base URL for the environment you are integrating with.
 
-- Sandbox: `https://api.sandbox.dinaria.com/v1`
-- Production: `https://api.dinaria.com/v1`
+- Sandbox: `https://api.sandbox.dinaria.com`
+- Production: `https://api.dinaria.com`
+
+Endpoints are rooted directly under the base URL — for example `POST /payments`, `GET /balance`, `POST /payouts`. **Do not** add a `/v1` prefix for payments, payouts, balance, or webhooks (`/v1/payments` returns 404).
+
+The only `/v1` routes on the same host are **Blockchain Access** (DinaBlock relay): `/v1/chains/tron/...`. See the Crypto section for those paths.
 
 If you run separate dev/test/prod stacks, keep them isolated by using different API
 keys and webhook endpoints. Unless a dedicated environment is provisioned for you,

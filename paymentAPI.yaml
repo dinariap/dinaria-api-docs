@@ -24,9 +24,9 @@ externalDocs:
   url: https://dinariap.github.io/dinaria-api-docs
   
 servers:
-  - url: https://api.dinaria.com/v1
+  - url: https://api.dinaria.com
     description: Production environment (dev/test/prod with live keys)
-  - url: https://api.sandbox.dinaria.com/v1
+  - url: https://api.sandbox.dinaria.com
     description: Sandbox environment (test keys only)
 
 tags:

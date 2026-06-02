@@ -10,13 +10,13 @@ This guide shows a complete, minimal flow using curl: register webhook, create a
 redirect the customer, and confirm the final status.
 
 ## 1) Choose your environment
-1. Sandbox: `https://api.sandbox.dinaria.com/v1`
-2. Production: `https://api.dinaria.com/v1`
+1. Sandbox: `https://api.sandbox.dinaria.com`
+2. Production: `https://api.dinaria.com`
 
 Set your base URL and API key once:
 
 ```bash
-BASE_URL="https://api.sandbox.dinaria.com/v1"
+BASE_URL="https://api.sandbox.dinaria.com"
 API_KEY="di_test_xxx"
 ```
 

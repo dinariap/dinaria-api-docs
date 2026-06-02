@@ -9,8 +9,8 @@ parent: Guides
 ## Base URL
 Use the base URL for the environment you are integrating with.
 
-- Sandbox: `https://api.sandbox.dinaria.com/v1`
-- Production: `https://api.dinaria.com/v1`
+- Sandbox: `https://api.sandbox.dinaria.com`
+- Production: `https://api.dinaria.com`
 
 If you run separate dev/test/prod stacks, keep them isolated by using different API
 keys and webhook endpoints. Unless a dedicated environment is provisioned for you,
