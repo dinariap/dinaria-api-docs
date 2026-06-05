@@ -86,6 +86,10 @@
         "file": "content/15_step_by_step_payment_example.md"
       },
       {
+        "title": "Sandbox: Simulate a Pay-in",
+        "file": "content/19_sandbox_cashin_simulation.md"
+      },
+      {
         "title": "Redirect Flow (Future)",
         "file": "content/06_payments_redirect_flow.md"
       },

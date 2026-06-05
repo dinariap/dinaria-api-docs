@@ -17,6 +17,21 @@ sandbox environment, what each page is for, and who should use it.
 Use this base URL for all API calls from your backend (create payments, retrieve
 status, register webhooks, etc.).
 
+## Simulate a pay-in (sandbox)
+
+After `POST /payments` returns `status: "started"`:
+
+- **ARS:** `POST /sandbox/payments/{transactionId}/receive` with `{}` body
+- **BRL:** `POST /trf/cashin/simulate` with `externalId`, `taxId`, and `amount`
+
+See `content/19_sandbox_cashin_simulation.md` for full examples and matching rules.
+
+## Merchant portal (sandbox)
+
+- **URL:** `https://sandbox.dinaria.com/login`
+- **Username:** account ID (e.g. `bpn`)
+- **Password:** provided by Dinaria
+
 ## Dinapay (merchant admin views)
 
 ### Merchant Payments

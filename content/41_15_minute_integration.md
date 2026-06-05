@@ -97,7 +97,47 @@ Display `paymentData.pixKey` to the customer. Instruct them to open their bank a
 
 ---
 
-## Step 2 — Wait for confirmation
+## Step 2 — Simulate confirmation (sandbox only)
+
+> **Sandbox only.** In production, the customer completes the transfer and you wait for the real inbound credit.
+
+<div class="country-ar">
+
+```bash
+curl -X POST "https://api.sandbox.dinaria.com/sandbox/payments/{transactionId}/receive" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+Replace `{transactionId}` with the value from step 1. Empty body is enough for the happy path.
+
+</div>
+
+<div class="country-br">
+
+```bash
+curl -X POST "https://api.sandbox.dinaria.com/trf/cashin/simulate" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 100.00,
+    "currency": "BRL",
+    "externalId": "ORD-1001",
+    "taxId": "12345678901",
+    "payerName": "João Silva"
+  }'
+```
+
+`externalId` and `taxId` must match step 1. BRL does not support the unified `/sandbox/payments/{id}/receive` route yet.
+
+</div>
+
+Full details: [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md).
+
+---
+
+## Step 3 — Wait for confirmation
 
 Listen for the webhook event or poll `GET /payments/{transactionId}`:
 

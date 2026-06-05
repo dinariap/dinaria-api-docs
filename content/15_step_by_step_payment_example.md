@@ -134,7 +134,56 @@ Display `paymentData.pixKey` to the customer. Instruct them to open their bank a
 
 ---
 
-## 4. Confirm the final status
+## 4. Simulate confirmation (sandbox only)
+
+> **Sandbox only** — skip this step in production. Real customers complete the bank transfer or PIX payment; you confirm via webhook or poll.
+
+Set the sandbox base URL and use the `transactionId` from step 3:
+
+```bash
+SANDBOX_URL="https://api.sandbox.dinaria.com"
+TRANSACTION_ID="f90c7c31-7a38-46dc-99ba-188a4c99da29"
+```
+
+<div class="country-ar">
+
+### Argentina — simulate inbound transfer
+
+```bash
+curl -X POST "$SANDBOX_URL/sandbox/payments/$TRANSACTION_ID/receive" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+An empty body drives the payment to `confirmed` using the payment's own `amount` and `customer.documentNumber`. See [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md) for override fields.
+
+</div>
+
+<div class="country-br">
+
+### Brasil — simulate PIX deposit
+
+```bash
+curl -X POST "$SANDBOX_URL/trf/cashin/simulate" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 100.00,
+    "currency": "BRL",
+    "externalId": "ORD-1001",
+    "taxId": "12345678901",
+    "payerName": "João Silva"
+  }'
+```
+
+`externalId` and `taxId` must match the values you sent in step 3. Wait ~10 seconds for the reconciler to confirm.
+
+</div>
+
+---
+
+## 5. Confirm the final status
 
 Do **not** rely on redirects for confirmation. Use webhooks (recommended) or poll:
 
@@ -145,7 +194,7 @@ curl "$BASE_URL/payments/f90c7c31-7a38-46dc-99ba-188a4c99da29" \
 
 ---
 
-## 5. Handle the webhook
+## 6. Handle the webhook
 
 Your server receives `POST` to your registered webhook URL:
 
@@ -185,7 +234,7 @@ Verify signatures using `X-Webhook-Timestamp` and `X-Webhook-Signature`. Signed 
 
 ---
 
-## 6. Idempotency and retries
+## 7. Idempotency and retries
 
 - Webhooks are delivered **at least once** — use `transactionId` to deduplicate.
 - Process asynchronously and return HTTP 200 quickly.

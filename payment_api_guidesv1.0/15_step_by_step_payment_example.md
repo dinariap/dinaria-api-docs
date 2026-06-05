@@ -79,17 +79,23 @@ curl -X POST "$BASE_URL/payments" \
 ## 4) Redirect the customer to pay
 Use the `actionUrl` from the response to redirect your customer to complete payment.
 
-**Sandbox note:** in sandbox you can simulate payment confirmation by calling the PSP
-endpoint directly:
+**Sandbox note:** simulate confirmation with your API key instead of a real transfer:
 
 ```bash
-curl -X POST "https://psp.sandbox.dinaria.com/psp/simulate" \
+# ARS — empty body uses payment amount + customer document
+curl -X POST "$BASE_URL/sandbox/payments/trx_123456/receive" \
+  -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "id": "trx_123456",
-    "status": "approved"
-  }'
+  -d '{}'
+
+# BRL — externalId and taxId must match the payment
+curl -X POST "$BASE_URL/trf/cashin/simulate" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 5.00, "currency": "BRL", "externalId": "ORD-1001", "taxId": "20234567897", "payerName": "Juan Pérez"}'
 ```
+
+See `content/19_sandbox_cashin_simulation.md` in the docs repo for full details.
 
 ## 5) Confirm the final status
 Do **not** rely on redirects for confirmation. Use webhooks (recommended) or retrieve:
