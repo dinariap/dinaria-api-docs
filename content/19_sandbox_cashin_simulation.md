@@ -199,8 +199,7 @@ curl "$SANDBOX_URL/payments/$TRANSACTION_ID" \
 
 | Tool | URL |
 |------|-----|
-| API base | `https://api.sandbox.dinaria.com` |
-| Merchant portal login | `https://sandbox.dinaria.com/login` |
-| Operator admin | `https://admin.sandbox.dinaria.com/paytomerch/payments` |
+| API base | Ask support |
+| Merchant portal login | Ask support |
 
 Portal login uses your **account ID** (e.g. `bpn`) and password — not the API key.

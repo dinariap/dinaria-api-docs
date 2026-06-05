@@ -10,7 +10,7 @@ Merchant-facing utilities on the sandbox environment.
 
 | | |
 |--|--|
-| Base URL | `https://api.sandbox.dinaria.com` |
+| Base URL | Ask support |
 | Auth | `Authorization: Bearer di_sand_…` |
 
 Use this base for `POST /payments`, `POST /payouts`, `GET /balance`, webhooks, and simulate endpoints.
@@ -37,7 +37,7 @@ Full examples and matching rules: [Sandbox: Simulate a Pay-in](19_sandbox_cashin
 
 | | |
 |--|--|
-| URL | `https://sandbox.dinaria.com/login` |
+| URL | Ask support |
 | Username | Your account ID (e.g. `bpn`) — not the merchant ID |
 | Password | Set by Dinaria for your sandbox account |
 
@@ -51,6 +51,5 @@ Hosted at `https://admin.sandbox.dinaria.com` (session auth).
 |------|------|
 | Merchant payments | `/paytomerch/payments` |
 | Merchant webhooks | `/paytomerch/webhooks` |
-| Operator dashboard | `/pay/` |
 
 Credentials are provided by Dinaria when your sandbox account is provisioned.

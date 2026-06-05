@@ -37,7 +37,7 @@ See `content/19_sandbox_cashin_simulation.md` for full examples and matching rul
 
 ## Merchant portal (sandbox)
 
-- **URL:** `https://sandbox.dinaria.com/login`
+- **URL:** Ask support
 - **Username:** account ID (e.g. `bpn`)
 - **Password:** provided by Dinaria
 
