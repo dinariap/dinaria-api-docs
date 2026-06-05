@@ -101,12 +101,16 @@ Display `paymentData.pixKey` to the customer. Instruct them to open their bank a
 
 > **Sandbox only.** In production, the customer completes the transfer and you wait for the real inbound credit. Use the 🇦🇷 / 🇧🇷 filter in the top bar to show only your country's command.
 
+```bash
+SANDBOX_URL="ask support"
+```
+
 <div class="country-ar">
 
 ### Argentina (ARS)
 
 ```bash
-curl -X POST "https://api.sandbox.dinaria.com/sandbox/payments/{transactionId}/receive" \
+curl -X POST "$SANDBOX_URL/sandbox/payments/{transactionId}/receive" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{}'
@@ -121,7 +125,7 @@ Replace `{transactionId}` with the value from step 1. Empty body is enough for t
 ### Brasil (BRL)
 
 ```bash
-curl -X POST "https://api.sandbox.dinaria.com/trf/cashin/simulate" \
+curl -X POST "$SANDBOX_URL/trf/cashin/simulate" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

@@ -141,7 +141,7 @@ Display `paymentData.pixKey` to the customer. Instruct them to open their bank a
 Set the sandbox base URL and use the `transactionId` from step 3:
 
 ```bash
-SANDBOX_URL="https://api.sandbox.dinaria.com"
+SANDBOX_URL="ask support"
 TRANSACTION_ID="f90c7c31-7a38-46dc-99ba-188a4c99da29"
 ```
 

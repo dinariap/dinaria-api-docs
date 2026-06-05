@@ -45,7 +45,7 @@ After login, direct merchants land on `/account/orders`; platform accounts on `/
 
 ## Admin pages
 
-Hosted at `https://admin.sandbox.dinaria.com` (session auth).
+Hosted at ask support (session auth).
 
 | Page | Path |
 |------|------|

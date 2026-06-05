@@ -4,8 +4,6 @@ title: Sandbox — Simulate a Pay-in
 
 # Sandbox: simulate a pay-in
 
-> **Sandbox only.** These endpoints are available on `https://api.sandbox.dinaria.com` and are **not** exposed in production.
-
 After `POST /payments` returns `status: "started"`, call a simulate endpoint to inject the inbound transfer. The reconciler matches it to your open order within about **10–15 seconds**.
 
 Use the **🇦🇷 Argentina / 🇧🇷 Brasil** buttons in the top bar to show only the section for your integration. Click the active button again to show both.
@@ -26,7 +24,7 @@ The payment must belong to the **same account** as the API key. A valid key with
 Set these once for the examples below:
 
 ```bash
-SANDBOX_URL="https://api.sandbox.dinaria.com"
+SANDBOX_URL="ask support"
 API_KEY="di_sand_xxx"
 TRANSACTION_ID="<transactionId from POST /payments>"
 ```
