@@ -47,6 +47,7 @@ Move money across payment methods, currencies, and payout rails through a single
 | [**Errors & Retries**](#12_errors_and_retries.md) | Error codes, retry strategy, and idempotency. |
 | [**Best Practices**](#14_payment_best_practices.md) | Recommendations for reliability and reconciliation. |
 | [**Step-by-Step Example**](#15_step_by_step_payment_example.md) | A complete flow from order creation to confirmed receipt. |
+| [**Sandbox: Simulate a Pay-in**](#19_sandbox_cashin_simulation.md) | Drive a sandbox payment to `confirmed` without a real transfer. |
 
 ---
 

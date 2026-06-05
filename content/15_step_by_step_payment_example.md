@@ -136,7 +136,7 @@ Display `paymentData.pixKey` to the customer. Instruct them to open their bank a
 
 ## 4. Simulate confirmation (sandbox only)
 
-> **Sandbox only** — skip this step in production. Real customers complete the bank transfer or PIX payment; you confirm via webhook or poll.
+> **Sandbox only** — skip this step in production. Real customers complete the bank transfer or PIX payment; you confirm via webhook or poll. Use the 🇦🇷 / 🇧🇷 filter in the top bar to show only your country's command.
 
 Set the sandbox base URL and use the `transactionId` from step 3:
 
@@ -147,7 +147,7 @@ TRANSACTION_ID="f90c7c31-7a38-46dc-99ba-188a4c99da29"
 
 <div class="country-ar">
 
-### Argentina — simulate inbound transfer
+### Argentina (ARS) — simulate inbound transfer
 
 ```bash
 curl -X POST "$SANDBOX_URL/sandbox/payments/$TRANSACTION_ID/receive" \
@@ -162,7 +162,7 @@ An empty body drives the payment to `confirmed` using the payment's own `amount`
 
 <div class="country-br">
 
-### Brasil — simulate PIX deposit
+### Brasil (BRL) — simulate PIX deposit
 
 ```bash
 curl -X POST "$SANDBOX_URL/trf/cashin/simulate" \

@@ -99,9 +99,11 @@ Display `paymentData.pixKey` to the customer. Instruct them to open their bank a
 
 ## Step 2 — Simulate confirmation (sandbox only)
 
-> **Sandbox only.** In production, the customer completes the transfer and you wait for the real inbound credit.
+> **Sandbox only.** In production, the customer completes the transfer and you wait for the real inbound credit. Use the 🇦🇷 / 🇧🇷 filter in the top bar to show only your country's command.
 
 <div class="country-ar">
+
+### Argentina (ARS)
 
 ```bash
 curl -X POST "https://api.sandbox.dinaria.com/sandbox/payments/{transactionId}/receive" \
@@ -116,6 +118,8 @@ Replace `{transactionId}` with the value from step 1. Empty body is enough for t
 
 <div class="country-br">
 
+### Brasil (BRL)
+
 ```bash
 curl -X POST "https://api.sandbox.dinaria.com/trf/cashin/simulate" \
   -H "Authorization: Bearer $API_KEY" \
@@ -129,7 +133,7 @@ curl -X POST "https://api.sandbox.dinaria.com/trf/cashin/simulate" \
   }'
 ```
 
-`externalId` and `taxId` must match step 1. BRL does not support the unified `/sandbox/payments/{id}/receive` route yet.
+`externalId` and `taxId` must match step 1. BRL does not support `POST /sandbox/payments/{id}/receive` yet.
 
 </div>
 

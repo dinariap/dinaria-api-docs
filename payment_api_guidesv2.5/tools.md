@@ -21,8 +21,17 @@ status, register webhooks, etc.).
 
 After `POST /payments` returns `status: "started"`:
 
-- **ARS:** `POST /sandbox/payments/{transactionId}/receive` with `{}` body
-- **BRL:** `POST /trf/cashin/simulate` with `externalId`, `taxId`, and `amount`
+<div class="country-ar" markdown="1">
+
+**Argentina (ARS):** `POST /sandbox/payments/{transactionId}/receive` with `{}` body.
+
+</div>
+
+<div class="country-br" markdown="1">
+
+**Brasil (BRL):** `POST /trf/cashin/simulate` with `externalId`, `taxId`, and `amount`.
+
+</div>
 
 See `content/19_sandbox_cashin_simulation.md` for full examples and matching rules.
 

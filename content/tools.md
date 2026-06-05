@@ -17,12 +17,21 @@ Use this base for `POST /payments`, `POST /payouts`, `GET /balance`, webhooks, a
 
 ## Simulate a pay-in
 
-After creating a payment in sandbox, drive it to `confirmed` without a real bank transfer:
+After creating a payment in sandbox, drive it to `confirmed` without a real bank transfer. Use the 🇦🇷 / 🇧🇷 filter in the top bar to see only your country.
 
-- **ARS:** `POST /sandbox/payments/{transactionId}/receive` (empty body)
-- **BRL:** `POST /trf/cashin/simulate`
+<div class="country-ar">
 
-See [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md).
+**Argentina (ARS):** `POST /sandbox/payments/{transactionId}/receive` with `{}` body.
+
+</div>
+
+<div class="country-br">
+
+**Brasil (BRL):** `POST /trf/cashin/simulate` with `externalId`, `taxId`, and `amount`.
+
+</div>
+
+Full examples and matching rules: [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md).
 
 ## Portal login
 
