@@ -8,6 +8,7 @@ info:
     **Supported scopes**
     - **Argentina (ARS)** — CBU/CVU bank transfer. Customer is identified by CUIT or DNI.
     - **Brazil (BRL)** — PIX instant transfer. Customer is identified by CPF or CNPJ.
+    - **Venezuela (VES)** — remittance payout funded in USDT and delivered by bank account or mobile payment.
 
     **Key rules**
     - Payments are single-use. Create a new payment for each attempt.
@@ -30,7 +31,7 @@ tags:
   - name: Payments
     description: Create and retrieve pay-in orders.
   - name: Payouts
-    description: Send money out to customers via bank rails.
+    description: Send money to beneficiaries through country-specific bank, mobile, and PIX rails.
   - name: Merchant Settings
     description: Configure per-merchant reconciliation behaviour.
   - name: Webhooks
@@ -436,69 +437,200 @@ components:
           format: date-time
           description: Timestamp when the payment order was created.
 
-    PayoutDestination:
+    PayoutBeneficiary:
       type: object
       required:
-        - identifierType
-        - identifierValue
-      description: |
-        Canonical payout destination. Use this object for all new integrations.
+        - name
+        - documentType
+        - documentNumber
+      properties:
+        name:
+          type: string
+          description: Beneficiary full name or legal entity name.
+          example: María González
+        documentType:
+          type: string
+          enum: [RIF, CUIT, CPF, CNPJ]
+          description: |
+            Beneficiary document type for the destination country:
+            `RIF` for Venezuela, generally `CUIT` for Argentina, and `CPF` or `CNPJ` for Brazil.
+        documentNumber:
+          type: string
+          description: Beneficiary document number.
+          example: V40001469
+        mobile:
+          type: string
+          description: Required for the `ve_mobile_payment` rail.
+          example: "+58 424 2005748"
 
-        **ARS identifier types**
-        | `identifierType` | Meaning |
-        |---|---|
-        | `cbu` | 22-digit CBU or CVU number |
-        | `alias_cbu` | CBU alias (e.g. `mialiascbu`) — auto-resolved before transfer |
+    PayoutPixKey:
+      type: object
+      required: [type, value]
+      properties:
+        type:
+          type: string
+          enum: [cpf, cnpj, email, phone, evp]
+          description: PIX key type. `evp` is a random PIX key.
+        value:
+          type: string
+          description: PIX key value in the format corresponding to `type`.
+          example: "12345678901"
 
-        **BRL (PIX) identifier types**
-        | `identifierType` | Meaning |
-        |---|---|
-        | `pix_key_cpf` | CPF number (11 digits) |
-        | `pix_key_cnpj` | CNPJ number (14 digits) |
-        | `pix_key_email` | Email address registered as PIX key |
-        | `pix_key_phone` | Phone number registered as PIX key |
-        | `pix_key_random` | Random 36-char UUID PIX key |
+    PayoutRailVEBankAccount:
+      title: Venezuela bank account
+      type: object
+      required: [type, bankCode, accountNumber]
+      properties:
+        type:
+          type: string
+          enum: [ve_bank_account]
+        bankCode:
+          type: string
+          description: Beneficiary bank code.
+          example: "0102"
+        accountNumber:
+          type: string
+          description: Beneficiary bank account number.
+          example: "01020305810000263562"
 
-        For `pix_key_cpf` and `pix_key_cnpj` the `taxId` field is inferred from
-        `identifierValue` if not provided. For other PIX key types `taxId` is required.
+    PayoutRailVEMobilePayment:
+      title: Venezuela mobile payment
+      type: object
+      required: [type, bankCode]
+      properties:
+        type:
+          type: string
+          enum: [ve_mobile_payment]
+        bankCode:
+          type: string
+          description: Beneficiary bank code.
+          example: "0175"
 
-        **On-ramp (BRL → USDT)**
-        | `identifierType` | Meaning |
-        |---|---|
-        | `tron_address` | Tron wallet address (`T` + 33 base58 chars). Triggers synchronous BRL→USDT conversion. |
+    PayoutRailARCVU:
+      title: Argentina CVU
+      type: object
+      required: [type, cvu]
+      properties:
+        type:
+          type: string
+          enum: [ar_cvu]
+        cvu:
+          type: string
+          pattern: '^\d{22}$'
+          description: Beneficiary's 22-digit CVU.
+          example: "2850590940090418135201"
+
+    PayoutRailARAlias:
+      title: Argentina alias
+      type: object
+      required: [type, alias]
+      properties:
+        type:
+          type: string
+          enum: [ar_alias]
+        alias:
+          type: string
+          description: Beneficiary's CBU/CVU alias.
+          example: mialias
+
+    PayoutRailBRPix:
+      title: Brazil PIX
+      type: object
+      required: [type, pixKey]
+      properties:
+        type:
+          type: string
+          enum: [br_pix]
+        pixKey:
+          $ref: "#/components/schemas/PayoutPixKey"
+
+    PayoutRail:
+      description: Country-specific delivery rail. Select the schema matching the destination country.
+      oneOf:
+        - $ref: "#/components/schemas/PayoutRailVEBankAccount"
+        - $ref: "#/components/schemas/PayoutRailVEMobilePayment"
+        - $ref: "#/components/schemas/PayoutRailARCVU"
+        - $ref: "#/components/schemas/PayoutRailARAlias"
+        - $ref: "#/components/schemas/PayoutRailBRPix"
+      discriminator:
+        propertyName: type
+        mapping:
+          ve_bank_account: "#/components/schemas/PayoutRailVEBankAccount"
+          ve_mobile_payment: "#/components/schemas/PayoutRailVEMobilePayment"
+          ar_cvu: "#/components/schemas/PayoutRailARCVU"
+          ar_alias: "#/components/schemas/PayoutRailARAlias"
+          br_pix: "#/components/schemas/PayoutRailBRPix"
+
+    PayoutFiatDestination:
+      type: object
+      required: [country, beneficiary, rail]
+      properties:
+        country:
+          type: string
+          enum: [VE, AR, BR]
+        currency:
+          type: string
+          enum: [VES, ARS, BRL]
+          description: Destination currency. Required for Argentina and Brazil; Venezuela remittances settle in VES.
+        beneficiary:
+          $ref: "#/components/schemas/PayoutBeneficiary"
+        rail:
+          $ref: "#/components/schemas/PayoutRail"
+
+    PayoutOnRampDestination:
+      type: object
+      required: [identifierType, identifierValue]
+      description: Legacy destination shape used only for BRL to USDT on-ramp payouts.
       properties:
         identifierType:
           type: string
-          example: cbu
+          enum: [tron_address]
         identifierValue:
           type: string
-          example: "0070327530004025541644"
-        taxId:
-          type: string
-          description: Recipient CPF/CNPJ (BRL) or CUIT (ARS).
-          example: "20221370075"
-        taxIdCountry:
-          type: string
-          description: ISO 3166-1 alpha-2 country code of the tax ID. Inferred when possible.
-          example: AR
+          description: Tron wallet address.
+          example: TUcVE7YGbVJ2oXe7e3MiHAGiDqEbVz1GkB
         name:
           type: string
-          description: Recipient name. Auto-resolved for ARS CBU/alias if not provided.
-          example: Ana Martínez
         destinationCurrency:
           type: string
-          description: "On-ramp only. Destination currency. `USDT` is the only supported value."
-          example: USDT
+          enum: [USDT]
         network:
           type: string
-          description: "On-ramp only. Tron network: `mainnet` (default) or `shasta` (testnet)."
           enum: [mainnet, shasta]
-          example: mainnet
         settlement:
           type: string
-          description: "On-ramp only. Settlement window: `D0` = same-day (default), `D1` = next business day, `D2` = two business days."
           enum: [D0, D1, D2]
-          example: D0
+
+    PayoutDestination:
+      description: Fiat payout destination, or the legacy on-ramp destination shape.
+      oneOf:
+        - $ref: "#/components/schemas/PayoutFiatDestination"
+        - $ref: "#/components/schemas/PayoutOnRampDestination"
+
+    PayoutRemitter:
+      type: object
+      description: Sender identity and contact data. Required for remittance use cases.
+      required: [identification, firstName, lastName, birthDate, nationality, mobile, address, email]
+      properties:
+        identification:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        nationality:
+          type: string
+          description: ISO 3166-1 alpha-3 nationality code.
+        mobile:
+          type: string
+        address:
+          type: string
+        email:
+          type: string
+          format: email
 
     PayoutRequest:
       type: object
@@ -513,12 +645,16 @@ components:
           example: "500.00"
         currency:
           type: string
-          enum: [ARS, BRL]
+          enum: [USDT, ARS, BRL]
         destination:
           $ref: "#/components/schemas/PayoutDestination"
         externalId:
           type: string
           example: PAY-OUT-001
+        remitter:
+          allOf:
+            - $ref: "#/components/schemas/PayoutRemitter"
+          description: Required when the payout represents a remittance, including the Venezuela remittance flow.
         customerId:
           type: string
           description: Optional — link payout to an existing customer record.
@@ -526,23 +662,6 @@ components:
           type: object
           additionalProperties:
             type: string
-        # Deprecated ARS flat fields — still accepted for backward compatibility.
-        # Use destination object for all new integrations.
-        destinationCbu:
-          type: string
-          description: "**Deprecated** — use `destination.identifierValue` instead. Accepted for backward compat (ARS only)."
-          deprecated: true
-          example: "0070327530004025541644"
-        destinationCuit:
-          type: string
-          description: "**Deprecated** — use `destination.taxId` instead."
-          deprecated: true
-          example: "20221370075"
-        destinationName:
-          type: string
-          description: "**Deprecated** — use `destination.name` instead."
-          deprecated: true
-          example: Ana Martínez
 
     PayoutResponse:
       type: object
@@ -562,7 +681,7 @@ components:
           enum: [pending, processing, completed, failed]
           description: |
             - `pending`: Queued, not yet submitted to the payment network.
-            - `processing`: Submitted and awaiting final confirmation (BRL/PIX only).
+            - `processing`: Submitted and awaiting final confirmation.
             - `completed`: Transfer confirmed by the banking/payment system. Terminal.
             - `failed`: Permanently rejected after max retry attempts. Balance restored. Terminal.
         amount:
@@ -596,34 +715,66 @@ components:
         completedAt:
           type: string
           format: date-time
+        destCurrency:
+          type: string
+          description: Destination currency for a payout that includes currency conversion.
+          example: VES
         destinationCurrency:
           type: string
-          description: "On-ramp only. Always `USDT`."
-          example: USDT
+          description: Destination currency for a payout that includes currency conversion.
+          example: VES
+        fixedFee:
+          type: string
+          description: Fixed fee charged for the conversion.
+          example: "0.60"
+        amountToConvert:
+          type: string
+          description: Source amount converted after deducting the fixed fee.
+          example: "24.40"
         destinationAmount:
           type: string
-          description: "On-ramp only. USDT amount credited (6-decimal string)."
-          example: "174.825874"
+          description: Amount delivered in the destination currency.
+          example: "881.71"
         exchangeRate:
           type: string
-          description: "On-ramp only. Confirmed BRL/USDT rate (8-decimal string). BRL per 1 USDT."
-          example: "5.72000000"
+          description: Exchange rate applied to the payout.
+          example: "36.1355"
 
     PayoutRatesResponse:
       type: object
       properties:
         fromCurrency:
           type: string
-          example: BRL
+          example: USDT
+        amount:
+          type: string
+          example: "25.00"
+        destCurrency:
+          type: string
+          example: VES
+        fixedFee:
+          type: string
+          example: "0.60"
+        amountToConvert:
+          type: string
+          example: "24.40"
+        exchangeRate:
+          type: string
+          example: "36.1355"
+        destinationAmount:
+          type: string
+          example: "881.71"
         toCurrency:
           type: string
+          description: Used by the BRL to USDT on-ramp rate response.
           example: USDT
         price:
           type: number
-          description: Exchange rate — BRL per 1 USDT.
+          description: Used by the BRL to USDT on-ramp rate response. BRL per 1 USDT.
           example: 5.72
         settlement:
           type: string
+          description: Used by the BRL to USDT on-ramp rate response.
           enum: [D0, D1, D2]
           example: D0
         indicativeAt:
@@ -1227,107 +1378,223 @@ components:
         reconciliationStatus: unknown
 
     # POST /payouts — request
-    PayoutRequestARS:
-      summary: "ARS — CBU destination"
+    PayoutRequestVE:
+      summary: "Venezuela remittance — bank account"
       value:
-        amount: "500.00"
-        currency: ARS
+        amount: "25.00"
+        currency: USDT
+        externalId: order-123
         destination:
-          identifierType: cbu
-          identifierValue: "0070327530004025541644"
-          taxId: "20221370075"
-          name: Ana Martínez
-        externalId: PAY-OUT-001
+          country: VE
+          beneficiary:
+            name: María González
+            documentType: RIF
+            documentNumber: V40001469
+          rail:
+            type: ve_bank_account
+            bankCode: "0102"
+            accountNumber: "01020305810000263562"
+        remitter:
+          identification: V201234567
+          firstName: Juan
+          lastName: Pérez
+          birthDate: "1985-06-15"
+          nationality: ARG
+          mobile: "04141234567"
+          address: Buenos Aires, Argentina
+          email: remitente@example.com
+
+    PayoutRequestVEMobile:
+      summary: "Venezuela remittance — mobile payment"
+      value:
+        amount: "10.00"
+        currency: USDT
+        externalId: order-456
+        destination:
+          country: VE
+          beneficiary:
+            name: Wil Barragán
+            documentType: RIF
+            documentNumber: V27127416
+            mobile: "+58 424 2005748"
+          rail:
+            type: ve_mobile_payment
+            bankCode: "0175"
+        remitter:
+          identification: V201234567
+          firstName: Juan
+          lastName: Pérez
+          birthDate: "1985-06-15"
+          nationality: ARG
+          mobile: "04141234567"
+          address: Buenos Aires, Argentina
+          email: remitente@example.com
+
+    PayoutRequestARS:
+      summary: "Argentina — CVU destination"
+      value:
+        amount: "1500.00"
+        currency: ARS
+        externalId: order-ar-123
+        destination:
+          country: AR
+          currency: ARS
+          beneficiary:
+            name: María González
+            documentType: CUIT
+            documentNumber: "27-12345678-5"
+          rail:
+            type: ar_cvu
+            cvu: "2850590940090418135201"
 
     PayoutRequestARSAlias:
-      summary: "ARS — alias destination (auto-resolved)"
+      summary: "Argentina — alias destination"
       value:
         amount: "200.00"
         currency: ARS
+        externalId: payout-ar-alias-123
         destination:
-          identifierType: alias_cbu
-          identifierValue: mialiascbu
-        externalId: PAY-OUT-002
+          country: AR
+          currency: ARS
+          beneficiary:
+            name: María González
+            documentType: CUIT
+            documentNumber: "27-12345678-5"
+          rail:
+            type: ar_alias
+            alias: mialias
 
     PayoutRequestBRLPix:
-      summary: "BRL — PIX (CPF key)"
+      summary: "Brazil — PIX (CPF key)"
       value:
         amount: "150.00"
         currency: BRL
+        externalId: payout-br-123
         destination:
-          identifierType: pix_key_cpf
-          identifierValue: "12345678901"
-          name: João Silva
-        externalId: PAY-OUT-003
+          country: BR
+          currency: BRL
+          beneficiary:
+            name: João Silva
+            documentType: CPF
+            documentNumber: "12345678901"
+          rail:
+            type: br_pix
+            pixKey:
+              type: cpf
+              value: "12345678901"
 
     PayoutRequestBRLPixRandom:
-      summary: "BRL — PIX (random key)"
+      summary: "Brazil — PIX (EVP key)"
       value:
         amount: "75.50"
         currency: BRL
+        externalId: payout-br-evp-123
         destination:
-          identifierType: pix_key_random
-          identifierValue: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-          taxId: "12345678901"
-          taxIdCountry: BR
-          name: João Silva
-        externalId: PAY-OUT-004
+          country: BR
+          currency: BRL
+          beneficiary:
+            name: João Silva
+            documentType: CPF
+            documentNumber: "12345678901"
+          rail:
+            type: br_pix
+            pixKey:
+              type: evp
+              value: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 
     # POST /payouts — response
-    PayoutResponsePending:
-      summary: "Payout pending (ARS)"
+    PayoutResponseVE:
+      summary: "Venezuela remittance processing"
       value:
-        id: 1078d6c2-a452-44fb-94f4-525390231ce2
-        merchantId: acme_ars_merch1
-        status: pending
-        amount: "500.00"
+        id: 9ca35a0b-1097-464c-91ea-c0bbcb3d8dd8
+        accountId: account_123
+        merchantId: merchant_123
+        externalId: order-123
+        amount: "25.00"
+        currency: USDT
+        destCurrency: VES
+        destinationCurrency: VES
+        fixedFee: "0.60"
+        amountToConvert: "24.40"
+        exchangeRate: "36.1355"
+        destinationAmount: "881.71"
+        destination:
+          country: VE
+          beneficiary:
+            name: María González
+            documentType: RIF
+            documentNumber: V40001469
+          rail:
+            type: ve_bank_account
+            bankCode: "0102"
+            accountNumber: "01020305810000263562"
+        status: processing
+        bankSystemTrxId: "1608460"
+        attempts: 1
+        createdAt: "2026-07-22T15:00:00Z"
+
+    PayoutResponsePending:
+      summary: "Argentina payout pending"
+      value:
+        id: de598197-bb56-4a92-af5c-f4929a84ed1a
+        amount: "1500.00"
         currency: ARS
         destination:
-          identifierType: cbu
-          identifierValue: "0070327530004025541644"
-          taxId: "20221370075"
-          taxIdCountry: AR
-          name: Ana Martínez
-        externalId: PAY-OUT-001
-        attempts: 0
-        createdAt: "2026-03-10T15:00:00Z"
+          country: AR
+          currency: ARS
+          beneficiary:
+            name: María González
+            documentType: CUIT
+            documentNumber: "27-12345678-5"
+          rail:
+            type: ar_cvu
+            cvu: "2850590940090418135201"
+        status: pending
+        createdAt: "2026-03-11T23:01:17Z"
 
     PayoutResponseCompleted:
-      summary: "Payout completed (ARS)"
+      summary: "Argentina payout completed"
       value:
-        id: 1078d6c2-a452-44fb-94f4-525390231ce2
-        merchantId: acme_ars_merch1
+        id: de598197-bb56-4a92-af5c-f4929a84ed1a
         status: completed
-        amount: "500.00"
+        amount: "1500.00"
         currency: ARS
         destination:
-          identifierType: cbu
-          identifierValue: "0070327530004025541644"
-          taxId: "20221370075"
-          taxIdCountry: AR
-          name: Ana Martínez
+          country: AR
+          currency: ARS
+          beneficiary:
+            name: María González
+            documentType: CUIT
+            documentNumber: "27-12345678-5"
+          rail:
+            type: ar_cvu
+            cvu: "2850590940090418135201"
         bankSystemTrxId: 3D5W612E65ZJKDJW2GXYVR
         attempts: 1
-        externalId: PAY-OUT-001
-        createdAt: "2026-03-10T15:00:00Z"
-        submittedAt: "2026-03-10T15:00:05Z"
-        completedAt: "2026-03-10T15:00:08Z"
+        createdAt: "2026-03-11T23:01:17Z"
+        submittedAt: "2026-03-11T23:01:32Z"
+        completedAt: "2026-03-11T23:01:44Z"
 
     PayoutResponseCompletedBRL:
-      summary: "Payout completed (BRL PIX)"
+      summary: "Brazil PIX payout completed"
       value:
         id: d1e2f3a4-b5c6-7890-abcd-ef0123456789
-        accountId: acme_br
-        merchantId: acme_br_merch1
         status: completed
-        amount: "2.00"
+        amount: "150.00"
         currency: BRL
+        externalId: payout-br-123
         destination:
-          identifierType: pix_key_cpf
-          identifierValue: "98765432100"
-          taxId: "98765432100"
-          taxIdCountry: BR
-          name: Carlos Menezes
+          country: BR
+          currency: BRL
+          beneficiary:
+            name: João Silva
+            documentType: CPF
+            documentNumber: "12345678901"
+          rail:
+            type: br_pix
+            pixKey:
+              type: cpf
+              value: "12345678901"
         bankSystemTrxId: f4e3d2c1-b0a9-8765-4321-fedcba987654
         attempts: 1
         createdAt: "2026-03-11T23:01:17Z"
@@ -1764,20 +2031,20 @@ paths:
       tags: [Payouts, Stablecoin Settlement]
       summary: Create a payout
       description: |
-        Sends money out to a customer's bank account.
+        Sends money to a beneficiary using a country-specific payout rail.
 
         The merchant's balance is debited immediately at creation time.
         Processing happens asynchronously every ~5 minutes via the payout processor.
 
-        **ARS CBU alias**: set `destination.identifierType` to `alias_cbu` and `destination.identifierValue`
-        to the alias (e.g. `mialiascbu`) — the real CBU, CUIT, and name are resolved automatically before sending.
+        **Venezuela remittances**: fund the payout in `USDT`; the beneficiary receives `VES`.
+        Retrieve an indicative quote with `GET /payouts/rates` first. The `remitter` object is
+        required for remittance use cases. Use `ve_bank_account` or `ve_mobile_payment` as the rail.
 
-        **ARS CUIT auto-resolution**: `destination.taxId` is optional for `cbu` type — the platform
-        resolves it from the CBU automatically. Providing it explicitly skips the lookup.
+        **Argentina**: use `ar_cvu` with `rail.cvu`, or `ar_alias` with `rail.alias`.
+        The beneficiary document type is generally `CUIT`.
 
-        **BRL PIX key**: use `destination.identifierType` of `pix_key_cpf`, `pix_key_cnpj`,
-        `pix_key_email`, `pix_key_phone`, or `pix_key_random`. The value must be the recipient's
-        registered PIX key — a CNPJ is only valid if explicitly registered as a PIX key by the recipient.
+        **Brazil**: use the `br_pix` rail. `rail.pixKey.type` accepts `cpf`, `cnpj`, `email`,
+        `phone`, or `evp`. The beneficiary document type must be `CPF` or `CNPJ`.
 
         **On-ramp (BRL → USDT)**: set `destination.identifierType` to `tron_address` and
         `destination.identifierValue` to the recipient's Tron wallet address. The conversion is
@@ -1793,29 +2060,37 @@ paths:
             schema:
               $ref: "#/components/schemas/PayoutRequest"
             examples:
-              cbu:
+              venezuela_bank_account:
+                $ref: "#/components/examples/PayoutRequestVE"
+              venezuela_mobile_payment:
+                $ref: "#/components/examples/PayoutRequestVEMobile"
+              argentina_cvu:
                 $ref: "#/components/examples/PayoutRequestARS"
-              alias:
+              argentina_alias:
                 $ref: "#/components/examples/PayoutRequestARSAlias"
-              brl_pix_cpf:
+              brazil_pix_cpf:
                 $ref: "#/components/examples/PayoutRequestBRLPix"
-              brl_pix_random:
+              brazil_pix_evp:
                 $ref: "#/components/examples/PayoutRequestBRLPixRandom"
               on_ramp:
                 $ref: "#/components/examples/PayoutRequestOnRamp"
       responses:
         "201":
           description: |
-            Payout created. For standard payouts (ARS/BRL) status will be `pending` until the
-            processor submits the transfer. For on-ramp (`tron_address`) the conversion is
-            synchronous and status is `completed` in the same response.
+            Payout created. Fiat payouts usually start as `pending` or `processing` until the
+            payment rail confirms the transfer. For on-ramp (`tron_address`) the conversion is
+            synchronous and returns `completed` in the same response.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PayoutResponse"
               examples:
-                pending:
+                venezuela_processing:
+                  $ref: "#/components/examples/PayoutResponseVE"
+                argentina_pending:
                   $ref: "#/components/examples/PayoutResponsePending"
+                brazil_completed:
+                  $ref: "#/components/examples/PayoutResponseCompletedBRL"
                 on_ramp:
                   $ref: "#/components/examples/PayoutResponseOnRamp"
         "400":
@@ -1882,24 +2157,34 @@ paths:
 
   /payouts/rates:
     get:
-      tags: [Stablecoin Settlement]
-      summary: Get indicative BRL/USDT rate
+      tags: [Payouts, Stablecoin Settlement]
+      summary: Get an indicative payout conversion rate
       description: |
-        Returns an indicative BRL→USDT exchange rate without locking a quote.
-        If this endpoint returns a price, the market is open and on-ramp is available.
+        Returns an indicative conversion without locking a quote. Use `USDT` to `VES` with an
+        `amount` before creating a Venezuela remittance payout. The endpoint also supports the
+        existing `BRL` to `USDT` on-ramp rate flow.
       parameters:
         - name: fromCurrency
           in: query
+          required: true
           schema:
             type: string
-            default: BRL
-          description: Source currency. Currently only `BRL` is supported.
+            enum: [USDT, BRL]
+          description: Source currency. Use `USDT` for a Venezuela remittance or `BRL` for on-ramp.
         - name: toCurrency
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [VES, USDT]
+          description: Destination currency. Use `VES` for a Venezuela remittance or `USDT` for on-ramp.
+        - name: amount
           in: query
           schema:
             type: string
-            default: USDT
-          description: Destination currency. Currently only `USDT` is supported.
+            pattern: '^\d+(\.\d{1,2})?$'
+            example: "25.00"
+          description: Source amount. Required for the Venezuela remittance quote.
         - name: settlement
           in: query
           schema:
@@ -1914,16 +2199,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PayoutRatesResponse"
-              example:
-                fromCurrency: BRL
-                toCurrency: USDT
-                price: 5.72
-                settlement: D0
-                indicativeAt: "2026-04-03T14:00:00Z"
+              examples:
+                venezuela_remittance:
+                  summary: USDT to VES remittance quote
+                  value:
+                    fromCurrency: USDT
+                    amount: "25.00"
+                    destCurrency: VES
+                    fixedFee: "0.60"
+                    amountToConvert: "24.40"
+                    exchangeRate: "36.1355"
+                    destinationAmount: "881.71"
+                    indicativeAt: "2026-07-22T15:00:00Z"
+                on_ramp:
+                  summary: BRL to USDT on-ramp rate
+                  value:
+                    fromCurrency: BRL
+                    toCurrency: USDT
+                    price: 5.72
+                    settlement: D0
+                    indicativeAt: "2026-04-03T14:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "503":
-          description: On-ramp not configured for this environment.
+          description: The requested conversion corridor is unavailable in this environment.
 
   # ── Blockchain Access ─────────────────────────────────────
 
@@ -2335,8 +2634,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/PayoutResponse"
               examples:
-                completed:
+                venezuela:
+                  $ref: "#/components/examples/PayoutResponseVE"
+                argentina:
                   $ref: "#/components/examples/PayoutResponseCompleted"
+                brazil:
+                  $ref: "#/components/examples/PayoutResponseCompletedBRL"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":

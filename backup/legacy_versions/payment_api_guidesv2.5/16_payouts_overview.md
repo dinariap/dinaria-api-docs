@@ -35,29 +35,29 @@ The `identifierType` tells the platform which rail and key type to use.
 
 <div class="country-ar" markdown="1">
 
-## Argentina (ARS) — CBU/CVU bank transfer
+## Argentina (ARS) — payout example
 
-Funds are sent via the COELSA clearing network to the recipient's CBU or CVU.
-
-| `identifierType` | `identifierValue` | Notes |
-|---|---|---|
-| `cbu` | 22-digit CBU or CVU number | e.g. `0070327530004025541644` |
-| `alias_cbu` | CBU alias | e.g. `mialiascbu` — auto-resolved to real CBU + CUIT before sending |
-
-- `taxId` (CUIT) is **optional** — if omitted, the platform resolves it from the CBU automatically.
-- `name` is **optional** — auto-resolved from CBU if omitted.
-- Processing is **synchronous**: status goes directly from `pending` to `completed`.
+Funds are sent to the recipient through the Argentina payout rail using the destination country, beneficiary data, and rail details.
 
 ### Example (ARS)
 
 ```json
 {
-  "amount": "1500.00",
-  "currency": "ARS",
+  "amount": "100.00",
+  "currency": "USDT",
+  "externalId": "order-ar-123",
   "destination": {
-    "identifierType": "cbu",
-    "identifierValue": "0070327530004025541644",
-    "name": "Ana Martínez"
+    "country": "AR",
+    "currency": "ARS",
+    "beneficiary": {
+      "name": "María González",
+      "documentType": "CUIT",
+      "documentNumber": "27-12345678-5"
+    },
+    "rail": {
+      "type": "ar_cbu",
+      "cbu": "2850590940090418135201"
+    }
   }
 }
 ```

@@ -25,15 +25,53 @@ Idempotency-Key: <unique-key>
 
 ### Fields
 
+<div class="country-ve">
+
+#### Venezuela
+
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `amount` | string | ✅ | Decimal string. Amount to send from the pre-funded account. |
-| `currency` | string | ✅ | Source currency. For Venezuela examples, use `USDT`. |
+| `currency` | string | ✅ | Source currency. Use `USDT` for the Venezuela corridor. |
 | `externalId` | string | — | Your business reference. Returned in the payout response. |
 | `destination` | object | ✅ | Describes the destination country, beneficiary, and delivery rail. |
-| `remitter` | object | ✅ | Identity and contact data of the sender for the Venezuela corridor. |
+| `remitter` | object | depends | Sender identity and contact data. Always required for remittance use cases. |
+
+</div>
+
+<div class="country-ar">
+
+#### Argentina
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `amount` | string | ✅ | Decimal string. Amount to send from the pre-funded account. |
+| `currency` | string | ✅ | Source currency. Use `ARS` for the Argentina corridor. |
+| `externalId` | string | — | Your business reference. Returned in the payout response. |
+| `destination` | object | ✅ | Describes the destination country, beneficiary, and delivery rail. |
+| `remitter` | object | depends | Sender identity and contact data. Always required for remittance use cases. |
+
+</div>
+
+<div class="country-br">
+
+#### Brazil
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `amount` | string | ✅ | Decimal string. Amount to send from the pre-funded account. |
+| `currency` | string | ✅ | Source currency. Use `BRL` for the Brazil corridor. |
+| `externalId` | string | — | Your business reference. Returned in the payout response. |
+| `destination` | object | ✅ | Describes the destination country, beneficiary, and delivery rail. |
+| `remitter` | object | depends | Sender identity and contact data. Always required for remittance use cases. |
+
+</div>
 
 ### `destination` object
+
+<div class="country-ve">
+
+#### Venezuela
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -41,23 +79,115 @@ Idempotency-Key: <unique-key>
 | `beneficiary` | object | ✅ | Beneficiary identity and contact details. |
 | `rail` | object | ✅ | Delivery method for the payout. |
 
+</div>
+
+<div class="country-ar">
+
+#### Argentina
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `country` | string | ✅ | Destination country code. Use `AR`. |
+| `currency` | string | ✅ | Destination currency. Use `ARS`. |
+| `beneficiary` | object | ✅ | Beneficiary identity details. |
+| `rail` | object | ✅ | Delivery method for the payout. |
+
+</div>
+
+<div class="country-br">
+
+#### Brazil
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `country` | string | ✅ | Destination country code. Use `BR`. |
+| `currency` | string | ✅ | Destination currency. Use `BRL`. |
+| `beneficiary` | object | ✅ | Beneficiary identity details. |
+| `rail` | object | ✅ | Delivery method for the payout. |
+
+</div>
+
 ### `beneficiary` object
+
+<div class="country-ve">
+
+#### Venezuela
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | ✅ | Beneficiary full name. |
-| `rif` | string | ✅ | Venezuelan RIF or document identifier. |
-| `mobile` | string | depends | Phone number required for mobile payment. |
+| `documentType` | string | ✅ | Beneficiary document type. Use `RIF`. |
+| `documentNumber` | string | ✅ | Beneficiary's RIF number. |
+| `mobile` | string | depends | Required when the selected rail is `ve_mobile_payment`. |
+
+</div>
+
+<div class="country-ar">
+
+#### Argentina
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | ✅ | Beneficiary full name. |
+| `documentType` | string | ✅ | Beneficiary document type. Generally use `CUIT`. |
+| `documentNumber` | string | ✅ | Beneficiary's CUIT number. |
+
+</div>
+
+<div class="country-br">
+
+#### Brazil
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | ✅ | Beneficiary full name or legal entity name. |
+| `documentType` | string | ✅ | Beneficiary document type. Use `CPF` for an individual or `CNPJ` for a legal entity. |
+| `documentNumber` | string | ✅ | Beneficiary's CPF or CNPJ number. |
+
+</div>
 
 ### `rail` object
+
+<div class="country-ve">
+
+#### Venezuela
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `type` | string | ✅ | Supported rail: `ve_bank_account` or `ve_mobile_payment`. |
 | `bankCode` | string | ✅ | Bank code used by the selected rail. |
-| `accountNumber` | string | depends | Bank account number required for bank transfer. |
+| `accountNumber` | string | depends | Bank account number. Required when `type` is `ve_bank_account`. |
+
+</div>
+
+<div class="country-ar">
+
+#### Argentina
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | ✅ | Supported rail: `ar_cvu` or `ar_alias`. |
+| `cvu` | string | depends | Beneficiary's 22-digit CVU. Required when `type` is `ar_cvu`. |
+| `alias` | string | depends | Beneficiary's CBU/CVU alias. Required when `type` is `ar_alias`. |
+
+</div>
+
+<div class="country-br">
+
+#### Brazil
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | ✅ | Use `br_pix` for a PIX payout. |
+| `pixKey` | object | ✅ | PIX key used to identify the destination account. |
+| `pixKey.type` | string | ✅ | PIX key type: `cpf`, `cnpj`, `email`, `phone`, or `evp`. |
+| `pixKey.value` | string | ✅ | PIX key value in the format corresponding to `pixKey.type`. |
+
+</div>
 
 ### `remitter` object
+
+The `remitter` object is required when the payout is a remittance. For other use cases, whether it is required depends on the corridor and compliance rules. When `remitter` is required, provide all fields below.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -76,11 +206,17 @@ Idempotency-Key: <unique-key>
 
 ## Examples
 
-The examples below show the current request shape for each supported corridor. The specific fields required for your account may differ depending on the corridor and rail.
+The examples below show payout request bodies for each supported corridor. The specific fields required for your account may differ depending on the corridor and rail.
 
 <div class="country-ve">
 
-### Venezuela — quote
+### Venezuela — remittance flow
+
+Remittance payouts to Venezuela convert the funded `USDT` amount into `VES` for the beneficiary. The `remitter` object is required for this use case. Complete the flow in two steps.
+
+#### Step 1 — Get an indicative quote
+
+Retrieve the current conversion values before creating the payout.
 
 ```http
 GET /payouts/rates?fromCurrency=USDT&toCurrency=VES&amount=25.00
@@ -100,7 +236,11 @@ Authorization: Bearer <API_KEY>
 }
 ```
 
-### Venezuela — bank transfer
+#### Step 2 — Create the payout
+
+Create the payout using one of the supported delivery rails.
+
+##### Bank account
 
 ```json
 {
@@ -111,7 +251,8 @@ Authorization: Bearer <API_KEY>
     "country": "VE",
     "beneficiary": {
       "name": "María González",
-      "rif": "V40001469"
+      "documentType": "RIF",
+      "documentNumber": "V40001469"
     },
     "rail": {
       "type": "ve_bank_account",
@@ -132,7 +273,7 @@ Authorization: Bearer <API_KEY>
 }
 ```
 
-### Venezuela — mobile payment
+##### Mobile payment
 
 ```json
 {
@@ -143,7 +284,8 @@ Authorization: Bearer <API_KEY>
     "country": "VE",
     "beneficiary": {
       "name": "Wil Barragán",
-      "rif": "V27127416",
+      "documentType": "RIF",
+      "documentNumber": "V27127416",
       "mobile": "+58 424 2005748"
     },
     "rail": {
@@ -168,19 +310,26 @@ Authorization: Bearer <API_KEY>
 
 <div class="country-ar">
 
-### Argentina (ARS)
+### Argentina — payout example
 
 ```json
 {
   "amount": "1500.00",
   "currency": "ARS",
+  "externalId": "order-ar-123",
   "destination": {
-    "identifierType": "cbu",
-    "identifierValue": "0070327530004025541644",
-    "name": "Ana Martínez",
-    "taxId": "20234567897"
-  },
-  "externalId": "order-1001"
+    "country": "AR",
+    "currency": "ARS",
+    "beneficiary": {
+      "name": "María González",
+      "documentType": "CUIT",
+      "documentNumber": "27-12345678-5"
+    },
+    "rail": {
+      "type": "ar_cvu",
+      "cvu": "2850590940090418135201"
+    }
+  }
 }
 ```
 
@@ -194,12 +343,23 @@ Authorization: Bearer <API_KEY>
 {
   "amount": "150.00",
   "currency": "BRL",
+  "externalId": "payout-br-123",
   "destination": {
-    "identifierType": "pix_key_cpf",
-    "identifierValue": "12345678901",
-    "name": "João Silva"
-  },
-  "externalId": "order-2001"
+    "country": "BR",
+    "currency": "BRL",
+    "beneficiary": {
+      "name": "João Silva",
+      "documentType": "CPF",
+      "documentNumber": "12345678901"
+    },
+    "rail": {
+      "type": "br_pix",
+      "pixKey": {
+        "type": "cpf",
+        "value": "12345678901"
+      }
+    }
+  }
 }
 ```
 
@@ -209,9 +369,11 @@ Authorization: Bearer <API_KEY>
 
 ## Response
 
-A successful request returns a payout resource. The Venezuela corridor also includes currency conversion values such as `destCurrency`, `fixedFee`, `amountToConvert`, `exchangeRate`, and `destinationAmount`.
+A successful request returns a payout resource.
 
 <div class="country-ve">
+
+For the Venezuela remittance flow, the payout response includes the `USDT` to `VES` conversion details: `destCurrency`, `fixedFee`, `amountToConvert`, `exchangeRate`, and `destinationAmount`.
 
 ```json
 {
@@ -231,7 +393,8 @@ A successful request returns a payout resource. The Venezuela corridor also incl
     "country": "VE",
     "beneficiary": {
       "name": "María González",
-      "rif": "V40001469"
+      "documentType": "RIF",
+      "documentNumber": "V40001469"
     },
     "rail": {
       "type": "ve_bank_account",
@@ -253,18 +416,22 @@ A successful request returns a payout resource. The Venezuela corridor also incl
 ```json
 {
   "id": "de598197-bb56-4a92-af5c-f4929a84ed1a",
-  "merchantId": "acme_ars_merch1",
   "amount": "1500.00",
   "currency": "ARS",
   "destination": {
-    "identifierType": "cbu",
-    "identifierValue": "0070327530004025541644",
-    "taxId": "20234567897",
-    "taxIdCountry": "AR",
-    "name": "Ana Martínez"
+    "country": "AR",
+    "currency": "ARS",
+    "beneficiary": {
+      "name": "María González",
+      "documentType": "CUIT",
+      "documentNumber": "27-12345678-5"
+    },
+    "rail": {
+      "type": "ar_cvu",
+      "cvu": "2850590940090418135201"
+    }
   },
   "status": "pending",
-  "attempts": 0,
   "createdAt": "2026-03-11T23:01:17Z"
 }
 ```
@@ -276,18 +443,26 @@ A successful request returns a payout resource. The Venezuela corridor also incl
 ```json
 {
   "id": "d1e2f3a4-b5c6-7890-abcd-ef0123456789",
-  "merchantId": "acme_br_merch1",
   "amount": "150.00",
   "currency": "BRL",
+  "externalId": "payout-br-123",
   "destination": {
-    "identifierType": "pix_key_cpf",
-    "identifierValue": "12345678901",
-    "taxId": "12345678901",
-    "taxIdCountry": "BR",
-    "name": "João Silva"
+    "country": "BR",
+    "currency": "BRL",
+    "beneficiary": {
+      "name": "João Silva",
+      "documentType": "CPF",
+      "documentNumber": "12345678901"
+    },
+    "rail": {
+      "type": "br_pix",
+      "pixKey": {
+        "type": "cpf",
+        "value": "12345678901"
+      }
+    }
   },
   "status": "pending",
-  "attempts": 0,
   "createdAt": "2026-03-11T23:01:17Z"
 }
 ```

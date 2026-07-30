@@ -47,41 +47,28 @@ Content-Type: application/json
 
 ## Argentina (ARS)
 
-### `identifierType` values
-
-| Value | Meaning |
-|-------|---------|
-| `cbu` | 22-digit CBU or CVU number |
-| `alias_cbu` | CBU alias (e.g. `mialiascbu`) — auto-resolved to real CBU + CUIT |
-
-### Example — CBU
+### Example — payout request
 
 ```json
 {
-  "amount": "1500.00",
-  "currency": "ARS",
+  "amount": "100.00",
+  "currency": "USDT",
+  "externalId": "order-ar-123",
   "destination": {
-    "identifierType": "cbu",
-    "identifierValue": "0070327530004025541644",
-    "name": "Ana Martínez"
+    "country": "AR",
+    "currency": "ARS",
+    "beneficiary": {
+      "name": "María González",
+      "documentType": "CUIT",
+      "documentNumber": "27-12345678-5"
+    },
+    "rail": {
+      "type": "ar_cbu",
+      "cbu": "2850590940090418135201"
+    }
   }
 }
 ```
-
-### Example — alias (auto-resolved)
-
-```json
-{
-  "amount": "200.00",
-  "currency": "ARS",
-  "destination": {
-    "identifierType": "alias_cbu",
-    "identifierValue": "mialiascbu"
-  }
-}
-```
-
-The platform resolves the real CBU, CUIT, and name from the alias before submitting to COELSA.
 
 </div>
 
