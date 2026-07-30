@@ -141,7 +141,7 @@ curl -X POST "$SANDBOX_URL/trf/cashin/simulate" \
 
 </div>
 
-Full details: [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md).
+Full details: [Sandbox: Simulate a Pay-in](payments-sandbox-simulate.md).
 
 ---
 

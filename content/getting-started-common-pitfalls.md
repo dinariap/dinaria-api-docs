@@ -21,7 +21,7 @@ After calling a sandbox simulate endpoint, the payment should move to `confirmed
 
 Also verify the API key belongs to the same account that owns the payment.
 
-See [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md).
+See [Sandbox: Simulate a Pay-in](payments-sandbox-simulate.md).
 
 ## FX_REQUIRED
 Occurs when sending cross-currency payout without quote or autoQuote.

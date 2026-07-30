@@ -12,7 +12,7 @@ Use the base URL for the environment you are integrating with.
 - Sandbox: `https://api.sandbox.dinaria.com`
 - Production: `https://api.dinaria.com`
 
-In sandbox you can simulate inbound pay-ins without a real bank transfer — see [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md).
+In sandbox you can simulate inbound pay-ins without a real bank transfer — see [Sandbox: Simulate a Pay-in](payments-sandbox-simulate.md).
 
 Endpoints are rooted directly under the base URL — for example `POST /payments`, `GET /balance`, `POST /payouts`. **Do not** add a `/v1` prefix for payments, payouts, balance, or webhooks (`/v1/payments` returns 404).
 

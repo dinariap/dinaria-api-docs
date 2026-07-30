@@ -114,7 +114,7 @@ POST <your-registered-webhook-url>
 
 ## Best practices
 
-- Always verify the signature before processing — see [Webhooks Security](13_webhooks_security.md).
+- Always verify the signature before processing — see [Webhooks Security](webhooks-security.md).
 - Return HTTP `200` immediately. Process the event asynchronously.
 - Deduplicate by `eventId` — webhooks are delivered **at least once**.
 - Poll `GET /payments/{id}` or `GET /payouts/{id}` as a fallback for missed events.

@@ -4,8 +4,8 @@ let NAV = null;
 let currentFile = null;
 
 const DEFAULT_PAGE = 'content/index.md';
-const REDOC_CDN    = 'https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js';
-const SPEC_URL     = 'dinaria_api_v1.yaml';
+const REDOC_CDN = 'https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js';
+const SPEC_URL = 'dinaria_api_v1.yaml';
 
 /* ── Country filter ─────────────────────────────────────────────── */
 const COUNTRY_KEY = 'dinaria_country';
@@ -13,17 +13,68 @@ const COUNTRY_KEY = 'dinaria_country';
 function selectCountry(c) {
   const current = localStorage.getItem(COUNTRY_KEY);
   const next = current === c ? null : c;
-  next ? localStorage.setItem(COUNTRY_KEY, next) : localStorage.removeItem(COUNTRY_KEY);
-  applyCountry(next);
+  if (next) {
+    localStorage.setItem(COUNTRY_KEY, next);
+  } else {
+    localStorage.removeItem(COUNTRY_KEY);
+  }
+  applyCountry(next || getPreferredCountry());
+}
+
+function getAvailableCountries() {
+  const available = [];
+  if (document.querySelector('.country-ar')) available.push('ar');
+  if (document.querySelector('.country-br')) available.push('br');
+  if (document.querySelector('.country-ve')) available.push('ve');
+  return available;
+}
+
+function getPreferredCountry() {
+  const available = getAvailableCountries();
+  const saved = localStorage.getItem(COUNTRY_KEY);
+  if (saved && available.includes(saved)) return saved;
+  return available[0] || null;
+}
+
+function setupCountryToggle() {
+  const toggle = document.getElementById('country-toggle');
+  if (!toggle) return;
+
+  const available = getAvailableCountries();
+  toggle.hidden = available.length === 0;
+
+  ['ar', 'br', 've'].forEach(code => {
+    const btn = document.getElementById('cbtn-' + code);
+    if (!btn) return;
+    const show = available.includes(code);
+    btn.hidden = !show;
+    btn.style.display = show ? 'inline-flex' : 'none';
+  });
+
+  if (available.length > 0) {
+    applyCountry(getPreferredCountry());
+  }
 }
 
 function applyCountry(c) {
-  ['ar', 'br'].forEach(code => {
+  const available = getAvailableCountries();
+  const current = (c && available.includes(c)) ? c : (available[0] || null);
+
+  ['ar', 'br', 've'].forEach(code => {
     const btn = document.getElementById('cbtn-' + code);
-    if (btn) btn.classList.toggle('active', c === code);
-    document.querySelectorAll('.country-' + code).forEach(el => {
-      el.style.display = (c && c !== code) ? 'none' : '';
-    });
+    if (btn) btn.classList.toggle('active', current === code);
+  });
+
+  document.querySelectorAll('.country-ar').forEach(el => {
+    el.style.display = current === 'ar' ? '' : 'none';
+  });
+
+  document.querySelectorAll('.country-br').forEach(el => {
+    el.style.display = current === 'br' ? '' : 'none';
+  });
+
+  document.querySelectorAll('.country-ve').forEach(el => {
+    el.style.display = current === 've' ? '' : 'none';
   });
 }
 
@@ -34,7 +85,7 @@ marked.use({ breaks: false, gfm: true, html: true });
 document.addEventListener('DOMContentLoaded', async () => {
   NAV = await fetchNav();
   renderNav();
-  applyCountry(localStorage.getItem(COUNTRY_KEY));
+  setupCountryToggle();
 
   const hash = decodeURIComponent(window.location.hash.slice(1));
   if (hash === 'apiref') {
@@ -158,16 +209,19 @@ async function loadPage(file, title) {
       const href = a.getAttribute('href');
       if (href === '#apiref') {
         a.addEventListener('click', e => { e.preventDefault(); loadApiRef(); });
-      } else if (href && href.startsWith('#') && href.endsWith('.md')) {
-        a.addEventListener('click', e => {
-          e.preventDefault();
-          const f = 'content/' + href.slice(1);
-          loadPage(f, labelFromFile(href.slice(1)));
-        });
+      } else if (href && href.endsWith('.md')) {
+        const target = resolveDocHref(href, currentFile);
+        if (target) {
+          a.addEventListener('click', e => {
+            e.preventDefault();
+            const file = target.startsWith('content/') ? target : 'content/' + target;
+            loadPage(file, labelFromFile(target.replace(/^content\//, '')));
+          });
+        }
       }
     });
 
-    applyCountry(localStorage.getItem(COUNTRY_KEY));
+    setupCountryToggle();
     document.getElementById('content').scrollTop = 0;
   } catch (e) {
     inner.innerHTML = `<div class="error-msg">
@@ -187,6 +241,8 @@ async function loadApiRef() {
   inner.className = 'content-inner redoc-mode';
   inner.innerHTML = '<div class="loading" style="padding:40px 40px">Loading API Reference…</div>';
   document.getElementById('content').scrollTop = 0;
+
+  setupCountryToggle();
 
   // Lazy-load Redoc bundle only when needed
   if (!window.Redoc) {
@@ -215,7 +271,7 @@ async function loadApiRef() {
       },
       typography: {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        fontSize:   '15px',
+        fontSize: '15px',
         lineHeight: '1.7',
         headings: {
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -228,9 +284,9 @@ async function loadApiRef() {
       },
       sidebar: {
         backgroundColor: '#0f172a',
-        textColor:        '#94a3b8',
-        activeTextColor:  '#60a5fa',
-        width:            '260px'
+        textColor: '#94a3b8',
+        activeTextColor: '#60a5fa',
+        width: '260px'
       },
       rightPanel: {
         backgroundColor: '#1e293b'
@@ -254,6 +310,17 @@ function onHashChange() {
 
 /* ── Helpers ────────────────────────────────────────────────────── */
 function goHome() { loadPage(DEFAULT_PAGE, 'Dinaria API'); }
+
+function resolveDocHref(href, currentDocFile) {
+  if (!href || !href.endsWith('.md')) return null;
+  const clean = href.replace(/^#/, '').replace(/^\.\//, '');
+  if (!clean) return null;
+  if (clean === 'apiref') return null;
+  if (clean.startsWith('content/')) return clean;
+  if (clean.startsWith('/')) return clean.slice(1);
+  const baseDir = currentDocFile ? currentDocFile.replace(/[^/]+$/, '') : 'content/';
+  return baseDir + clean;
+}
 
 function labelFromFile(path) {
   return path.split('/').pop().replace('.md', '')

@@ -29,16 +29,16 @@ Funds are credited into an **operating account**. Your balance is split into `av
 
 Payouts debit funds from an operating account and deliver them to a beneficiary via a selected rail.
 
-See: [Payouts Overview](16_payouts_overview.md)
+See: [Payouts Overview](payouts-overview.md)
 
 ## FX
 
 If the source and destination currencies differ, FX is required. You can lock a rate with a quote or let Dinaria quote automatically.
 
-See: [FX Handling](32_fx.md)
+See: [FX Handling](concepts-fx.md)
 
 ## Cash withdrawals
 
 Cash payouts use agent networks and often require beneficiary identity data.
 
-See: [Cash Withdrawals](34_cash_withdrawals.md)
+See: [Cash Withdrawals](payouts-cash-withdrawals.md)

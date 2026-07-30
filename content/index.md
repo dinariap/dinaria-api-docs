@@ -8,9 +8,9 @@ Move money across payment methods, currencies, and payout rails through a single
 
 | | |
 |---|---|
-| [**Quickstart**](#40_quickstart.md) | Get your first payment running in minutes. |
-| [**15-Minute Integration**](#41_15_minute_integration.md) | Full end-to-end integration walkthrough. |
-| [**Common Pitfalls**](#42_common_pitfalls.md) | Errors developers hit most often and how to avoid them. |
+| [**Quickstart**](#getting-started-quickstart.md) | Get your first payment running in minutes. |
+| [**15-Minute Integration**](#getting-started-15-minute.md) | Full end-to-end integration walkthrough. |
+| [**Common Pitfalls**](#getting-started-common-pitfalls.md) | Errors developers hit most often and how to avoid them. |
 
 ---
 
@@ -18,10 +18,10 @@ Move money across payment methods, currencies, and payout rails through a single
 
 | | |
 |---|---|
-| [**Money Movement Model**](#30_money_movement_model.md) | How funds flow through the platform — accounts, balances, and settlement. |
-| [**Participants**](#31_participants.md) | Merchants, payers, and beneficiaries explained. |
-| [**FX Handling**](#32_fx.md) | How foreign-exchange rates are applied and locked. |
-| [**Data Formats**](#13_data_formats_iso.md) | Currency codes, amounts, timestamps, and identifiers. |
+| [**Money Movement Model**](#concepts-money-movement.md) | How funds flow through the platform — accounts, balances, and settlement. |
+| [**Participants**](#concepts-participants.md) | Merchants, payers, and beneficiaries explained. |
+| [**FX Handling**](#concepts-fx.md) | How foreign-exchange rates are applied and locked. |
+| [**Data Formats**](#data-formats-iso.md) | Currency codes, amounts, timestamps, and identifiers. |
 
 ---
 
@@ -29,7 +29,7 @@ Move money across payment methods, currencies, and payout rails through a single
 
 | | |
 |---|---|
-| [**Merchant Settings**](#06_merchant_settings.md) | Expiration windows, refund policy, payout flags, and more. |
+| [**Merchant Settings**](#merchant-settings.md) | Expiration windows, refund policy, payout flags, and more. |
 
 ---
 
@@ -37,17 +37,17 @@ Move money across payment methods, currencies, and payout rails through a single
 
 | | |
 |---|---|
-| [**Overview**](#04_payments_overview.md) | What a Dinaria payment is and how it works end-to-end. |
-| [**Getting Started**](#01_getting_started.md) | Base URLs, authentication, and your first API call. |
-| [**Quickstart: First Payment**](#02_quickstart_first_payment.md) | Step-by-step guide to creating a payment. |
-| [**Payment Lifecycle**](#03_payment_lifecycle_states.md) | All states a payment goes through from creation to settlement. |
-| [**Create a Payment**](#05_payments_create.md) | Request reference for `POST /payments`. |
-| [**Redirect Flow**](#06_payments_redirect_flow.md) | How to redirect payers to complete payment. |
-| [**Retrieve a Payment**](#07_payments_retrieve.md) | Polling and fetching payment status. |
-| [**Errors & Retries**](#12_errors_and_retries.md) | Error codes, retry strategy, and idempotency. |
-| [**Best Practices**](#14_payment_best_practices.md) | Recommendations for reliability and reconciliation. |
-| [**Step-by-Step Example**](#15_step_by_step_payment_example.md) | A complete flow from order creation to confirmed receipt. |
-| [**Sandbox: Simulate a Pay-in**](#19_sandbox_cashin_simulation.md) | Drive a sandbox payment to `confirmed` without a real transfer. |
+| [**Overview**](#payments-overview.md) | What a Dinaria payment is and how it works end-to-end. |
+| [**Getting Started**](#payments-getting-started.md) | Base URLs, authentication, and your first API call. |
+| [**Quickstart: First Payment**](#payments-quickstart.md) | Step-by-step guide to creating a payment. |
+| [**Payment Lifecycle**](#payments-lifecycle.md) | All states a payment goes through from creation to settlement. |
+| [**Create a Payment**](#payments-create.md) | Request reference for `POST /payments`. |
+| [**Redirect Flow**](#payments-redirect-flow.md) | How to redirect payers to complete payment. |
+| [**Retrieve a Payment**](#payments-retrieve.md) | Polling and fetching payment status. |
+| [**Errors & Retries**](#payments-errors-retries.md) | Error codes, retry strategy, and idempotency. |
+| [**Best Practices**](#payments-best-practices.md) | Recommendations for reliability and reconciliation. |
+| [**Step-by-Step Example**](#payments-step-by-step.md) | A complete flow from order creation to confirmed receipt. |
+| [**Sandbox: Simulate a Pay-in**](#payments-sandbox-simulate.md) | Drive a sandbox payment to `confirmed` without a real transfer. |
 
 ---
 
@@ -55,10 +55,10 @@ Move money across payment methods, currencies, and payout rails through a single
 
 | | |
 |---|---|
-| [**Overview**](#16_payouts_overview.md) | Payout capabilities and supported rails. |
-| [**Payout Flow**](#33_payout_flow.md) | How a payout moves from request to bank credit. |
-| [**Create a Payout**](#17_payouts_create.md) | Request reference for `POST /payouts`. |
-| [**Retrieve & List Payouts**](#18_payouts_retrieve.md) | Fetch payout status and history. |
+| [**Overview**](#payouts-overview.md) | Payout capabilities and supported rails. |
+| [**Payout Flow**](#payouts-flow.md) | How a payout moves from request to bank credit. |
+| [**Create a Payout**](#payouts-create.md) | Request reference for `POST /payouts`. |
+| [**Retrieve & List Payouts**](#payouts-retrieve.md) | Fetch payout status and history. |
 
 ---
 
@@ -66,14 +66,14 @@ Move money across payment methods, currencies, and payout rails through a single
 
 | | |
 |---|---|
-| [**Overview**](#08_webhooks_overview.md) | What events Dinaria emits and when. |
-| [**Registration**](#09_webhooks_registration.md) | Register your endpoint to receive events. |
-| [**Receiving**](#10_webhooks_receiving.md) | Processing incoming webhook payloads. |
-| [**Security**](#13_webhooks_security.md) | Signature verification and replay protection. |
-| [**Verification Examples**](#11_verification_examples.md) | Code samples for verifying signatures in multiple languages. |
-| [**Best Practices**](#11_webhooks_best_practices.md) | Reliability, ordering, and idempotency for event handlers. |
-| [**Rotate Secret**](#11_rotate-webhook-secret.md) | How to rotate your webhook signing secret safely. |
-| [**Event Types**](#35_webhook_event_types.md) | Full catalogue of event types and their payloads. |
+| [**Overview**](#webhooks-overview.md) | What events Dinaria emits and when. |
+| [**Registration**](#webhooks-registration.md) | Register your endpoint to receive events. |
+| [**Receiving**](#webhooks-receiving.md) | Processing incoming webhook payloads. |
+| [**Security**](#webhooks-security.md) | Signature verification and replay protection. |
+| [**Verification Examples**](#webhooks-examples.md) | Code samples for verifying signatures in multiple languages. |
+| [**Best Practices**](#webhooks-best-practices.md) | Reliability, ordering, and idempotency for event handlers. |
+| [**Rotate Secret**](#webhooks-rotate-secret.md) | How to rotate your webhook signing secret safely. |
+| [**Event Types**](#webhooks-event-types.md) | Full catalogue of event types and their payloads. |
 
 ---
 
@@ -81,9 +81,9 @@ Move money across payment methods, currencies, and payout rails through a single
 
 | | |
 |---|---|
-| [**Overview**](#50_crypto_overview.md) | Supported on-chain operations and authentication. |
-| [**Relay**](#51_crypto_relay.md) | Broadcast a pre-signed Tron transaction through Dinaria's node. |
-| [**Settlement**](#52_crypto_settlement.md) | Convert BRL to USDT and deliver on-chain to any Tron address. |
+| [**Overview**](#crypto-overview.md) | Supported on-chain operations and authentication. |
+| [**Relay**](#crypto-relay.md) | Broadcast a pre-signed Tron transaction through Dinaria's node. |
+| [**Settlement**](#crypto-settlement.md) | Convert BRL to USDT and deliver on-chain to any Tron address. |
 
 ---
 

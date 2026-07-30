@@ -44,5 +44,5 @@ All production operations run on **Tron mainnet**. A `network` parameter is acce
 
 ## Related
 
-- [Blockchain Access — Tron Node](51_crypto_relay.md)
-- [On-ramp — BRL to USDT](52_crypto_settlement.md)
+- [Blockchain Access — Tron Node](crypto-relay.md)
+- [On-ramp — BRL to USDT](crypto-settlement.md)

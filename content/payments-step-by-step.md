@@ -156,7 +156,7 @@ curl -X POST "$SANDBOX_URL/sandbox/payments/$TRANSACTION_ID/receive" \
   -d '{}'
 ```
 
-An empty body drives the payment to `confirmed` using the payment's own `amount` and `customer.documentNumber`. See [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md) for override fields.
+An empty body drives the payment to `confirmed` using the payment's own `amount` and `customer.documentNumber`. See [Sandbox: Simulate a Pay-in](payments-sandbox-simulate.md) for override fields.
 
 </div>
 

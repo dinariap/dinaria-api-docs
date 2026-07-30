@@ -86,4 +86,4 @@ The scope of events delivered, and how the registration is stored, depends on th
 
 **List** returns `{ "object": "list", "data": [ ... ] }` with `webhookUrl`, `scope` (`merchant` or `account`), and `createdAt`. Secrets are never returned.
 
-**Rotate secret** follows the same rules: with a merchant-scoped key, do not send `merchantId` (see [Rotate Secret](11_rotate-webhook-secret.md)).
+**Rotate secret** follows the same rules: with a merchant-scoped key, do not send `merchantId` (see [Rotate Secret](webhooks-rotate-secret.md)).

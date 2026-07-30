@@ -31,7 +31,7 @@ After creating a payment in sandbox, drive it to `confirmed` without a real bank
 
 </div>
 
-Full examples and matching rules: [Sandbox: Simulate a Pay-in](19_sandbox_cashin_simulation.md).
+Full examples and matching rules: [Sandbox: Simulate a Pay-in](payments-sandbox-simulate.md).
 
 ## Portal login
 
