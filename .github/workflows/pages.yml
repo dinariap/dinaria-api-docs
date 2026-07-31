@@ -32,10 +32,12 @@ jobs:
           ref: docs/payouts-update
           path: site-v2
 
+      - name: Configure Bundler install path
+        working-directory: site-main
+        run: bundle config set --local path '${{ github.workspace }}/vendor/bundle'
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
-        env:
-          BUNDLE_PATH: ${{ github.workspace }}/vendor/bundle
         with:
           ruby-version: "3.2"
           bundler-cache: true
@@ -45,9 +47,8 @@ jobs:
         working-directory: site-main
         env:
           JEKYLL_ENV: production
-          BUNDLE_PATH: ${{ github.workspace }}/vendor/bundle
         run: |
-          printf 'vendor\n.bundle\n' >> .jekyllignore
+          rm -rf vendor .bundle
           bundle exec jekyll build --destination "${{ github.workspace }}/dist" --baseurl "/dinaria-api-docs"
 
       - name: Build v2 preview (/v2/)
@@ -55,9 +56,8 @@ jobs:
         env:
           JEKYLL_ENV: production
           BUNDLE_GEMFILE: ${{ github.workspace }}/site-main/Gemfile
-          BUNDLE_PATH: ${{ github.workspace }}/vendor/bundle
         run: |
-          printf 'vendor\n.bundle\n' >> .jekyllignore
+          rm -rf vendor .bundle
           bundle exec jekyll build --destination "${{ github.workspace }}/dist/v2" --baseurl "/dinaria-api-docs/v2"
 
       - name: Upload Pages artifact
