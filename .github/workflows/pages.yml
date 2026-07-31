@@ -19,8 +19,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      BUNDLE_PATH: ${{ github.workspace }}/.gems
     steps:
       - name: Checkout main (production docs)
         uses: actions/checkout@v4
@@ -34,31 +32,29 @@ jobs:
           ref: docs/payouts-update
           path: site-v2
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: false
-          working-directory: site-main
-
-      - name: Install gems
-        working-directory: site-main
-        run: bundle install --jobs 4 --retry 3
-
       - name: Build main site (/)
-        working-directory: site-main
-        env:
-          JEKYLL_ENV: production
-          PAGES_REPO_NWO: dinariap/dinaria-api-docs
         run: |
-          rm -rf vendor
-          bundle exec jekyll build --destination "${{ github.workspace }}/dist" --baseurl "/dinaria-api-docs"
+          mkdir -p dist
+          rsync -a site-main/ dist/ \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'backup' \
+            --exclude 'payment_api_guidesv2.1' \
+            --exclude 'payment_api_guidesv2.5' \
+            --exclude 'payment_api_guidesv1.0' \
+            --exclude '_includes' \
+            --exclude '_sass' \
+            --exclude 'vendor' \
+            --exclude 'Gemfile' \
+            --exclude 'Gemfile.lock'
+          touch dist/.nojekyll
 
       - name: Build v2 preview (/v2/)
         run: |
           mkdir -p dist/v2
           rsync -a site-v2/ dist/v2/ \
             --exclude '.git' \
+            --exclude '.github' \
             --exclude 'backup' \
             --exclude 'payment_api_guidesv2.1' \
             --exclude 'payment_api_guidesv2.5' \
