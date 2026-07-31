@@ -1,0 +1,71 @@
+name: Deploy API docs
+
+on:
+  push:
+    branches:
+      - main
+      - docs/payouts-update
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main (production docs)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site-main
+
+      - name: Checkout v2 preview branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/payouts-update
+          path: site-v2
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: site-main
+
+      - name: Build main site (/)
+        working-directory: site-main
+        env:
+          JEKYLL_ENV: production
+        run: bundle exec jekyll build --destination "${{ github.workspace }}/dist" --baseurl "/dinaria-api-docs"
+
+      - name: Build v2 preview (/v2/)
+        working-directory: site-v2
+        env:
+          JEKYLL_ENV: production
+          BUNDLE_GEMFILE: ${{ github.workspace }}/site-main/Gemfile
+        run: |
+          bundle install
+          bundle exec jekyll build --destination "${{ github.workspace }}/dist/v2" --baseurl "/dinaria-api-docs/v2"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
