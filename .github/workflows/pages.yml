@@ -49,6 +49,7 @@ jobs:
         working-directory: site-main
         env:
           JEKYLL_ENV: production
+          PAGES_REPO_NWO: dinariap/dinaria-api-docs
         run: |
           rm -rf vendor
           bundle exec jekyll build --destination "${{ github.workspace }}/dist" --baseurl "/dinaria-api-docs"
@@ -57,6 +58,7 @@ jobs:
         working-directory: site-v2
         env:
           JEKYLL_ENV: production
+          PAGES_REPO_NWO: dinariap/dinaria-api-docs
           BUNDLE_GEMFILE: ${{ github.workspace }}/site-main/Gemfile
         run: |
           rm -rf vendor
