@@ -20,7 +20,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      BUNDLE_PATH: ${{ github.workspace }}/vendor/bundle
+      BUNDLE_PATH: ${{ github.workspace }}/.gems
     steps:
       - name: Checkout main (production docs)
         uses: actions/checkout@v4
@@ -38,15 +38,19 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
-          bundler-cache: true
+          bundler-cache: false
           working-directory: site-main
+
+      - name: Install gems
+        working-directory: site-main
+        run: bundle install --jobs 4 --retry 3
 
       - name: Build main site (/)
         working-directory: site-main
         env:
           JEKYLL_ENV: production
         run: |
-          rm -rf vendor .bundle
+          rm -rf vendor
           bundle exec jekyll build --destination "${{ github.workspace }}/dist" --baseurl "/dinaria-api-docs"
 
       - name: Build v2 preview (/v2/)
@@ -55,7 +59,7 @@ jobs:
           JEKYLL_ENV: production
           BUNDLE_GEMFILE: ${{ github.workspace }}/site-main/Gemfile
         run: |
-          rm -rf vendor .bundle
+          rm -rf vendor
           bundle exec jekyll build --destination "${{ github.workspace }}/dist/v2" --baseurl "/dinaria-api-docs/v2"
 
       - name: Upload Pages artifact
