@@ -154,9 +154,46 @@ Idempotency-Key: <unique-key>
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `type` | string | ✅ | Supported rail: `ve_bank_account` or `ve_mobile_payment`. |
-| `bankCode` | string | ✅ | Bank code used by the selected rail. |
+| `type` | string | ✅ | Supported rail: `ve_bank_account`, `ve_mobile_payment`, or `ve_cash_pickup`. |
+| `bankCode` | string | depends | Required when `type` is `ve_bank_account` or `ve_mobile_payment`. |
 | `accountNumber` | string | depends | Bank account number. Required when `type` is `ve_bank_account`. |
+
+##### Bank codes
+
+Use the bank name as the selector label and submit its `code` as `bankCode`. The code must remain a four-character string, including its leading zero. Codes outside this catalog are invalid.
+
+| Code | Bank |
+|------|------|
+| `0102` | Banco de Venezuela |
+| `0104` | Venezolano de Crédito |
+| `0105` | Banco Mercantil |
+| `0108` | Banco Provincial |
+| `0114` | Bancaribe |
+| `0115` | Banco Exterior |
+| `0128` | Banco Caroní |
+| `0134` | Banesco |
+| `0137` | Banco Sofitasa |
+| `0138` | Banco Plaza |
+| `0146` | Bangente |
+| `0151` | BFC Banco Fondo Común |
+| `0156` | 100% Banco |
+| `0157` | Del Sur Banco Universal |
+| `0163` | Banco del Tesoro |
+| `0166` | Banco Agrícola de Venezuela |
+| `0168` | Bancrecer |
+| `0169` | R4 Banco |
+| `0171` | Banco Activo |
+| `0172` | Bancamiga |
+| `0173` | Banco Internacional de Desarrollo |
+| `0174` | Banplus |
+| `0175` | Banco Digital de los Trabajadores |
+| `0177` | BANFANB |
+| `0178` | N58 Banco Digital |
+| `0191` | Banco Nacional de Crédito |
+| `0601` | Instituto Municipal de Crédito Popular |
+| `3621` | Banco de Comercio Exterior |
+
+`ve_cash_pickup` maps to `idMedioPago=1` and does not require bank data. `ve_bank_account` maps to `idMedioPago=2` and `ve_mobile_payment` maps to `idMedioPago=3`; both require `bankCode`. For `ve_bank_account`, `accountNumber` must contain exactly 20 digits and begin with the selected `bankCode`. `idMedioPago` is an internal value and is not sent in the public payout request.
 
 </div>
 
@@ -166,7 +203,8 @@ Idempotency-Key: <unique-key>
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `type` | string | ✅ | Supported rail: `ar_cvu` or `ar_alias`. |
+| `type` | string | ✅ | Supported rail: `ar_cbu`, `ar_cvu`, or `ar_alias`. |
+| `cbu` | string | depends | Beneficiary's 22-digit CBU. Required when `type` is `ar_cbu`. |
 | `cvu` | string | depends | Beneficiary's 22-digit CVU. Required when `type` is `ar_cvu`. |
 | `alias` | string | depends | Beneficiary's CBU/CVU alias. Required when `type` is `ar_alias`. |
 
@@ -187,18 +225,18 @@ Idempotency-Key: <unique-key>
 
 ### `remitter` object
 
-The `remitter` object is required when the payout is a remittance. For other use cases, whether it is required depends on the corridor and compliance rules. When `remitter` is required, provide all fields below.
+The `remitter` object is required when the payout is a remittance. For other use cases, whether it is required depends on the corridor and compliance rules. Within this object, only the sender's identification, first name, and last name are required.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `identification` | string | ✅ | Sender identification number. |
 | `firstName` | string | ✅ | Sender first name. |
 | `lastName` | string | ✅ | Sender last name. |
-| `birthDate` | string | ✅ | Sender date of birth in `YYYY-MM-DD` format. |
-| `nationality` | string | ✅ | Sender nationality code. |
-| `mobile` | string | ✅ | Sender mobile phone. |
-| `address` | string | ✅ | Sender address. |
-| `email` | string | ✅ | Sender email address. |
+| `birthDate` | string | — | Sender date of birth in `YYYY-MM-DD` format. |
+| `nationality` | string | — | Sender nationality code. |
+| `mobile` | string | — | Sender mobile phone. |
+| `address` | string | — | Sender address. |
+| `email` | string | — | Sender email address. |
 
 > The exact fields required in the destination object vary by country, currency, corridor, rail, beneficiary type, and compliance rules.
 
@@ -302,6 +340,32 @@ Create the payout using one of the supported delivery rails.
     "mobile": "04141234567",
     "address": "Buenos Aires, Argentina",
     "email": "remitente@example.com"
+  }
+}
+```
+
+##### Cash
+
+```json
+{
+  "amount": "10.00",
+  "currency": "USDT",
+  "externalId": "order-cash-789",
+  "destination": {
+    "country": "VE",
+    "beneficiary": {
+      "name": "María González",
+      "documentType": "RIF",
+      "documentNumber": "V40001469"
+    },
+    "rail": {
+      "type": "ve_cash_pickup"
+    }
+  },
+  "remitter": {
+    "identification": "V201234567",
+    "firstName": "Juan",
+    "lastName": "Pérez"
   }
 }
 ```

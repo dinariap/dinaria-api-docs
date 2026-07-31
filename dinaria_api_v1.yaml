@@ -476,6 +476,75 @@ components:
           description: PIX key value in the format corresponding to `type`.
           example: "12345678901"
 
+    PayoutVEBankCode:
+      type: string
+      title: Venezuela bank code
+      description: |
+        Bank entity code. Always send this value as a four-character string; never
+        convert it to a number. Supported values:
+
+        - `0102` — Banco de Venezuela
+        - `0104` — Venezolano de Crédito
+        - `0105` — Banco Mercantil
+        - `0108` — Banco Provincial
+        - `0114` — Bancaribe
+        - `0115` — Banco Exterior
+        - `0128` — Banco Caroní
+        - `0134` — Banesco
+        - `0137` — Banco Sofitasa
+        - `0138` — Banco Plaza
+        - `0146` — Bangente
+        - `0151` — BFC Banco Fondo Común
+        - `0156` — 100% Banco
+        - `0157` — Del Sur Banco Universal
+        - `0163` — Banco del Tesoro
+        - `0166` — Banco Agrícola de Venezuela
+        - `0168` — Bancrecer
+        - `0169` — R4 Banco
+        - `0171` — Banco Activo
+        - `0172` — Bancamiga
+        - `0173` — Banco Internacional de Desarrollo
+        - `0174` — Banplus
+        - `0175` — Banco Digital de los Trabajadores
+        - `0177` — BANFANB
+        - `0178` — N58 Banco Digital
+        - `0191` — Banco Nacional de Crédito
+        - `0601` — Instituto Municipal de Crédito Popular
+        - `3621` — Banco de Comercio Exterior
+      minLength: 4
+      maxLength: 4
+      pattern: '^\d{4}$'
+      enum:
+        - "0102"
+        - "0104"
+        - "0105"
+        - "0108"
+        - "0114"
+        - "0115"
+        - "0128"
+        - "0134"
+        - "0137"
+        - "0138"
+        - "0146"
+        - "0151"
+        - "0156"
+        - "0157"
+        - "0163"
+        - "0166"
+        - "0168"
+        - "0169"
+        - "0171"
+        - "0172"
+        - "0173"
+        - "0174"
+        - "0175"
+        - "0177"
+        - "0178"
+        - "0191"
+        - "0601"
+        - "3621"
+      example: "0102"
+
     PayoutRailVEBankAccount:
       title: Venezuela bank account
       type: object
@@ -485,12 +554,15 @@ components:
           type: string
           enum: [ve_bank_account]
         bankCode:
-          type: string
-          description: Beneficiary bank code.
-          example: "0102"
+          $ref: "#/components/schemas/PayoutVEBankCode"
         accountNumber:
           type: string
-          description: Beneficiary bank account number.
+          minLength: 20
+          maxLength: 20
+          pattern: '^\d{20}$'
+          description: |
+            Beneficiary bank account number. Must contain exactly 20 digits and its first
+            four digits must match the selected `bankCode`.
           example: "01020305810000263562"
 
     PayoutRailVEMobilePayment:
@@ -502,9 +574,17 @@ components:
           type: string
           enum: [ve_mobile_payment]
         bankCode:
+          $ref: "#/components/schemas/PayoutVEBankCode"
+
+    PayoutRailVECash:
+      title: Venezuela cash
+      type: object
+      required: [type]
+      properties:
+        type:
           type: string
-          description: Beneficiary bank code.
-          example: "0175"
+          enum: [ve_cash_pickup]
+          description: Cash payout. Bank details are not required.
 
     PayoutRailARCVU:
       title: Argentina CVU
@@ -519,6 +599,20 @@ components:
           pattern: '^\d{22}$'
           description: Beneficiary's 22-digit CVU.
           example: "2850590940090418135201"
+
+    PayoutRailARCBU:
+      title: Argentina CBU
+      type: object
+      required: [type, cbu]
+      properties:
+        type:
+          type: string
+          enum: [ar_cbu]
+        cbu:
+          type: string
+          pattern: '^\d{22}$'
+          description: Beneficiary's 22-digit CBU.
+          example: "0070327530004025541644"
 
     PayoutRailARAlias:
       title: Argentina alias
@@ -549,6 +643,8 @@ components:
       oneOf:
         - $ref: "#/components/schemas/PayoutRailVEBankAccount"
         - $ref: "#/components/schemas/PayoutRailVEMobilePayment"
+        - $ref: "#/components/schemas/PayoutRailVECash"
+        - $ref: "#/components/schemas/PayoutRailARCBU"
         - $ref: "#/components/schemas/PayoutRailARCVU"
         - $ref: "#/components/schemas/PayoutRailARAlias"
         - $ref: "#/components/schemas/PayoutRailBRPix"
@@ -557,6 +653,8 @@ components:
         mapping:
           ve_bank_account: "#/components/schemas/PayoutRailVEBankAccount"
           ve_mobile_payment: "#/components/schemas/PayoutRailVEMobilePayment"
+          ve_cash_pickup: "#/components/schemas/PayoutRailVECash"
+          ar_cbu: "#/components/schemas/PayoutRailARCBU"
           ar_cvu: "#/components/schemas/PayoutRailARCVU"
           ar_alias: "#/components/schemas/PayoutRailARAlias"
           br_pix: "#/components/schemas/PayoutRailBRPix"
@@ -610,7 +708,7 @@ components:
     PayoutRemitter:
       type: object
       description: Sender identity and contact data. Required for remittance use cases.
-      required: [identification, firstName, lastName, birthDate, nationality, mobile, address, email]
+      required: [identification, firstName, lastName]
       properties:
         identification:
           type: string
@@ -1430,6 +1528,42 @@ components:
           address: Buenos Aires, Argentina
           email: remitente@example.com
 
+    PayoutRequestVECash:
+      summary: "Venezuela remittance — cash"
+      value:
+        amount: "10.00"
+        currency: USDT
+        externalId: order-cash-789
+        destination:
+          country: VE
+          beneficiary:
+            name: María González
+            documentType: RIF
+            documentNumber: V40001469
+          rail:
+            type: ve_cash_pickup
+        remitter:
+          identification: V201234567
+          firstName: Juan
+          lastName: Pérez
+
+    PayoutRequestARSCBU:
+      summary: "Argentina — CBU destination"
+      value:
+        amount: "1500.00"
+        currency: ARS
+        externalId: order-ar-cbu-123
+        destination:
+          country: AR
+          currency: ARS
+          beneficiary:
+            name: María González
+            documentType: CUIT
+            documentNumber: "27-12345678-5"
+          rail:
+            type: ar_cbu
+            cbu: "0070327530004025541644"
+
     PayoutRequestARS:
       summary: "Argentina — CVU destination"
       value:
@@ -2038,10 +2172,11 @@ paths:
 
         **Venezuela remittances**: fund the payout in `USDT`; the beneficiary receives `VES`.
         Retrieve an indicative quote with `GET /payouts/rates` first. The `remitter` object is
-        required for remittance use cases. Use `ve_bank_account` or `ve_mobile_payment` as the rail.
+        required for remittance use cases. Use `ve_bank_account`, `ve_mobile_payment`, or
+        `ve_cash_pickup` as the rail. `ve_cash_pickup` does not require bank details.
 
-        **Argentina**: use `ar_cvu` with `rail.cvu`, or `ar_alias` with `rail.alias`.
-        The beneficiary document type is generally `CUIT`.
+        **Argentina**: use `ar_cbu` with `rail.cbu`, `ar_cvu` with `rail.cvu`, or
+        `ar_alias` with `rail.alias`. The beneficiary document type is generally `CUIT`.
 
         **Brazil**: use the `br_pix` rail. `rail.pixKey.type` accepts `cpf`, `cnpj`, `email`,
         `phone`, or `evp`. The beneficiary document type must be `CPF` or `CNPJ`.
@@ -2064,6 +2199,10 @@ paths:
                 $ref: "#/components/examples/PayoutRequestVE"
               venezuela_mobile_payment:
                 $ref: "#/components/examples/PayoutRequestVEMobile"
+              venezuela_cash:
+                $ref: "#/components/examples/PayoutRequestVECash"
+              argentina_cbu:
+                $ref: "#/components/examples/PayoutRequestARSCBU"
               argentina_cvu:
                 $ref: "#/components/examples/PayoutRequestARS"
               argentina_alias:
