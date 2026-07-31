@@ -55,14 +55,14 @@ jobs:
           bundle exec jekyll build --destination "${{ github.workspace }}/dist" --baseurl "/dinaria-api-docs"
 
       - name: Build v2 preview (/v2/)
-        working-directory: site-v2
-        env:
-          JEKYLL_ENV: production
-          PAGES_REPO_NWO: dinariap/dinaria-api-docs
-          BUNDLE_GEMFILE: ${{ github.workspace }}/site-main/Gemfile
         run: |
-          rm -rf vendor
-          bundle exec jekyll build --destination "${{ github.workspace }}/dist/v2" --baseurl "/dinaria-api-docs/v2"
+          mkdir -p dist/v2
+          rsync -a site-v2/ dist/v2/ \
+            --exclude '.git' \
+            --exclude 'backup' \
+            --exclude 'payment_api_guidesv2.1' \
+            --exclude 'payment_api_guidesv2.5' \
+            --exclude 'payment_api_guidesv1.0'
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
