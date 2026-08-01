@@ -193,8 +193,6 @@ Use the bank name as the selector label and submit its `code` as `bankCode`. The
 | `0601` | Instituto Municipal de Crédito Popular |
 | `3621` | Banco de Comercio Exterior |
 
-`ve_cash_pickup` maps to `idMedioPago=1` and does not require bank data. `ve_bank_account` maps to `idMedioPago=2` and `ve_mobile_payment` maps to `idMedioPago=3`; both require `bankCode`. For `ve_bank_account`, `accountNumber` must contain exactly 20 digits and begin with the selected `bankCode`. `idMedioPago` is an internal value and is not sent in the public payout request.
-
 </div>
 
 <div class="country-ar">
