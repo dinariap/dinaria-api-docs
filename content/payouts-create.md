@@ -116,8 +116,8 @@ Idempotency-Key: <unique-key>
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | ✅ | Beneficiary full name. |
-| `documentType` | string | ✅ | Beneficiary document type. Use `RIF`. |
-| `documentNumber` | string | ✅ | Beneficiary's RIF number. |
+| `documentType` | string | — | Optional beneficiary document type. When provided, use `RIF`. |
+| `documentNumber` | string | — | Optional beneficiary RIF number. |
 | `mobile` | string | depends | Required when the selected rail is `ve_mobile_payment`. |
 
 </div>

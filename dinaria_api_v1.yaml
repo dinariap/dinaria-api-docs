@@ -441,8 +441,6 @@ components:
       type: object
       required:
         - name
-        - documentType
-        - documentNumber
       properties:
         name:
           type: string
@@ -453,10 +451,11 @@ components:
           enum: [RIF, CUIT, CPF, CNPJ]
           description: |
             Beneficiary document type for the destination country:
-            `RIF` for Venezuela, generally `CUIT` for Argentina, and `CPF` or `CNPJ` for Brazil.
+            optional `RIF` for Venezuela, generally `CUIT` for Argentina, and `CPF` or `CNPJ`
+            for Brazil. Required for Argentina and Brazil.
         documentNumber:
           type: string
-          description: Beneficiary document number.
+          description: Beneficiary document number. Optional for Venezuela; required for Argentina and Brazil.
           example: V40001469
         mobile:
           type: string
