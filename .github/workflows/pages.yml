@@ -1,0 +1,77 @@
+name: Deploy API docs
+
+on:
+  push:
+    branches:
+      - main
+      - docs/payouts-update
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main (production docs)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site-main
+
+      - name: Checkout v2 preview branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/payouts-update
+          path: site-v2
+
+      - name: Build main site (/)
+        run: |
+          mkdir -p dist
+          rsync -a site-main/ dist/ \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'backup' \
+            --exclude 'payment_api_guidesv2.1' \
+            --exclude 'payment_api_guidesv2.5' \
+            --exclude 'payment_api_guidesv1.0' \
+            --exclude '_includes' \
+            --exclude '_sass' \
+            --exclude 'vendor' \
+            --exclude 'Gemfile' \
+            --exclude 'Gemfile.lock'
+          touch dist/.nojekyll
+
+      - name: Build v2 preview (/v2/)
+        run: |
+          mkdir -p dist/v2
+          rsync -a site-v2/ dist/v2/ \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'backup' \
+            --exclude 'payment_api_guidesv2.1' \
+            --exclude 'payment_api_guidesv2.5' \
+            --exclude 'payment_api_guidesv1.0'
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
