@@ -30,6 +30,7 @@ Idempotency-Key: <uuid>
 |-------|------|----------|-------------|
 | `amount` | string | ✅ | Decimal string, e.g. `"100.50"` |
 | `currency` | string | ✅ | ISO 4217 — `ARS` or `BRL` |
+| `paymentMethod` | string | — | Collection method. Omitted → currency default (`bank_transfer` for ARS, `instant_bank_transfer` for BRL). See country sections below. |
 | `customer` | object | ✅ | See Customer object below |
 | `externalId` | string | — | Your internal order/checkout reference |
 | `metadata` | object | — | Free-form key-value pairs, returned in webhooks |
@@ -54,6 +55,17 @@ Idempotency-Key: <uuid>
 ### Argentina (ARS)
 
 `documentNumber` — CUIT (11 digits) or DNI (7–8 digits).
+
+Argentina supports two collection methods, selected at create time via `paymentMethod`. Pick whichever fits your checkout UX best — both are reconciled automatically.
+
+| `paymentMethod` | What the merchant displays | Expiration |
+|---|---|---|
+| `bank_transfer` *(default)* | Static CBU/CVU + alias + reference | Merchant-controlled (`expiresAfter` / `expiration`) |
+| `qr` | Per-order interoperable QR (EMV + PNG) | **3 hours** (matches the QR's TTL) |
+
+#### Method 1 — Bank transfer (`bank_transfer`)
+
+This is the default when `paymentMethod` is omitted.
 
 ```json
 {
@@ -81,6 +93,7 @@ Idempotency-Key: <uuid>
   "status": "started",
   "amount": "1500.00",
   "currency": "ARS",
+  "paymentMethod": "bank_transfer",
   "paymentData": {
     "type": "bank_transfer",
     "cbu": "4310009922100000122004",
@@ -92,6 +105,62 @@ Idempotency-Key: <uuid>
 ```
 
 Display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` to the customer. Instruct them to initiate a bank transfer (CBU/CVU) to that destination and include the reference in the transfer description.
+
+#### Method 2 — Interoperable QR (`qr`)
+
+Pass `"paymentMethod": "qr"` to mint a per-order Transferencias 3.0 QR. The customer pays by scanning it with any Argentine bank or wallet app (Mercado Pago, MODO, home banking, etc.). The response contains both the EMV string (for QR-rendering libraries) and a base64 PNG (drop-in `<img>` tag).
+
+```json
+{
+  "amount": "1500.00",
+  "currency": "ARS",
+  "paymentMethod": "qr",
+  "externalId": "ORD-1003",
+  "customer": {
+    "name": "Juan Pérez",
+    "documentNumber": "20234567897"
+  },
+  "metadata": { "orderId": "ORD-1003" }
+}
+```
+
+**Response:**
+
+```json
+{
+  "transactionId": "8dd5d1ee-1ba0-4311-bbbd-fd19765b2f93",
+  "externalId": "ORD-1003",
+  "status": "started",
+  "amount": "1500.00",
+  "currency": "ARS",
+  "paymentMethod": "qr",
+  "expirationDate": "2026-08-17T21:04:04Z",
+  "expiresAt":      "2026-08-17T21:04:04Z",
+  "paymentData": {
+    "type": "qr",
+    "qrCodeString": "00020101021243430010ar.com.pvs0105...6304B081",
+    "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "qrExpiresAt":  "2026-08-17T21:04:04Z",
+    "reference":    "8dd5d1ee-1ba0-4311-bbbd-fd19765b2f93"
+  }
+}
+```
+
+Two rendering options:
+
+```html
+<!-- Drop-in PNG, no extra dependencies -->
+<img src="data:image/png;base64,{{paymentData.qrCodeBase64}}" alt="Pagar con QR" />
+
+<!-- Or render the EMV string with any QR library -->
+<div data-qr="{{paymentData.qrCodeString}}"></div>
+```
+
+The customer must **scan** the QR from a bank or wallet camera. There is no copy-paste equivalent of a PIX code for this rail.
+
+> **Note:** `qr` orders expire after **3 hours** (the QR's TTL). `paymentData.qrExpiresAt` matches the order's `expiresAt` / `expirationDate`. If the customer doesn't pay in time, create a new payment.
+
+**How reconciliation works.** Each QR is unique to this `transactionId`. When the customer pays, the credit is bound to this order 1:1 — no CUIT+amount lookup, and no collision if two customers pay the same amount.
 
 </div>
 

@@ -58,6 +58,8 @@ curl -X POST "https://pay.dinaria.com/payments" \
 
 Store `transactionId`. Display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` to the customer — instruct them to initiate a bank transfer to that CBU/CVU and include the reference in the transfer description.
 
+> **Prefer a QR code?** Pass `"paymentMethod": "qr"` on the same request and the response will carry a per-order interoperable QR (`qrCodeString` + `qrCodeBase64`, valid for 3 hours) instead of the CBU/alias. See [Create a payment](05_payments_create.md) for the full QR flow and rendering tips.
+
 </div>
 
 <div class="country-br">

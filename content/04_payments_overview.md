@@ -30,8 +30,12 @@ After creating a payment, the response includes a `paymentData` object with the 
 | `paymentMethod` (request) | `paymentData.type` (response) | What to display |
 |---|---|---|
 | `bank_transfer` *(default)* | `bank_transfer` | `cbu` or `alias` + `reference` — customer makes a bank transfer |
+| `qr` | `qr` | `qrCodeString` / `qrCodeBase64` + `qrExpiresAt` — customer scans the interoperable QR |
 
-> Dynamic-QR collection is **not yet available for ARS**. Static CBU/CVU transfers remain the default and only method for Argentina today. PIX-style QR support is on the roadmap.
+**Choosing a method.** Argentina supports two collection methods that you select per-payment via `paymentMethod`:
+
+- **`bank_transfer`** *(default)* — a static CBU/CVU (and alias) is returned. The customer initiates a bank transfer; reconciliation matches the incoming credit by payer document + amount. Order expiration is merchant-controlled (`expiresAfter` / `expiration`).
+- **`qr`** — a per-order **dynamic** interoperable QR (Transferencias 3.0) is minted at create time. The response includes `qrCodeString` (EMV string for QR libraries) and `qrCodeBase64` (drop-in PNG). The customer scans it with any Argentine bank or wallet app. The QR — and the order — expire in **3 hours**. Reconciliation is 1:1 on the QR identifier, so the same amount paid by two customers cannot collide.
 
 </div>
 

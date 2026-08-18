@@ -164,20 +164,67 @@ components:
 
     PaymentDataARS:
       type: object
-      description: Bank transfer instructions for ARS payments.
+      description: |
+        Collection instructions for ARS payments. Two shapes are returned
+        depending on `paymentMethod`:
+
+        - `paymentMethod=bank_transfer` (default) → `type=bank_transfer`:
+          a static CBU/CVU (`cbu` / `alias`) plus a `reference` to include in
+          the transfer description. Reconciled by payer document + amount.
+        - `paymentMethod=qr` → `type=qr`: a per-order interoperable
+          Transferencias 3.0 QR (`qrCodeString` + `qrCodeBase64`) that the
+          customer scans in any Argentine bank or wallet app. Expires in
+          3 hours. Reconciled 1:1 by the QR identifier.
       properties:
         type:
           type: string
-          enum: [transfer_to_cbu]
+          enum: [bank_transfer, qr]
+          description: |
+            - `bank_transfer`: returned for `paymentMethod=bank_transfer`.
+            - `qr`: returned for `paymentMethod=qr`.
         cbu:
           type: string
-          description: Dinaria's 22-digit receiving CBU. Customer must transfer funds here.
+          description: |
+            Present only when `type=bank_transfer`. Dinaria's 22-digit receiving
+            CBU/CVU. Customer must transfer funds here.
           example: "4310009922100000122004"
+        alias:
+          type: string
+          description: |
+            Present only when `type=bank_transfer`. Optional CBU/CVU alias the
+            customer can type instead of the 22-digit number.
+          example: DINARIA.ARS
+        qrCodeString:
+          type: string
+          description: |
+            Present only when `type=qr`. The EMV/TLV payload as a single string —
+            render it with any standard QR encoder. The customer scans this with
+            any Argentine bank or wallet camera (there is no copy-paste equivalent
+            of a PIX code on this rail).
+          example: "00020101021243430010ar.com.pvs0105...6304B081"
+        qrCodeBase64:
+          type: string
+          description: |
+            Present only when `type=qr`. Base64-encoded PNG of the QR code,
+            ready to embed directly in HTML via
+            `<img src="data:image/png;base64,...">` — no extra rendering step.
+        qrExpiresAt:
+          type: string
+          format: date-time
+          description: |
+            Present only when `type=qr`. ISO 8601 timestamp at which the QR
+            becomes invalid (3 hours from creation). For `qr` orders this
+            value is identical to the order's top-level `expiresAt` /
+            `expirationDate`. After this instant the merchant must create a
+            new payment if the customer wants to retry.
+          example: "2026-08-17T21:04:04Z"
         reference:
           type: string
           description: |
-            Reference code the customer must include in the transfer description/concept.
-            This is how the reconciler links the incoming bank transfer to this order.
+            For `bank_transfer` payments, instruct the customer to include this
+            in the transfer description so the reconciler can match the payment.
+            For `qr` payments, the reference is already bound to the QR —
+            exposed here for traceability (equals `transactionId`).
           example: "9032000000000000023"
 
     PaymentDataBRL:
@@ -266,22 +313,26 @@ components:
           description: ISO 4217 currency code.
         paymentMethod:
           type: string
-          enum: [bank_transfer, instant_bank_transfer, pix_qr]
+          enum: [bank_transfer, qr, instant_bank_transfer, pix_qr]
           description: |
             Payment method to use. If omitted, the platform selects the default for the currency:
             - `ARS` → `bank_transfer` (CBU/CVU bank transfer).
             - `BRL` → `instant_bank_transfer` (static PIX deposit key; reconciled
               by CPF/CNPJ + amount).
 
-            **Brazil only — opt-in alternative:**
+            **Argentina — opt-in alternative:**
+            - `qr`: a per-order **interoperable** Transferencias 3.0 QR is minted
+              at creation time. The response carries `paymentData.qrCodeString`
+              and `paymentData.qrCodeBase64`. The customer scans it with any
+              Argentine bank or wallet app. Reconciliation is 1:1 on the QR
+              identifier. The QR (and the order) expire in **3 hours**.
+
+            **Brazil — opt-in alternative:**
             - `pix_qr`: a per-order **dynamic** PIX QR (BR-Code) is minted at
               creation time. The response carries `paymentData.qrCodeString` and
               `paymentData.qrCodeBase64`. Reconciliation uses the QR's embedded
               `externalId` for guaranteed 1:1 matching. The QR (and the order)
               expires in 15 minutes regardless of `expiresAfter` / `expiration`.
-
-            `pix_qr` is **not yet available for ARS** — dynamic-QR support
-            for Argentina is on the roadmap.
         customer:
           $ref: "#/components/schemas/Customer"
         externalId:
@@ -305,10 +356,10 @@ components:
             If neither `expiresAfter` nor `expiration` is provided, the platform default
             applies (currently 24 hours / 86 400 s).
 
-            **Note:** ignored when `paymentMethod=pix_qr` — the QR code carries
-            its own hard 15-minute expiry and the order expiration is aligned
-            to it so the customer can never see a still-open order with a dead
-            QR.
+            **Note:** ignored when `paymentMethod=pix_qr` (forced to creation +
+            15 minutes) or `paymentMethod=qr` (forced to creation + 3 hours) —
+            the QR carries its own TTL and the order expiration is aligned to it
+            so the customer can never see a still-open order with a dead QR.
           example: 3600
         expiration:
           type: string
@@ -316,7 +367,8 @@ components:
           description: |
             **Deprecated in favour of `expiresAfter`.**
             ISO 8601 absolute datetime after which the order expires.
-            Ignored for `paymentMethod=pix_qr` (forced to creation + 15 minutes).
+            Ignored for `paymentMethod=pix_qr` (forced to creation + 15 minutes)
+            and `paymentMethod=qr` (forced to creation + 3 hours).
         metadata:
           type: object
           description: Free-form key-value pairs. Returned in responses and webhooks.
@@ -1093,6 +1145,21 @@ components:
           documentType: DNI
           documentNumber: "22137007"
 
+    PaymentRequestARSQR:
+      summary: "ARS — interoperable QR"
+      value:
+        merchantId: acme_ars_merch1
+        amount: "1500.00"
+        currency: ARS
+        paymentMethod: qr
+        externalId: ORD-1003
+        customer:
+          name: Ana Martínez
+          documentType: CUIT
+          documentNumber: "20221370075"
+        metadata:
+          orderId: ORD-1003
+
     PaymentRequestBRL:
       summary: "BRL — CPF customer"
       value:
@@ -1149,11 +1216,37 @@ components:
         rail: ar_bank_transfer
         bankSystemReference: "9032000000000000023"
         paymentData:
-          type: transfer_to_cbu
+          type: bank_transfer
           cbu: "4310009922100000122004"
+          alias: DINARIA.ARS
           reference: "9032000000000000023"
         customer:
           id: ea272dd4-bde7-4d9a-a432-0de9e9566af5
+          name: Ana Martínez
+          documentType: CUIT
+          documentNumber: "20221370075"
+        reconciliationStatus: unknown
+
+    PaymentResponseARSQR:
+      summary: "ARS — started (interoperable QR)"
+      value:
+        transactionId: 8dd5d1ee-1ba0-4311-bbbd-fd19765b2f93
+        merchantId: acme_ars_merch1
+        externalId: ORD-1003
+        status: started
+        amount: "1500.00"
+        currency: ARS
+        paymentMethod: qr
+        rail: ar_qr
+        expirationDate: "2026-08-17T21:04:04Z"
+        expiresAt: "2026-08-17T21:04:04Z"
+        paymentData:
+          type: qr
+          qrCodeString: "00020101021243430010ar.com.pvs0105...6304B081"
+          qrCodeBase64: "iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQAAAABRBrPYAAA...(truncated)"
+          qrExpiresAt: "2026-08-17T21:04:04Z"
+          reference: 8dd5d1ee-1ba0-4311-bbbd-fd19765b2f93
+        customer:
           name: Ana Martínez
           documentType: CUIT
           documentNumber: "20221370075"
@@ -1529,9 +1622,22 @@ paths:
         Creates a pay-in order. Returns transfer instructions in `paymentData`
         to display to the customer.
 
-        **ARS**: Display `paymentData.cbu` and `paymentData.reference`. The customer
-        initiates a CBU/CVU bank transfer and **must include the reference in the
-        transfer concept/description field**. The reconciler matches it automatically.
+        **ARS** — two methods (choose with `paymentMethod`):
+
+        - `bank_transfer` *(default)* — `paymentData.type = "bank_transfer"`:
+          display `paymentData.cbu` (or `alias`) and `paymentData.reference`.
+          The customer initiates a CBU/CVU bank transfer and **must include the
+          reference in the transfer concept/description field**. The reconciler
+          matches by payer document + amount. Order expiration is
+          merchant-controlled.
+        - `qr` — `paymentData.type = "qr"`: a per-order interoperable
+          Transferencias 3.0 QR is minted by Dinaria. Display
+          `paymentData.qrCodeBase64` inline
+          (`<img src="data:image/png;base64,...">`) or render
+          `paymentData.qrCodeString` with any QR encoder. The customer **scans**
+          it with any Argentine bank or wallet app (no copy-paste equivalent).
+          **The QR (and order) expire in 3 hours.** The reconciler binds the
+          credit to this order 1:1 via the QR identifier.
 
         **BRL** — two methods (choose with `paymentMethod`):
 
@@ -1564,6 +1670,8 @@ paths:
                 $ref: "#/components/examples/PaymentRequestARS"
               ars_dni:
                 $ref: "#/components/examples/PaymentRequestARSDNI"
+              ars_qr:
+                $ref: "#/components/examples/PaymentRequestARSQR"
               brl_cpf:
                 $ref: "#/components/examples/PaymentRequestBRL"
               brl_cnpj:
@@ -1580,6 +1688,8 @@ paths:
               examples:
                 ars_started:
                   $ref: "#/components/examples/PaymentResponseARS"
+                ars_qr_started:
+                  $ref: "#/components/examples/PaymentResponseARSQR"
                 brl_started:
                   $ref: "#/components/examples/PaymentResponseBRL"
                 brl_pix_qr_started:
