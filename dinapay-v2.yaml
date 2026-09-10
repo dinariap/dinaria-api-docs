@@ -3,7 +3,7 @@ openapi: 3.1.0
 info:
   title: Dinapay API
   version: 2.0.0
-  description: Public API for creating and tracking incoming Payments, payment Refunds and outbound Payouts. Provider selection, routing and connector details are managed by Dinaria and remain transparent to API consumers.
+  description: Receive funds from customers, return full or partial payments, and send funds to beneficiaries through one API. Dinaria manages provider selection, routing, and connector details transparently.
 servers:
 - url: https://api.sandbox.dinaria.com
   description: Sandbox
@@ -11,11 +11,11 @@ servers:
   description: Production
 tags:
 - name: Payments
-  description: Create and query incoming payments.
+  description: Receive funds from customers through supported payment methods and currencies.
 - name: Refunds
-  description: Create and query payment refunds.
+  description: Return all or part of a payment and track the result independently.
 - name: Payouts
-  description: Create and query outbound transfers.
+  description: Send funds from an available balance to beneficiaries through supported local rails.
 webhooks:
   merchantEvent:
     post:
@@ -91,7 +91,7 @@ paths:
     post:
       operationId: createPaymentV2
       summary: Create a payment
-      description: Creates a payment order and returns the customer action and payment-method-specific data needed to complete it.
+      description: Receive funds by creating a payment order. The response provides a standard actionUrl and structured paymentData with the instructions needed by the payer.
       tags:
       - Payments
       parameters:
@@ -344,7 +344,7 @@ paths:
     post:
       operationId: createPayoutV2
       summary: Create a payout
-      description: Durably accepts an outbound transfer for asynchronous processing. Idempotency-Key identifies the technical request; externalId identifies the payout in the client's system.
+      description: Send funds from the available balance to a beneficiary through a supported destination and rail. The transfer is durably accepted for asynchronous processing. Idempotency-Key identifies the technical request; externalId identifies the payout in the client's system.
       tags:
       - Payouts
       parameters:

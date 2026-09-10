@@ -6,7 +6,9 @@ parent: Money In
 
 # Payments Overview
 
-Payments are the Money In resource of the Dinaria API. All supported mechanisms use the same public endpoints:
+Use Payments to receive funds from customers through supported payment methods and currencies.
+
+Every payment is created and managed through the same provider-neutral API, regardless of the underlying provider:
 
 ```text
 POST /v2/payments
@@ -14,7 +16,7 @@ GET  /v2/payments
 GET  /v2/payments/{transactionId}
 ```
 
-The integration is provider-neutral. You request a `paymentMethod`; Dinaria selects the provider transparently and returns a common Payment resource.
+You request a `paymentMethod`; Dinaria selects the provider transparently and returns a common Payment resource.
 
 ## Identifiers
 

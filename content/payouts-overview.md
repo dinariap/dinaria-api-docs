@@ -6,13 +6,13 @@ parent: Money Out
 
 # Payouts Overview
 
-A payout is an instruction to send funds from your available account balance to a beneficiary through a supported destination and payout rail.
+Use Payouts to send funds from your available account balance to beneficiaries through supported local rails.
 
 > Before creating a payout, make sure your account is prefunded with sufficient available balance in the source currency. Funding and payouts are separate processes; this section does not describe how funds are deposited.
 
 ## What a payout represents
 
-The Payout resource is generic. It can support remittances, supplier payments, user withdrawals, disbursements, settlements, and other outbound money movements. Country-specific examples only illustrate the beneficiary and rail data required for a particular corridor.
+The same payout flow can support remittances, supplier payments, user withdrawals, disbursements, settlements, and other outbound money movements. Country-specific examples only illustrate the beneficiary and rail data required for a particular corridor.
 
 | Concept | Description |
 |---|---|

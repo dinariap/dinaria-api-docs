@@ -260,7 +260,9 @@ async function loadApiRef() {
 
   inner.innerHTML = '';
 
-  Redoc.init(SPEC_URL, {
+  // Always load the latest local contract while documentation is being reviewed.
+  const specUrl = SPEC_URL + '?v=' + Date.now();
+  Redoc.init(specUrl, {
     scrollYOffset: 0,
     hideDownloadButton: false,
     disableSearch: false,
