@@ -1,41 +1,29 @@
 ---
-title: Payment Lifecycle States
-nav_order: 5
-parent: Guides
+title: Payment Lifecycle
+nav_order: 3
+parent: Money In
 ---
 
-# Payment lifecycle & states
-
-Payments move through the following states:
-
-## started
-Payment created successfully. Awaiting customer action.
-
-## confirmed
-Payment completed successfully. Funds received.
-
-## cancelled
-Payment was cancelled or failed.
-
-## expired
-Payment expired before the customer completed it.
-
-## Typical transitions
+# Payment Lifecycle
 
 ```text
-started → confirmed
-        → cancelled
-        → expired
+started → pending → confirmed → paid
+   ├──────────────→ cancelled
+   ├──────────────→ expired
+   └──────────────→ failed
+
+confirmed / paid → refunded (after the full amount is successfully returned)
 ```
 
-## Recommended handling
+| Status | Meaning | Recommended handling |
+|---|---|---|
+| `started` | Awaiting payer action. | Present `actionUrl` or supported `paymentData`. |
+| `pending` | Processing is underway. | Wait for a webhook; do not treat as final. |
+| `confirmed` | Provider confirmed the payment. | Apply your business rule for confirmed funds. |
+| `paid` | Funds are available under the financial model. | Reconcile and settle as appropriate. |
+| `cancelled` | Cancelled before completion. | Stop the customer flow. |
+| `expired` | Expired without completion. | Create a new payment if the customer retries. |
+| `failed` | Definitive failure. | Show a safe retry path using a new order attempt. |
+| `refunded` | Fully refunded. | Use Refund resources for the detailed history. |
 
-| Status      | Recommended action |
-|-------------|--------------------|
-| `started`   | For ARS: display `paymentData.cbu` (or `paymentData.alias`) and `paymentData.reference` — instruct the customer to initiate a bank transfer. For BRL: display PIX key from `paymentData`. |
-| `confirmed` | Fulfill the order — this is a terminal state. |
-| `cancelled` | Allow retry (create a new payment). |
-| `expired`   | Create a new payment. |
-
-## Golden rule
-Redirects are not confirmation. Always confirm final status using webhooks or `GET /payments/{transactionId}`.
+A customer redirect is never proof of payment. Confirm state through `payment.status_changed` or `GET /v2/payments/{transactionId}`. Do not expose or depend on provider-internal states.

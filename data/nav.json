@@ -49,8 +49,16 @@
         "file": "content/payments-create.md"
       },
       {
-        "title": "Retrieve a Payment",
+        "title": "Binance Pay",
+        "file": "content/payments-binance-pay.md"
+      },
+      {
+        "title": "Retrieve & List Payments",
         "file": "content/payments-retrieve.md"
+      },
+      {
+        "title": "Payment Refunds",
+        "file": "content/payments-refunds.md"
       },
       {
         "title": "Errors & Retries",
@@ -59,14 +67,6 @@
       {
         "title": "Best Practices",
         "file": "content/payments-best-practices.md"
-      },
-      {
-        "title": "Step-by-Step Example",
-        "file": "content/payments-step-by-step.md"
-      },
-      {
-        "title": "Sandbox: Simulate a Pay-in",
-        "file": "content/payments-sandbox-simulate.md"
       }
     ]
   },
@@ -88,10 +88,6 @@
       {
         "title": "Retrieve & List Payouts",
         "file": "content/payouts-retrieve.md"
-      },
-      {
-        "title": "Cash Withdrawals",
-        "file": "content/payouts-cash-withdrawals.md"
       }
     ]
   },

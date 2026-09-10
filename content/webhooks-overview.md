@@ -12,6 +12,8 @@ They are the most reliable way to track payment completion.
 
 > Webhooks are delivered **at least once**. Your integration must be idempotent — use `eventId` to deduplicate.
 
+Events are not guaranteed to arrive in order. If two events conflict or the current state is unclear, retrieve the resource using `GET /v2/payments/{transactionId}`, `GET /v2/refunds/{refundId}`, or `GET /v2/payouts/{payoutId}`.
+
 ## Two webhook concepts
 
 1. **Registration (configuration)**: called by you once to register your URL.
@@ -29,7 +31,7 @@ Webhook delivery is backed by a persistent outbox. If your server is unreachable
 | 4 | 30 minutes |
 | 5 | 2 hours |
 
-After 5 failed attempts the event is marked **dead** and no further retries occur. For critical flows, poll `GET /payments/{id}` or `GET /payouts/{id}` as a fallback.
+After 5 failed attempts the event is marked **dead** and no further retries occur. For critical flows, retrieve the corresponding V2 resource as a fallback.
 
 ## Scoping
 

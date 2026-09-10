@@ -1,171 +1,92 @@
 ---
-title: Retrieve Payments
-nav_order: 9
-parent: Guides
+title: Retrieve & List Payments
+nav_order: 4
+parent: Money In
 ---
 
-# Retrieve payments
+# Retrieve & List Payments
 
-Two endpoints are available: a single payment by ID, or a paginated list.
-
----
-
-## Retrieve a single payment
-
-```
-GET /payments/{transactionId}
-```
+## Retrieve a payment
 
 ```bash
-curl "https://pay.dinaria.com/payments/f90c7c31-7a38-46dc-99ba-188a4c99da29" \
-  -H "Authorization: Bearer YOUR_API_KEY"
+curl --request GET \
+  --url https://api.sandbox.dinaria.com/v2/payments/04058d70-7d15-4459-b046-d19b6f137c37 \
+  --header 'Authorization: Bearer <YOUR_API_KEY>'
 ```
 
-<div class="country-ar">
-
-### Argentina (ARS) — response
+`GET /v2/payments/{transactionId}` returns the latest complete Payment representation. It has the same shape used by create, list items, and webhook `data.object`.
 
 ```json
 {
-  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
-  "merchantId": "acme_merch1",
-  "externalId": "ORD-1001",
-  "status": "confirmed",
-  "amount": "1500.00",
-  "currency": "ARS",
-  "createdAt": "2026-03-11T22:57:40Z",
+  "transactionId": "04058d70-7d15-4459-b046-d19b6f137c37",
+  "externalId": "ORDER-1001",
+  "status": "started",
+  "amount": "0.25",
+  "currency": "USDT",
+  "paymentMethod": "crypto_payment",
+  "description": "Super Test",
+  "creationDate": "2026-09-09T18:30:00Z",
+  "expirationDate": "2026-09-09T19:30:00Z",
+  "actionUrl": "https://pay.sand.dinaria.com/checkout/cs_public_token",
+  "customer": {
+    "type": "individual",
+    "externalId": "customer-123",
+    "firstName": "Sebastian",
+    "lastName": "Gonzalez",
+    "email": "sebastian@example.com",
+    "country": "UY"
+  },
+  "metadata": { "orderId": "ORDER-1001" },
   "paymentData": {
-    "type": "bank_transfer",
-    "cbu": "4310009922100000122004",
-    "alias": "DINARIA.ARS",
-    "reference": "9032000000000000023"
+    "type": "redirect",
+    "redirect": {
+      "recommendedAlternative": "universal",
+      "links": { "universal": "https://wallet.example.com/qr/order-token" }
+    }
   }
 }
 ```
-
-</div>
-
-<div class="country-br">
-
-### Brasil (BRL) — response
-
-```json
-{
-  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
-  "merchantId": "acme_merch1",
-  "externalId": "ORD-1001",
-  "status": "confirmed",
-  "amount": "100.00",
-  "currency": "BRL",
-  "createdAt": "2026-03-11T22:57:40Z",
-  "paymentData": {
-    "type": "pix_transfer",
-    "pixKey": "bc8ba248-fb33-4022-bea1-c9fab2efd341",
-    "pixKeyType": "random",
-    "reference": "f90c7c31-7a38-46dc-99ba-188a4c99da29"
-  }
-}
-```
-
-</div>
-
----
 
 ## List payments
 
-```
-GET /payments
-```
-
-### Query parameters
-
-| Parameter | Type | Description |
-|---|---|---|
-| `status` | string | Filter: `started`, `confirmed`, `cancelled`, `expired` |
-| `currency` | string | Filter: `ARS`, `BRL` |
-| `limit` | integer | Results per page. Min 1, max 200, default 50 |
-| `startingAfter` | string | Cursor — `transactionId` of the last item on the previous page |
-| `merchantId` | string | Account/operator keys only — narrow to a specific merchant |
-
-### Access scoping
-
-| Key type | Scope |
-|---|---|
-| Merchant-scoped | Returns only that merchant's payments. `merchantId` param is ignored. |
-| Account-scoped | Returns payments for all merchants under the account. Use `?merchantId=` to narrow. |
-
-### Pagination
-
 ```bash
-# Page 1
-curl "https://pay.dinaria.com/payments?limit=50" \
-  -H "Authorization: Bearer YOUR_API_KEY"
-
-# Page 2
-curl "https://pay.dinaria.com/payments?limit=50&startingAfter=f90c7c31-7a38-46dc-99ba-188a4c99da29" \
-  -H "Authorization: Bearer YOUR_API_KEY"
+curl --request GET \
+  --url 'https://api.sandbox.dinaria.com/v2/payments?limit=50' \
+  --header 'Authorization: Bearer <YOUR_API_KEY>'
 ```
 
-### Example response
-
-<div class="country-ar">
+| Parameter | Description |
+|---|---|
+| `limit` | Page size from 1 to 100; default 50. |
+| `cursor` | Opaque value returned as `nextCursor` by the preceding page. |
 
 ```json
 {
-  "object": "list",
-  "hasMore": true,
   "data": [
     {
-      "transactionId": "a3f7c821-4b2e-4c1a-9d3f-7e8b9c0d1e2f",
-      "merchantId": "acme_merch1",
-      "amount": "1500.00",
-      "currency": "ARS",
-      "status": "confirmed",
-      "createdAt": "2026-03-11T22:57:40Z",
+      "transactionId": "04058d70-7d15-4459-b046-d19b6f137c37",
+      "externalId": "ORDER-1001",
+      "status": "started",
+      "amount": "0.25",
+      "currency": "USDT",
+      "paymentMethod": "crypto_payment",
+      "creationDate": "2026-09-09T18:30:00Z",
+      "expirationDate": "2026-09-09T19:30:00Z",
+      "actionUrl": "https://pay.sand.dinaria.com/checkout/cs_public_token",
       "paymentData": {
-        "type": "bank_transfer",
-        "cbu": "4310009922100000122004",
-        "alias": "DINARIA.ARS",
-        "reference": "9032000000000000023"
+        "type": "redirect",
+        "redirect": {
+          "recommendedAlternative": "universal",
+          "links": { "universal": "https://wallet.example.com/qr/order-token" }
+        }
       }
     }
-  ]
+  ],
+  "hasMore": true,
+  "nextCursor": "<OPAQUE_CURSOR>"
 }
 ```
 
-</div>
+When `hasMore` is true, send `nextCursor` unchanged as the next request's `cursor`. The V2 list endpoint only defines `limit` and `cursor`.
 
-<div class="country-br">
-
-```json
-{
-  "object": "list",
-  "hasMore": true,
-  "data": [
-    {
-      "transactionId": "a3f7c821-4b2e-4c1a-9d3f-7e8b9c0d1e2f",
-      "merchantId": "acme_merch1",
-      "amount": "100.00",
-      "currency": "BRL",
-      "status": "confirmed",
-      "createdAt": "2026-03-11T22:57:40Z",
-      "paymentData": {
-        "type": "pix_transfer",
-        "pixKey": "bc8ba248-fb33-4022-bea1-c9fab2efd341",
-        "pixKeyType": "random",
-        "reference": "a3f7c821-4b2e-4c1a-9d3f-7e8b9c0d1e2f"
-      }
-    }
-  ]
-}
-```
-
-</div>
-
----
-
-## Best practices
-
-- Prefer **webhooks** for real-time status updates — only use polling as a fallback.
-- For polling a single payment, use `GET /payments/{transactionId}`.
-- For reconciliation or history export, use `GET /payments?status=confirmed` and paginate.
+Use signed webhooks for real-time changes and retrieve the payment when delivery is delayed, duplicated, or out of order.

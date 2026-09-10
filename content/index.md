@@ -41,13 +41,12 @@ Move money across payment methods, currencies, and payout rails through a single
 | [**Getting Started**](#payments-getting-started.md) | Base URLs, authentication, and your first API call. |
 | [**Quickstart: First Payment**](#payments-quickstart.md) | Step-by-step guide to creating a payment. |
 | [**Payment Lifecycle**](#payments-lifecycle.md) | All states a payment goes through from creation to settlement. |
-| [**Create a Payment**](#payments-create.md) | Request reference for `POST /payments`. |
+| [**Create a Payment**](#payments-create.md) | Request reference for `POST /v2/payments`. |
 | [**Redirect Flow**](#payments-redirect-flow.md) | How to redirect payers to complete payment. |
-| [**Retrieve a Payment**](#payments-retrieve.md) | Polling and fetching payment status. |
+| [**Retrieve & List Payments**](#payments-retrieve.md) | Fetch current payment state and paginate payment history. |
+| [**Payment Refunds**](#payments-refunds.md) | Create, retrieve, and track full or partial payment refunds. |
 | [**Errors & Retries**](#payments-errors-retries.md) | Error codes, retry strategy, and idempotency. |
 | [**Best Practices**](#payments-best-practices.md) | Recommendations for reliability and reconciliation. |
-| [**Step-by-Step Example**](#payments-step-by-step.md) | A complete flow from order creation to confirmed receipt. |
-| [**Sandbox: Simulate a Pay-in**](#payments-sandbox-simulate.md) | Drive a sandbox payment to `confirmed` without a real transfer. |
 
 ---
 
@@ -57,7 +56,7 @@ Move money across payment methods, currencies, and payout rails through a single
 |---|---|
 | [**Overview**](#payouts-overview.md) | Payout capabilities and supported rails. |
 | [**Payout Flow**](#payouts-flow.md) | How a payout moves from request to bank credit. |
-| [**Create a Payout**](#payouts-create.md) | Request reference for `POST /payouts`. |
+| [**Create a Payout**](#payouts-create.md) | Request reference for `POST /v2/payouts`. |
 | [**Retrieve & List Payouts**](#payouts-retrieve.md) | Fetch payout status and history. |
 
 ---

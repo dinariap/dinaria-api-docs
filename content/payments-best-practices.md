@@ -10,7 +10,7 @@ This guide describes recommended patterns for integrating with the Payments API 
 
 ## 1) Create payments safely
 
-### Always use idempotency on `POST /payments`
+### Always use idempotency on `POST /v2/payments`
 When creating a payment, you should send an `Idempotency-Key` header.
 
 **Why:** if your request times out or you retry due to a transient network error, idempotency prevents creating duplicate payments.
@@ -36,11 +36,11 @@ Use `metadata` for small internal references and routing information:
 - channel (web / app)
 - campaignId
 
-**Why:** metadata is returned in `GET /payments/{transactionId}` and in webhook payloads.
+**Why:** metadata is returned in `GET /v2/payments/{transactionId}` and in webhook payloads.
 
 **Do**
-- Keep values short and stable
-- Use strings only (key-value)
+- Keep values small and stable.
+- Use it for merchant-owned context, not fields that have a dedicated property.
 
 **Avoid**
 - Putting sensitive data (PII, secrets)
@@ -54,7 +54,7 @@ A redirect to `successUrl` **does not guarantee** that the payment is confirmed.
 
 **Always confirm using:**
 - Webhooks (**recommended**), or
-- `GET /payments/{transactionId}` as a fallback (for delayed webhook delivery)
+- `GET /v2/payments/{transactionId}` as a fallback (for delayed webhook delivery)
 
 **Why:** redirects can be interrupted, repeated, or manipulated, and the payment may still fail or remain in progress.
 
@@ -65,10 +65,13 @@ A redirect to `successUrl` **does not guarantee** that the payment is confirmed.
 Treat the payment lifecycle as a state machine and build your code around it:
 
 - `started` → payment created
-- `inprogress` → customer is completing checkout
+- `pending` → payment processing is in progress
 - `confirmed` → payment successfully completed (**terminal**)
-- `cancelled` → payment cancelled/failed (**terminal**)
+- `paid` → funds are available under the financial model
+- `cancelled` → payment cancelled (**terminal**)
 - `expired` → payment expired (**terminal**)
+- `failed` → definitive failure (**terminal**)
+- `refunded` → the full amount was returned
 
 **Rule:** once a payment reaches a terminal state, it cannot be reused.
 
@@ -79,7 +82,7 @@ Webhooks provide near real-time updates and reduce load vs polling.
 
 **Best practice**
 - Use webhooks to transition your internal order state
-- Use `GET /payments/{transactionId}` only as a fallback:
+- Use `GET /v2/payments/{transactionId}` only as a fallback:
   - if webhook delivery is delayed
   - for reconciliation / support workflows
 
@@ -95,17 +98,16 @@ Webhook deliveries are **at-least-once**. The same event may be delivered more t
 ## 5) Retries & error handling
 
 ### Retry only on transient failures
-Safe retry conditions (typical):
+Safe retry conditions:
 - Network timeouts
-- `429 Too Many Requests`
-- `5xx` server errors
+- A retryable `503`
 
 **Do not retry** (without fixing your request):
 - `4xx` validation errors
 
 
-### Log and keep `Request-Id`
-Store the `Request-Id` response header when available.
+### Log and keep `requestId`
+Store the error body's `requestId` and the `X-Request-Id` response header when available.
 
 **Why:** it makes troubleshooting with support faster.
 
@@ -124,7 +126,7 @@ Store them in a secret manager and rotate periodically.
 ## 7) Observability (recommended)
 Monitor your integration with:
 - Payment creation success rate
-- Time from `POST /payments` → terminal state
+- Time from `POST /v2/payments` → terminal state
 - Webhook delivery latency
 - Webhook signature verification failures
 - Number of retries

@@ -5,7 +5,7 @@ let currentFile = null;
 
 const DEFAULT_PAGE = 'content/index.md';
 const REDOC_CDN = 'https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js';
-const SPEC_URL = 'dinaria_api_v1.yaml';
+const SPEC_URL = 'dinapay-v2.yaml';
 
 /* ── Country filter ─────────────────────────────────────────────── */
 const COUNTRY_KEY = 'dinaria_country';

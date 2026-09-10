@@ -133,7 +133,6 @@ components:
       type: object
       required:
         - name
-        - documentNumber
       properties:
         id:
           type: string
@@ -143,9 +142,16 @@ components:
           type: string
           description: Full name of the payer.
           example: Ana Martínez
+        externalId:
+          type: string
+          description: |
+            Stable customer identifier in the merchant's system. Required for Binance Pay.
+            This is not an identity document or a Binance identifier.
+          example: customer-12345
         documentNumber:
           type: string
           description: |
+            Optional for Binance Pay. Local payment methods may require it for reconciliation.
             **ARS**: CUIT (11 digits, e.g. `20221370075`) or DNI (7–8 digits, e.g. `22137007`).
             **BRL**: CPF (11 digits, e.g. `12345678901`) or CNPJ (14 digits, e.g. `58084921000160`).
             Format is validated server-side including checksum for CUIT, CPF, and CNPJ.
@@ -162,18 +168,28 @@ components:
           format: email
         phoneNumber:
           type: string
+        country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          description: ISO 3166-1 alpha-2 country code for the payer. Required for Binance Pay.
+          example: UY
 
     PaymentDataARS:
       type: object
       description: Bank transfer instructions for ARS payments.
+      required: [type, cbu, reference]
       properties:
         type:
           type: string
-          enum: [transfer_to_cbu]
+          enum: [bank_transfer]
         cbu:
           type: string
           description: Dinaria's 22-digit receiving CBU. Customer must transfer funds here.
           example: "4310009922100000122004"
+        alias:
+          type: string
+          description: Optional alias for the receiving CBU.
+          example: DINARIA.ARS
         reference:
           type: string
           description: |
@@ -254,8 +270,9 @@ components:
         merchantId:
           type: string
           description: |
-            Target merchant ID. Required when using an account-level API key.
-            Automatically resolved when using a merchant-scoped key.
+            Target merchant ID. Required when using an account-level API key and
+            automatically resolved when using a merchant-scoped key. If included with
+            a merchant-scoped key, it must match the merchant associated with that credential.
           example: acme_ars_merch1
         amount:
           type: string
@@ -263,16 +280,20 @@ components:
           example: "1500.00"
         currency:
           type: string
-          enum: [ARS, BRL]
+          enum: [ARS, BRL, USDT]
           description: ISO 4217 currency code.
         paymentMethod:
           type: string
-          enum: [bank_transfer, instant_bank_transfer, pix_qr]
+          enum: [bank_transfer, instant_bank_transfer, pix_qr, crypto_payment]
           description: |
             Payment method to use. If omitted, the platform selects the default for the currency:
             - `ARS` → `bank_transfer` (CBU/CVU bank transfer).
             - `BRL` → `instant_bank_transfer` (static PIX deposit key; reconciled
               by CPF/CNPJ + amount).
+
+            **Global method:**
+            - `crypto_payment`: Binance Pay checkout denominated in `USDT`. The response
+              resolves `rail=binance_pay` and returns `actionUrl` plus optional `qrData`.
 
             **Brazil only — opt-in alternative:**
             - `pix_qr`: a per-order **dynamic** PIX QR (BR-Code) is minted at
@@ -289,6 +310,11 @@ components:
           type: string
           description: Your internal order reference. Returned in responses and webhooks.
           example: ORD-1001
+        description:
+          type: string
+          maxLength: 256
+          description: Payment description. For Binance Pay, it may appear in the hosted payment details.
+          example: Order 1001
         allowOverUnder:
           type: boolean
           default: false
@@ -298,6 +324,8 @@ components:
             The most recently created matching order takes priority.
         expiresAfter:
           type: integer
+          minimum: 60
+          maximum: 1296000
           description: |
             Lifetime of this payment order in **seconds** from creation time.
             When set, the order will transition to `expired` status after this many seconds.
@@ -364,9 +392,10 @@ components:
           example: ORD-1001
         status:
           type: string
-          enum: [started, confirmed, cancelled, expired]
+          enum: [started, pending, confirmed, cancelled, expired]
           description: |
-            - `started`: Payment created, awaiting customer transfer.
+            - `started`: Payment created, awaiting customer action.
+            - `pending`: Payment processing is pending, when applicable.
             - `confirmed`: Transfer received and matched. Terminal.
             - `cancelled`: Mismatched or rejected. Terminal.
             - `expired`: Order expired before matching. Terminal.
@@ -376,14 +405,29 @@ components:
         currency:
           type: string
           example: ARS
+        description:
+          type: string
+          description: Payment description mirrored from the request.
+          example: Order 1001
         paymentMethod:
           type: string
           description: Resolved payment method code.
           example: bank_transfer
         rail:
           type: string
-          description: Resolved rail code from the routing table.
+          description: Resolved rail code. Binance Pay payments return `binance_pay`.
           example: ar_bank_transfer
+        actionUrl:
+          type: string
+          format: uri
+          description: |
+            Hosted customer action URL. For Binance Pay, use this value for the primary
+            “Pay with Binance Pay” button and treat it as opaque.
+        qrData:
+          type: string
+          description: |
+            Optional QR payload for Binance Pay. Encode the exact returned value with a QR
+            library; do not derive it from provider identifiers.
         bankSystemReference:
           type: string
           description: |
@@ -400,7 +444,7 @@ components:
           oneOf:
             - $ref: "#/components/schemas/PaymentDataARS"
             - $ref: "#/components/schemas/PaymentDataBRL"
-          description: Transfer instructions to display to the customer.
+          description: Local transfer instructions. May be omitted for hosted methods such as Binance Pay.
         customer:
           $ref: "#/components/schemas/Customer"
         receivedAmount:
@@ -1277,10 +1321,18 @@ components:
 
     WebhookPaymentEvent:
       type: object
+      required: [eventType, eventId, transactionId, status, amount, currency]
       description: |
-        Event delivered by the platform to your registered webhook URL when a payment changes status.
-        Delivery is at-least-once — deduplicate by `transactionId`.
+        Event delivered by the platform when a payment is created or changes status.
+        Delivery is at-least-once and event order is not guaranteed. Deduplicate by
+        `eventId`; retrieve `GET /payments/{transactionId}` when the current state is unclear.
       properties:
+        eventType:
+          type: string
+          enum: [payment.created, payment.status_changed]
+        eventId:
+          type: string
+          description: Unique event identifier used for idempotent processing.
         transactionId:
           type: string
         externalId:
@@ -1289,10 +1341,12 @@ components:
           type: string
         status:
           type: string
-          enum: [started, confirmed, cancelled, expired]
+          enum: [started, pending, confirmed, cancelled, expired]
         amount:
           type: string
         currency:
+          type: string
+        description:
           type: string
         bankSystemTrxId:
           type: string
@@ -1383,6 +1437,47 @@ components:
         metadata:
           orderId: ORD-2003
 
+    PaymentRequestBinancePay:
+      summary: "USDT — Binance Pay (merchant API key)"
+      value:
+        externalId: order-2026-0001
+        amount: "0.25"
+        currency: USDT
+        paymentMethod: crypto_payment
+        description: Super Test
+        successUrl: https://merchant.example/payment/success
+        cancelUrl: https://merchant.example/payment/cancel
+        expiresAfter: 3600
+        customer:
+          externalId: customer-12345
+          name: Sebastian Gonzalez
+          country: UY
+          email: sebastian@example.com
+          phoneNumber: "+59899123456"
+        metadata:
+          source: checkout
+
+    PaymentRequestBinancePayAccountKey:
+      summary: "USDT — Binance Pay (account API key)"
+      value:
+        merchantId: merchant1
+        externalId: order-2026-0001
+        amount: "0.25"
+        currency: USDT
+        paymentMethod: crypto_payment
+        description: Super Test
+        successUrl: https://merchant.example/payment/success
+        cancelUrl: https://merchant.example/payment/cancel
+        expiresAfter: 3600
+        customer:
+          externalId: customer-12345
+          name: Sebastian Gonzalez
+          country: UY
+          email: sebastian@example.com
+          phoneNumber: "+59899123456"
+        metadata:
+          source: checkout
+
     # POST /payments — response
     PaymentResponseARS:
       summary: "ARS — started"
@@ -1397,8 +1492,9 @@ components:
         rail: ar_bank_transfer
         bankSystemReference: "9032000000000000023"
         paymentData:
-          type: transfer_to_cbu
+          type: bank_transfer
           cbu: "4310009922100000122004"
+          alias: DINARIA.ARS
           reference: "9032000000000000023"
         customer:
           id: ea272dd4-bde7-4d9a-a432-0de9e9566af5
@@ -1473,6 +1569,31 @@ components:
           documentType: CNPJ
           documentNumber: "58084921000160"
         reconciliationStatus: unknown
+
+    PaymentResponseBinancePay:
+      summary: "USDT — Binance Pay started"
+      value:
+        transactionId: 8b8a1d72-7b8f-4a64-a978-4db144de91f2
+        merchantId: merchant_demo
+        externalId: order-2026-0001
+        amount: "0.25"
+        currency: USDT
+        description: Super Test
+        paymentMethod: crypto_payment
+        rail: binance_pay
+        actionUrl: https://app.binance.com/payment/secpay?checkout=example
+        qrData: https://app.binance.com/qr/example
+        status: started
+        expirationDate: "2026-08-05T18:00:00Z"
+        expiresAt: "2026-08-05T18:00:00Z"
+        metadata:
+          source: checkout
+        customer:
+          externalId: customer-12345
+          name: Sebastian Gonzalez
+          country: UY
+          email: sebastian@example.com
+          phoneNumber: "+59899123456"
 
     # POST /payouts — request
     PayoutRequestVE:
@@ -1771,9 +1892,32 @@ components:
         completedAt: "2026-04-03T14:01:05Z"
 
     # Webhook events
+    WebhookPaymentCreatedBinancePay:
+      summary: "Binance Pay — payment created"
+      value:
+        eventType: payment.created
+        eventId: c5a1270d-f218-4c3d-8107-87bb10ed45e6
+        transactionId: 8b8a1d72-7b8f-4a64-a978-4db144de91f2
+        merchantId: merchant_demo
+        externalId: order-2026-0001
+        status: started
+        amount: "0.25"
+        currency: USDT
+        description: Super Test
+        metadata:
+          source: checkout
+        customer:
+          externalId: customer-12345
+          name: Sebastian Gonzalez
+          country: UY
+          email: sebastian@example.com
+          phoneNumber: "+59899123456"
+
     WebhookConfirmedARS:
       summary: "ARS — payment confirmed"
       value:
+        eventType: payment.status_changed
+        eventId: evt_ars_01J9Z6Y2F4A7B8C9D0E1F2G3H4
         transactionId: a3f7c821-4b2e-4c1a-9d3f-7e8b9c0d1e2f
         externalId: ORD-1001
         merchantId: acme_ars_merch1
@@ -1792,6 +1936,8 @@ components:
     WebhookConfirmedBRL:
       summary: "BRL — payment confirmed"
       value:
+        eventType: payment.status_changed
+        eventId: evt_brl_01J9Z6Y2F4A7B8C9D0E1F2G3H5
         transactionId: f90c7c31-7a38-46dc-99ba-188a4c99da29
         externalId: ORD-2001
         merchantId: bpn_merch_1
@@ -1950,6 +2096,12 @@ paths:
           order via the QR's embedded `externalId`, giving guaranteed 1:1
           matching even when the payer's tax ID is unknown ahead of time.
 
+        **Binance Pay (global)**: set `currency = "USDT"` and
+        `paymentMethod = "crypto_payment"`. The same payment response resolves
+        `rail = "binance_pay"` and returns `actionUrl` plus optional `qrData`.
+        Open `actionUrl` for the primary checkout experience. A customer redirect
+        is not payment confirmation; verify `confirmed` via webhook or retrieval.
+
         Payments are single-use. Create a new one for each attempt.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
@@ -1970,6 +2122,10 @@ paths:
                 $ref: "#/components/examples/PaymentRequestBRLCNPJ"
               brl_pix_qr:
                 $ref: "#/components/examples/PaymentRequestBRLPixQR"
+              binance_pay:
+                $ref: "#/components/examples/PaymentRequestBinancePay"
+              binance_pay_account_key:
+                $ref: "#/components/examples/PaymentRequestBinancePayAccountKey"
       responses:
         "200":
           description: Payment created successfully.
@@ -1984,6 +2140,8 @@ paths:
                   $ref: "#/components/examples/PaymentResponseBRL"
                 brl_pix_qr_started:
                   $ref: "#/components/examples/PaymentResponseBRLPixQR"
+                binance_pay_started:
+                  $ref: "#/components/examples/PaymentResponseBinancePay"
         "400":
           description: Invalid request.
           content:
@@ -2027,14 +2185,14 @@ paths:
           in: query
           schema:
             type: string
-            enum: [started, confirmed, cancelled, expired]
+            enum: [started, pending, confirmed, cancelled, expired]
           description: Filter by payment status.
         - name: currency
           in: query
           schema:
             type: string
             example: BRL
-          description: Filter by currency code (e.g. `BRL`, `ARS`).
+          description: Filter by currency code (e.g. `BRL`, `ARS`, `USDT`).
         - name: merchantId
           in: query
           schema:
@@ -2109,6 +2267,8 @@ paths:
                   $ref: "#/components/examples/PaymentResponseARS"
                 brl_started:
                   $ref: "#/components/examples/PaymentResponseBRL"
+                binance_pay_started:
+                  $ref: "#/components/examples/PaymentResponseBinancePay"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -3016,7 +3176,8 @@ paths:
       tags: [Webhooks]
       summary: Receive payment events (endpoint on your server)
       description: |
-        **This endpoint is on YOUR server.** The platform calls it when a payment changes status.
+        **This endpoint is on YOUR server.** The platform calls it when a payment is created
+        or changes status.
         Do not call this endpoint yourself.
 
         **Signature verification** (required before processing):
@@ -3028,7 +3189,9 @@ paths:
         6. Reject with HTTP 401 if verification fails.
 
         Respond with **HTTP 200 immediately**. Process the event asynchronously.
-        Delivery is at-least-once — deduplicate by **`eventId`** (unique per delivery; the same payment may be referenced across retries with the same `eventId`).
+        Delivery is at-least-once — deduplicate by **`eventId`** (the same event keeps its
+        `eventId` across retries). Events are not guaranteed to arrive in order. Retrieve
+        `GET /payments/{transactionId}` when the current state is unclear.
       parameters:
         - name: X-Webhook-Timestamp
           in: header
@@ -3051,6 +3214,8 @@ paths:
             schema:
               $ref: "#/components/schemas/WebhookPaymentEvent"
             examples:
+              binance_pay_created:
+                $ref: "#/components/examples/WebhookPaymentCreatedBinancePay"
               ars_confirmed:
                 $ref: "#/components/examples/WebhookConfirmedARS"
               brl_confirmed:

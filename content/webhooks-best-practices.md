@@ -34,7 +34,7 @@ Do not rely solely on `transactionId + status` as uniqueness — the same status
 
 ## Handling out-of-order delivery
 
-Events may arrive out of order. Always fetch the latest state from the API (`GET /payments/{id}` or `GET /payouts/{id}`) before acting on a status change if ordering matters for your business logic.
+Events may arrive out of order. Retrieve the latest state from `GET /v2/payments/{transactionId}`, `GET /v2/refunds/{refundId}`, or `GET /v2/payouts/{payoutId}` when ordering matters. Keep the greatest `resourceVersion` processed for each resource so a delayed event cannot overwrite newer state.
 
 ## Fallback polling
 
