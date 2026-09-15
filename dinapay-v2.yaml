@@ -204,8 +204,21 @@ paths:
                     country: UY
                   metadata: { orderId: ORDER-1001 }
       responses:
+        '200':
+          description: No new payment was created. This is an idempotent replay of a previously accepted request with the same Idempotency-Key and identical body. The response returns the original Payment resource and includes Idempotent-Replayed true.
+          headers:
+            Idempotent-Replayed:
+              schema:
+                type: boolean
+                const: true
+            X-Request-Id:
+              "$ref": "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Payment"
         '201':
-          description: Payment created
+          description: A new payment was created. The response returns the newly created Payment resource.
           content:
             application/json:
               schema:

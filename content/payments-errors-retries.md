@@ -30,6 +30,6 @@ The applicable codes vary by operation. Preserve `requestId` in logs and support
 
 ## Safe retries
 
-`POST /v2/payments` and `POST /v2/payments/{transactionId}/refunds` require `Idempotency-Key`. After a timeout or a retryable `503`, repeat the exact same request body with the same key. A successful identical replay returns the original resource.
+`POST /v2/payments` and `POST /v2/payments/{transactionId}/refunds` require `Idempotency-Key`. After a timeout or a retryable `503`, repeat the exact same request body with the same key. A successful identical replay returns `200 OK`, the original resource, and `Idempotent-Replayed: true`.
 
 Do not retry validation, authorization, not-found, or conflict errors without resolving their cause. Never generate a new key merely to resolve an ambiguous timeout, because that can create a second operation.

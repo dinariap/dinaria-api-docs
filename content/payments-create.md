@@ -221,7 +221,14 @@ All examples use the same `POST /v2/payments` endpoint and require `Authorizatio
 
 ## Response
 
-A successful create returns `201 Created` and the common Payment representation.
+Both successful responses return the same Payment representation:
+
+| HTTP | Meaning |
+|---:|---|
+| `201 Created` | A new payment was created and the response contains that Payment resource. |
+| `200 OK` | No new payment was created. Dinaria recognized an identical replay using the same `Idempotency-Key`, returns the original Payment, and includes `Idempotent-Replayed: true`. |
+
+Reusing the same key with a different body returns `409 Conflict`.
 
 <div class="country-ar">
 
@@ -365,7 +372,7 @@ Use `qrCodeString` to render or copy the QR payload. `qrCodeBase64` can be displ
 
 ## Idempotency
 
-`Idempotency-Key` identifies the technical attempt; `externalId` identifies the business order. After a timeout, repeat exactly the same body with the same key. Reusing the key with a different body returns `409 Conflict`. Generating a new key while the outcome is unknown can create a second payment.
+`Idempotency-Key` identifies the technical attempt; `externalId` identifies the business order. After a timeout, repeat exactly the same body with the same key. An identical replay returns `200 OK`, the original Payment, and `Idempotent-Replayed: true`. Reusing the key with a different body returns `409 Conflict`. Generating a new key while the outcome is unknown can create a second payment.
 
 ## Errors
 
