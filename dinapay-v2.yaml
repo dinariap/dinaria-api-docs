@@ -20,8 +20,8 @@ webhooks:
   merchantEvent:
     post:
       operationId: receiveDinariaWebhookV2
-      summary: Payment or refund lifecycle event
-      description: Signed at-least-once delivery. Events may be duplicated or arrive out of order; deduplicate by eventId and retain the greatest resourceVersion.
+      summary: Payment, refund or payout lifecycle event
+      description: Signed at-least-once V2 delivery. Events may be duplicated or arrive out of order; deduplicate by eventId and retain the greatest resourceVersion. The registered webhook receives payment, refund and payout events through this same envelope.
       security: []
       parameters:
       - "$ref": "#/components/parameters/WebhookId"
@@ -1152,6 +1152,7 @@ components:
       oneOf:
       - "$ref": "#/components/schemas/PaymentWebhookEvent"
       - "$ref": "#/components/schemas/RefundWebhookEvent"
+      - "$ref": "#/components/schemas/PayoutWebhookEvent"
       discriminator:
         propertyName: eventType
     PaymentWebhookEvent:

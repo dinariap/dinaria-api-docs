@@ -6,7 +6,9 @@ parent: Webhooks
 
 # Webhook event types
 
-V2 webhook deliveries use a common envelope, contain the complete current resource in `data.object`, and identify the event in `eventType`.
+V2 webhook deliveries use a common envelope, contain the complete current resource in `data.object`, and identify the event in `eventType`. A single webhook registration using API version `2` can receive Payment, Refund, and Payout events at the same URL.
+
+V1 webhook registrations are unaffected and continue using their existing payloads and event names.
 
 | Resource | Event types | Public statuses |
 |---|---|---|

@@ -6,6 +6,8 @@ parent: Webhooks
 
 # Webhook registration
 
+> For registrations configured with API version `2`, the same registered URL receives Payment, Refund, and Payout events. Use `eventType` to discriminate them. V1 registrations and payloads remain unchanged.
+
 ## Register a URL
 
 ```

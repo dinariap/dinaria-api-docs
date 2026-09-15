@@ -6,9 +6,11 @@ parent: Webhooks
 
 # Webhooks
 
-Webhooks deliver asynchronous notifications when the status of a payment or payout changes.
+Webhooks deliver asynchronous notifications for Payment, Refund, and Payout lifecycle events.
 
-They are the most reliable way to track payment completion.
+For webhook registrations using API version `2`, the same registered URL receives all three resource families through one common V2 envelope. Use `eventType` to distinguish the resource and event.
+
+This is an additive V2 behavior. V1 registrations, payloads, and event names remain unchanged.
 
 > Webhooks are delivered **at least once**. Your integration must be idempotent — use `eventId` to deduplicate.
 

@@ -6,7 +6,7 @@ parent: Webhooks
 
 # Receiving webhook events
 
-Dinaria sends signed HTTP `POST` requests when a Payment, Refund, or Payout is created or changes status.
+Dinaria sends signed HTTP `POST` requests when a Payment, Refund, or Payout is created or changes status. With an API version `2` registration, the same URL receives all these events through the common envelope; route them using `eventType`.
 
 ## Verification flow
 
