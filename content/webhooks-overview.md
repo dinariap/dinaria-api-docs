@@ -6,40 +6,42 @@ parent: Webhooks
 
 # Webhooks
 
-Webhooks deliver asynchronous notifications for Payment, Refund, and Payout lifecycle events.
+Webhooks deliver asynchronous Payment, Refund, and Payout lifecycle events to your server.
 
-For webhook registrations using API version `2`, the same registered URL receives all three resource families through one common V2 envelope. Use `eventType` to distinguish the resource and event.
+A V2 subscription can receive all event families at the same URL or use `eventTypes` as an explicit allowlist. Route each event using `eventType`.
 
-This is an additive V2 behavior. V1 registrations, payloads, and event names remain unchanged.
+## Delivery model
 
-> Webhooks are delivered **at least once**. Your integration must be idempotent — use `eventId` to deduplicate.
+- Deliveries are at least once and can be duplicated.
+- Event order is not guaranteed.
+- Deduplicate by `eventId`.
+- Store the greatest `resourceVersion` processed for each resource.
+- An older version must never overwrite a newer state.
+- Any HTTP `2xx` acknowledges delivery.
+- Timeouts and non-`2xx` responses are retried with bounded exponential backoff.
+- Redirects are not followed.
 
-Events are not guaranteed to arrive in order. If two events conflict or the current state is unclear, retrieve the resource using `GET /v2/payments/{transactionId}`, `GET /v2/refunds/{refundId}`, or `GET /v2/payouts/{payoutId}`.
+Repeated deliveries retain the same body, `eventId`, and `resourceVersion`, but receive a new delivery timestamp and signature.
 
-## Two webhook concepts
+## Common V2 envelope
 
-1. **Registration (configuration)**: called by you once to register your URL.
-2. **Delivery (events)**: called by our platform to notify you of status changes.
+Every event places the complete current resource in `data.object`. It has the same representation returned by the corresponding GET endpoint.
 
-## Reliability
+The envelope includes `merchantId`, allowing account-scoped consumers to route events to the correct merchant.
 
-Webhook delivery is backed by a persistent outbox. If your server is unreachable, events are retried automatically:
+## Recommended flow
 
-| Attempt | Delay after previous |
-|---------|----------------------|
-| 1 | Immediate |
-| 2 | 1 minute |
-| 3 | 5 minutes |
-| 4 | 30 minutes |
-| 5 | 2 hours |
+1. Create a subscription with `POST /v2/webhooks`.
+2. Store the returned `webhookSecret` securely.
+3. Verify every delivery using the raw HTTP request body.
+4. Deduplicate and enforce `resourceVersion` ordering.
+5. Queue business processing and respond promptly with `2xx`.
+6. Retrieve the corresponding resource when its state is ambiguous.
 
-After 5 failed attempts the event is marked **dead** and no further retries occur. For critical flows, retrieve the corresponding V2 resource as a fallback.
+Recovery endpoints:
 
-## Scoping
+- `GET /v2/payments/{transactionId}`
+- `GET /v2/refunds/{refundId}`
+- `GET /v2/payouts/{payoutId}`
 
-- **Merchant-scoped API key** → webhook fires only for that merchant's events; registration and rotate use that merchant implicitly (no `merchantId` in the rotate body).
-- **Account-scoped API key** → webhook fires for all events across all merchants under your account; rotate may include `merchantId` when targeting a merchant-specific registration.
-
-## Reverse proxies
-
-If you terminate TLS or route traffic through nginx (or similar), forward **`/webhooks/`** prefix routes to the API — including **`/webhooks/payments/rotate-secret`** and related paths — not only an exact match on `/webhooks/payments`, or secret rotation calls may return 404 at the edge.
+> Compatibility note: V1 registrations and payloads remain unchanged. This section documents the V2 integration.

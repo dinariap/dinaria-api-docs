@@ -10,7 +10,7 @@ parent: Webhooks
 
 - Always verify webhook signatures before processing.
 - Store secrets in a secure secret manager — never in source code or logs.
-- Rotate webhook secrets periodically using `POST /webhooks/payments/rotate-secret`.
+- Rotate webhook secrets periodically using `POST /v2/webhooks/{webhookId}/rotate-secret`.
 - Use constant-time comparison when verifying signatures.
 
 ## Idempotency

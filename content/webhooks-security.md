@@ -71,6 +71,8 @@ Use the exact raw HTTP request body received from Dinaria. Do not parse and rese
 
 After signature verification, process `eventId` idempotently. Reject timestamps outside a reasonable tolerance to reduce replay attacks, and never use a normal string equality operation for signature comparison.
 
+When rotating through `POST /v2/webhooks/{webhookId}/rotate-secret`, the previous secret remains valid for 24 hours. During that window, accept a valid signature from either active secret and remove the previous secret from your verifier after the overlap ends.
+
 ---
 
 ## Code examples

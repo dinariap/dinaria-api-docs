@@ -66,12 +66,9 @@ Move money across payment methods, currencies, and payout rails through a single
 | | |
 |---|---|
 | [**Overview**](#webhooks-overview.md) | What events Dinaria emits and when. |
-| [**Registration**](#webhooks-registration.md) | Register your endpoint to receive events. |
+| [**Subscriptions**](#webhooks-registration.md) | Create and manage V2 webhook subscriptions and event filters. |
 | [**Receiving**](#webhooks-receiving.md) | Processing incoming webhook payloads. |
 | [**Security**](#webhooks-security.md) | Signature verification and replay protection. |
-| [**Verification Examples**](#webhooks-examples.md) | Code samples for verifying signatures in multiple languages. |
-| [**Best Practices**](#webhooks-best-practices.md) | Reliability, ordering, and idempotency for event handlers. |
-| [**Rotate Secret**](#webhooks-rotate-secret.md) | How to rotate your webhook signing secret safely. |
 | [**Event Types**](#webhooks-event-types.md) | Full catalogue of event types and their payloads. |
 
 ---

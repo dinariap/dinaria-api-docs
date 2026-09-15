@@ -14,6 +14,8 @@ tags:
   description: Receive funds from customers through supported payment methods and currencies.
 - name: Refunds
   description: Return all or part of a payment and track the result independently.
+- name: Webhooks
+  description: Manage V2 merchant webhook subscriptions.
 - name: Payouts
   description: Send funds from an available balance to beneficiaries through supported local rails.
 webhooks:
@@ -353,6 +355,123 @@ paths:
           "$ref": "#/components/responses/Forbidden"
         '404':
           "$ref": "#/components/responses/NotFound"
+  "/v2/webhooks":
+    post:
+      operationId: createWebhookV2
+      summary: Create a V2 webhook subscription
+      description: Registers one URL for the authenticated account or merchant. Omitting
+        eventTypes subscribes to every current and future V2 event. The secret is returned
+        only in this response and after rotation.
+      tags:
+      - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateWebhookSubscription"
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/WebhookSubscriptionWithSecret"
+        '400':
+          "$ref": "#/components/responses/BadRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '409':
+          "$ref": "#/components/responses/Conflict"
+    get:
+      operationId: listWebhooksV2
+      summary: List V2 webhook subscriptions
+      tags:
+      - Webhooks
+      responses:
+        '200':
+          description: Subscriptions visible to the authenticated scope
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/WebhookSubscription"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+  "/v2/webhooks/{webhookId}":
+    parameters:
+    - "$ref": "#/components/parameters/WebhookSubscriptionId"
+    patch:
+      operationId: updateWebhookV2
+      summary: Update a V2 webhook subscription
+      tags:
+      - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UpdateWebhookSubscription"
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/WebhookSubscription"
+        '400':
+          "$ref": "#/components/responses/BadRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+    delete:
+      operationId: deleteWebhookV2
+      summary: Delete a V2 webhook subscription
+      tags:
+      - Webhooks
+      responses:
+        '204':
+          description: Subscription deleted
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+  "/v2/webhooks/{webhookId}/rotate-secret":
+    post:
+      operationId: rotateWebhookSecretV2
+      summary: Rotate a V2 webhook secret
+      tags:
+      - Webhooks
+      parameters:
+      - "$ref": "#/components/parameters/WebhookSubscriptionId"
+      responses:
+        '200':
+          description: Secret rotated; the previous secret remains valid for 24 hours
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/WebhookSubscriptionWithSecret"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
   "/v2/payouts":
     post:
       operationId: createPayoutV2
@@ -582,6 +701,13 @@ components:
         type: string
         minLength: 1
         maxLength: 255
+    WebhookSubscriptionId:
+      name: webhookId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     WebhookId:
       name: X-Webhook-Id
       in: header
@@ -627,6 +753,93 @@ components:
         type: string
         format: uuid
   schemas:
+    WebhookEventType:
+      type: string
+      enum:
+      - payment.created
+      - payment.status_changed
+      - refund.created
+      - refund.status_changed
+      - payout.created
+      - payout.status_changed
+    CreateWebhookSubscription:
+      type: object
+      additionalProperties: false
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          format: uri
+        eventTypes:
+          type: array
+          uniqueItems: true
+          items:
+            "$ref": "#/components/schemas/WebhookEventType"
+    UpdateWebhookSubscription:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        url:
+          type: string
+          format: uri
+        eventTypes:
+          type: array
+          uniqueItems: true
+          items:
+            "$ref": "#/components/schemas/WebhookEventType"
+          description: An empty array removes the filter and subscribes to all V2 events.
+    WebhookSubscription:
+      type: object
+      additionalProperties: false
+      required:
+      - webhookId
+      - url
+      - apiVersion
+      - scope
+      - creationDate
+      - updatedDate
+      properties:
+        webhookId:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        apiVersion:
+          type: string
+          const: '2'
+        scope:
+          type: string
+          enum:
+          - account
+          - merchant
+        eventTypes:
+          type: array
+          uniqueItems: true
+          items:
+            "$ref": "#/components/schemas/WebhookEventType"
+        creationDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        webhookSecret:
+          type: string
+          writeOnly: true
+          description: Returned only at creation and rotation.
+    WebhookSubscriptionWithSecret:
+      allOf:
+      - "$ref": "#/components/schemas/WebhookSubscription"
+      - type: object
+        required:
+        - webhookSecret
+        properties:
+          webhookSecret:
+            type: string
+            writeOnly: true
     CreatePaymentRequest:
       type: object
       description: Provider-neutral payment order. Additional customer fields may be required according to payment method, country and risk policy.
