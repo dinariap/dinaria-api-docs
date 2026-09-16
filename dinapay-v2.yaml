@@ -962,6 +962,8 @@ components:
           type: string
           format: date-time
           description: Date of the first successful refund. Individual refund dates live on each refund resource.
+        failure:
+          "$ref": "#/components/schemas/PaymentFailure"
         paymentData:
           "$ref": "#/components/schemas/PaymentData"
       example:
@@ -1008,6 +1010,60 @@ components:
       - expired
       - failed
       - refunded
+    PaymentFailure:
+      type: object
+      description: Definitive provider-neutral payment failure. payment_not_received is only used after reconciliation conclusively determines that expected funds did not arrive; it never means that a started or pending payment has not arrived yet, and ordinary order expiry uses payment_expired.
+      additionalProperties: false
+      required:
+      - code
+      - category
+      - message
+      properties:
+        code:
+          type: string
+          enum:
+          - compliance_rejected
+          - limit_exceeded
+          - provider_unavailable
+          - processing_error
+          - unknown_error
+          - invalid_customer_data
+          - payment_method_unavailable
+          - payment_expired
+          - payer_cancelled
+          - amount_mismatch
+          - payment_rejected
+          - payment_not_received
+        category:
+          type: string
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FieldError"
+    FieldError:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - field
+      - message
+      properties:
+        code:
+          type: string
+          enum:
+          - required
+          - invalid_format
+          - invalid_type
+          - invalid_value
+          - unsupported_value
+          - out_of_range
+          - inconsistent_fields
+        field:
+          type: string
+        message:
+          type: string
     DecimalAmount:
       type: string
       pattern: "^(0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(\\.[0-9]+)?)$"
@@ -1337,16 +1393,7 @@ components:
         providerReference:
           type: string
         failure:
-          type: object
-          additionalProperties: false
-          required:
-          - code
-          - message
-          properties:
-            code:
-              type: string
-            message:
-              type: string
+          "$ref": "#/components/schemas/RefundFailure"
         metadata:
           type: object
           additionalProperties: true
@@ -1361,6 +1408,32 @@ components:
         creationDate: '2026-09-09T20:00:00Z'
         metadata:
           caseId: CASE-42
+    RefundFailure:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - category
+      - message
+      properties:
+        code:
+          type: string
+          enum:
+          - compliance_rejected
+          - limit_exceeded
+          - provider_unavailable
+          - processing_error
+          - unknown_error
+          - insufficient_funds
+          - refund_rejected
+        category:
+          type: string
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FieldError"
     WebhookEvent:
       oneOf:
       - "$ref": "#/components/schemas/PaymentWebhookEvent"
@@ -1882,15 +1955,32 @@ components:
       additionalProperties: false
       required:
       - code
+      - category
       - message
-      - retryable
       properties:
         code:
           type: string
+          enum:
+          - compliance_rejected
+          - limit_exceeded
+          - provider_unavailable
+          - processing_error
+          - unknown_error
+          - invalid_remitter_data
+          - invalid_beneficiary_data
+          - invalid_destination
+          - destination_rejected
+          - beneficiary_blocked
+          - insufficient_funds
+          - payout_cancelled
+        category:
+          type: string
         message:
           type: string
-        retryable:
-          type: boolean
+        errors:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FieldError"
     PayoutWebhookEvent:
       type: object
       description: Signed public event containing the complete current payout representation.

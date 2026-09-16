@@ -64,4 +64,4 @@ A navigation to `successUrl` does not confirm payment. Fulfill the order only af
 | `failed` | Definitive failure. |
 | `refunded` | The full payment amount was successfully refunded. |
 
-See [Binance Pay](payments-binance-pay.md) for one concrete `crypto_payment` example and [Payment Refunds](payments-refunds.md) for full and partial returns.
+See [Binance Pay](payments-binance-pay.md) for one concrete `crypto_payment` example, [Payment Refunds](payments-refunds.md) for full and partial returns, and [Errors and normalized failures](payments-errors-retries.md) for synchronous errors and terminal Payment outcomes.

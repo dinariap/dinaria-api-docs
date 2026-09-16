@@ -65,6 +65,8 @@ The payment resource exposes the accumulated successful `refundedAmount` and the
 
 A payment can have multiple full or partial refund attempts. Each refund has its own `refundId`, status, and dates. `completionDate` appears when it reaches a terminal state, and `providerReference` or `failure` can appear when applicable. Use the refund list for complete history.
 
+A failed Refund contains a provider-neutral `failure` with required `code`, `category`, and `message`, plus optional field-level `errors`. Refund-specific codes are `insufficient_funds` and `refund_rejected`; Refunds may also use the common normalized codes. Native provider diagnostics are not exposed.
+
 Binance Pay uses these same general endpoints; there is no public provider-specific refund API.
 
 ## Retrieve and list refunds
@@ -87,3 +89,5 @@ The list response has the form `{ "data": [ ... ] }` and includes every refund a
 - `refund.status_changed`
 
 Both use the V2 event envelope and contain the complete Refund resource in `data.object`.
+
+See [Errors and normalized failures](payments-errors-retries.md) for the distinction between HTTP errors and a Refund that reaches `status: failed`, including the current Refund contract limitation.

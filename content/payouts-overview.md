@@ -72,3 +72,4 @@ The payout is created against the available source-currency balance. Keep the ac
 - [Payout Flow](payouts-flow.md)
 - [Create a Payout](payouts-create.md)
 - [Retrieve & List Payouts](payouts-retrieve.md)
+- [Errors and normalized failures](payments-errors-retries.md)

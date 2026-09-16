@@ -34,6 +34,10 @@
       {
         "title": "Data Formats",
         "file": "content/data-formats-iso.md"
+      },
+      {
+        "title": "Errors & Failures",
+        "file": "content/payments-errors-retries.md"
       }
     ]
   },
@@ -59,10 +63,6 @@
       {
         "title": "Payment Refunds",
         "file": "content/payments-refunds.md"
-      },
-      {
-        "title": "Errors & Retries",
-        "file": "content/payments-errors-retries.md"
       },
       {
         "title": "Best Practices",

@@ -128,4 +128,4 @@ Use the resource identifier inside `data.object` to retrieve canonical state:
 - Refund: `GET /v2/refunds/{refundId}`
 - Payout: `GET /v2/payouts/{payoutId}`
 
-See [Webhook Security](webhooks-security.md) for signature verification and [Event Types](webhooks-event-types.md) for the supported events.
+See [Webhook Security](webhooks-security.md) for signature verification, [Event Types](webhooks-event-types.md) for the supported events, and [Errors and normalized failures](payments-errors-retries.md) for failed-resource payloads.
