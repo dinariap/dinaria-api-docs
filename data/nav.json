@@ -7,8 +7,20 @@
     "title": "Get Started",
     "children": [
       {
-        "title": "Quickstart",
+        "title": "Choose Your Integration",
+        "file": "content/getting-started-choose-integration.md"
+      },
+      {
+        "title": "Payment Quickstart",
         "file": "content/getting-started-quickstart.md"
+      },
+      {
+        "title": "Virtual Account Quickstart",
+        "file": "content/getting-started-virtual-account.md"
+      },
+      {
+        "title": "Payout Quickstart",
+        "file": "content/getting-started-payout.md"
       },
       {
         "title": "Authentication & Idempotency",

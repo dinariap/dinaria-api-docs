@@ -1,9 +1,9 @@
 ---
-title: Quickstart
+title: Payment Quickstart
 parent: Get Started
 ---
 
-# Quickstart
+# Payment Quickstart
 
 This guide creates an Argentina QR Payment using a merchant-scoped credential. Dinaria exposes the same provider-neutral resource model across countries and payment methods.
 
@@ -91,6 +91,9 @@ Treat `confirmed` as the successful Payment outcome. Fulfill the order only afte
 
 ## Next steps
 
+- [Choose your integration](getting-started-choose-integration.md)
+- [Virtual Account Quickstart](getting-started-virtual-account.md)
+- [Payout Quickstart](getting-started-payout.md)
 - [Authentication & Idempotency](authentication-idempotency.md)
 - [Create a Payment](payments-create.md)
 - [Country & Capability Matrix](country-capabilities.md)

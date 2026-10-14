@@ -15,7 +15,10 @@ Authenticate every request with `Authorization: Bearer <API_KEY>`. Use an `Idemp
 
 | Guide | Purpose |
 |---|---|
-| [Quickstart](getting-started-quickstart.md) | Create and track your first Payment. |
+| [Choose your integration](getting-started-choose-integration.md) | Start from the customer outcome: accept, receive, or send money. |
+| [Payment Quickstart](getting-started-quickstart.md) | Create and track your first Payment. |
+| [Virtual Account Quickstart](getting-started-virtual-account.md) | Create a Customer and a persistent receiving account. |
+| [Payout Quickstart](getting-started-payout.md) | Send funds from a prefunded available balance. |
 | [Authentication and idempotency](authentication-idempotency.md) | Choose credential scope and prevent duplicate mutations. |
 | [Country and capability matrix](country-capabilities.md) | Find supported currencies, methods, rails, and modes. |
 | [Errors and failures](payments-errors-retries.md) | Handle HTTP errors and asynchronous resource failures. |
