@@ -6,7 +6,7 @@ parent: Webhooks
 
 # Receiving webhook events
 
-Dinaria sends signed HTTP `POST` requests when a Payment, Refund, or Payout is created or changes status. With an API version `2` registration, the same URL receives all these events through the common envelope; route them using `eventType`.
+Dinaria sends signed HTTP `POST` requests when a Payment, Refund, Payout, or Virtual Account is created or changes status. With an API version `2` registration, the same URL receives all these events; route them using `eventType`.
 
 ## Verification flow
 
@@ -82,19 +82,20 @@ Dinaria sends signed HTTP `POST` requests when a Payment, Refund, or Payout is c
     "object": {
       "payoutId": "1078d6c2-a452-44fb-94f4-525390231ce2",
       "externalId": "PO-2001",
-      "source": { "amount": "150.00", "currency": "BRL" },
+      "source": { "amount": "10.00", "currency": "USDT" },
       "destination": {
-        "country": "BR",
-        "currency": "BRL",
+        "country": "VE",
+        "currency": "VES",
         "beneficiary": {
           "type": "individual",
-          "name": "João Silva",
-          "documentType": "CPF",
-          "documentNumber": "12345678901"
+          "name": "María González",
+          "documentType": "RIF",
+          "documentNumber": "V27127416",
+          "mobile": "+584242005748"
         },
         "rail": {
-          "type": "br_pix",
-          "pixKey": { "type": "cpf", "value": "12345678901" }
+          "type": "ve_mobile_payment",
+          "bankCode": "0102"
         }
       },
       "status": "confirmed",
@@ -111,7 +112,7 @@ Dinaria sends signed HTTP `POST` requests when a Payment, Refund, or Payout is c
 
 | Field | Description |
 |---|---|
-| `eventType` | Creation or status-change event for a payment, refund, or payout. |
+| `eventType` | Creation or status-change event for a Payment, Refund, Payout, or Virtual Account. |
 | `eventId` | Stable event identifier used for deduplication. |
 | `apiVersion` | Public webhook schema version; V2 sends `"2"`. |
 | `merchantId` | Merchant that owns the resource. |
@@ -127,5 +128,8 @@ Use the resource identifier inside `data.object` to retrieve canonical state:
 - Payment: `GET /v2/payments/{transactionId}`
 - Refund: `GET /v2/refunds/{refundId}`
 - Payout: `GET /v2/payouts/{payoutId}`
+- Virtual Account: `GET /v2/virtual-accounts/{virtualAccountId}`
+
+Virtual Account events use `createdAt` as the event timestamp. Deposits into an account arrive as Payment events and identify the receiving `virtualAccountId`.
 
 See [Webhook Security](webhooks-security.md) for signature verification, [Event Types](webhooks-event-types.md) for the supported events, and [Errors and normalized failures](payments-errors-retries.md) for failed-resource payloads.

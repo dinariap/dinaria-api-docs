@@ -330,6 +330,10 @@ body {
   align-items: center;
   gap: 6px;
   margin-left: 20px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: thin;
 }
 
 .country-btn {
@@ -376,6 +380,10 @@ body {
   .layout { min-height: 100vh; }
 
   .menu-btn { display: block; }
+
+  .topbar { padding: 0 14px; }
+  .topbar-title { display: none; }
+  .country-toggle { margin-left: 0; flex: 1; }
 
   .content-inner { padding: 24px 20px 60px; }
 }

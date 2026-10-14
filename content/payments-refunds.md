@@ -11,7 +11,7 @@ Refunds return all or part of a payment. They belong to the Money In lifecycle a
 ## Create a refund
 
 ```http
-POST https://api.sandbox.dinaria.com/v2/payments/{transactionId}/refunds
+POST https://sbx.dinaria.com/v2/payments/{transactionId}/refunds
 Authorization: Bearer <YOUR_API_KEY>
 Content-Type: application/json
 Idempotency-Key: refund-order-1001-v1
@@ -72,12 +72,12 @@ Binance Pay uses these same general endpoints; there is no public provider-speci
 ## Retrieve and list refunds
 
 ```http
-GET https://api.sandbox.dinaria.com/v2/refunds/{refundId}
+GET https://sbx.dinaria.com/v2/refunds/{refundId}
 Authorization: Bearer <YOUR_API_KEY>
 ```
 
 ```http
-GET https://api.sandbox.dinaria.com/v2/payments/{transactionId}/refunds
+GET https://sbx.dinaria.com/v2/payments/{transactionId}/refunds
 Authorization: Bearer <YOUR_API_KEY>
 ```
 

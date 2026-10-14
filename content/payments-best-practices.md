@@ -66,14 +66,13 @@ Treat the payment lifecycle as a state machine and build your code around it:
 
 - `started` → payment created
 - `pending` → payment processing is in progress
-- `confirmed` → payment successfully completed (**terminal**)
-- `paid` → funds are available under the financial model
+- `confirmed` → payment confirmed
 - `cancelled` → payment cancelled (**terminal**)
 - `expired` → payment expired (**terminal**)
 - `failed` → definitive failure (**terminal**)
 - `refunded` → the full amount was returned
 
-**Rule:** once a payment reaches a terminal state, it cannot be reused.
+Use the current Payment resource as the lifecycle source of truth. Never reuse an existing Payment as a new order.
 
 ## 4) Webhooks are the source of truth
 

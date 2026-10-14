@@ -1,88 +1,38 @@
-# Dinaria API
+# Dinaria API V2
 
-Move money across payment methods, currencies, and payout rails through a single unified API.
+Integrate local payments, payouts, refunds, balances, customers, virtual accounts, and webhooks through one consistent API.
 
----
+## Environments
 
-## Get Started
-
-| | |
+| Environment | Base URL |
 |---|---|
-| [**Quickstart**](#getting-started-quickstart.md) | Get your first payment running in minutes. |
-| [**15-Minute Integration**](#getting-started-15-minute.md) | Full end-to-end integration walkthrough. |
-| [**Common Pitfalls**](#getting-started-common-pitfalls.md) | Errors developers hit most often and how to avoid them. |
+| Sandbox | `https://sbx.dinaria.com` |
+| Production | `https://payments.dinaria.com` |
 
----
+Authenticate every request with `Authorization: Bearer <API_KEY>`. Use an `Idempotency-Key` for every create or mutation request that supports it.
 
-## Core Concepts
+## Start here
 
-| | |
+| Guide | Purpose |
 |---|---|
-| [**Money Movement Model**](#concepts-money-movement.md) | How funds flow through the platform — accounts, balances, and settlement. |
-| [**Participants**](#concepts-participants.md) | Merchants, payers, and beneficiaries explained. |
-| [**FX Handling**](#concepts-fx.md) | How foreign-exchange rates are applied and locked. |
-| [**Data Formats**](#data-formats-iso.md) | Currency codes, amounts, timestamps, and identifiers. |
+| [Quickstart](getting-started-quickstart.md) | Create and track your first Payment. |
+| [Authentication and idempotency](authentication-idempotency.md) | Choose credential scope and prevent duplicate mutations. |
+| [Country and capability matrix](country-capabilities.md) | Find supported currencies, methods, rails, and modes. |
+| [Errors and failures](payments-errors-retries.md) | Handle HTTP errors and asynchronous resource failures. |
 
----
+## Money in
 
-## Configuration
+Use [Payments](payments-overview.md) for single-use or reusable collection experiences, including local bank transfers, QR, and Binance Pay. Use [Customers](customers.md) and [Virtual Accounts](virtual-accounts.md) when your integration needs a persistent receiving account linked to a known customer. Refund eligible confirmed payments through the [Refund API](payments-refunds.md).
 
-| | |
-|---|---|
-| [**Merchant Settings**](#merchant-settings.md) | Expiration windows, refund policy, payout flags, and more. |
+## Money out
 
----
+Use [Payouts](payouts-overview.md) to send funds from a prefunded available balance to local beneficiary rails. Creation starts an asynchronous lifecycle; webhooks communicate the final outcome.
 
-## Money In
+## Operational APIs
 
-| | |
-|---|---|
-| [**Overview**](#payments-overview.md) | What a Dinaria payment is and how it works end-to-end. |
-| [**Getting Started**](#payments-getting-started.md) | Base URLs, authentication, and your first API call. |
-| [**Quickstart: First Payment**](#payments-quickstart.md) | Step-by-step guide to creating a payment. |
-| [**Payment Lifecycle**](#payments-lifecycle.md) | All states a payment goes through from creation to settlement. |
-| [**Create a Payment**](#payments-create.md) | Request reference for `POST /v2/payments`. |
-| [**Redirect Flow**](#payments-redirect-flow.md) | How to redirect payers to complete payment. |
-| [**Retrieve & List Payments**](#payments-retrieve.md) | Fetch current payment state and paginate payment history. |
-| [**Payment Refunds**](#payments-refunds.md) | Create, retrieve, and track full or partial payment refunds. |
-| [**Errors & Retries**](#payments-errors-retries.md) | Error codes, retry strategy, and idempotency. |
-| [**Best Practices**](#payments-best-practices.md) | Recommendations for reliability and reconciliation. |
+- [Balance](accounts-balance.md)
+- [Sandbox simulation](payments-sandbox-simulate.md)
+- [Webhook subscriptions and events](webhooks-overview.md)
+- [API Reference](#apiref)
 
----
-
-## Money Out
-
-| | |
-|---|---|
-| [**Overview**](#payouts-overview.md) | Payout capabilities and supported rails. |
-| [**Payout Flow**](#payouts-flow.md) | How a payout moves from request to bank credit. |
-| [**Create a Payout**](#payouts-create.md) | Request reference for `POST /v2/payouts`. |
-| [**Retrieve & List Payouts**](#payouts-retrieve.md) | Fetch payout status and history. |
-
----
-
-## Webhooks
-
-| | |
-|---|---|
-| [**Overview**](#webhooks-overview.md) | What events Dinaria emits and when. |
-| [**Subscriptions**](#webhooks-registration.md) | Create and manage V2 webhook subscriptions and event filters. |
-| [**Receiving**](#webhooks-receiving.md) | Processing incoming webhook payloads. |
-| [**Security**](#webhooks-security.md) | Signature verification and replay protection. |
-| [**Event Types**](#webhooks-event-types.md) | Full catalogue of event types and their payloads. |
-
----
-
-## Crypto
-
-| | |
-|---|---|
-| [**Overview**](#crypto-overview.md) | Supported on-chain operations and authentication. |
-| [**Relay**](#crypto-relay.md) | Broadcast a pre-signed Tron transaction through Dinaria's node. |
-| [**Settlement**](#crypto-settlement.md) | Convert BRL to USDT and deliver on-chain to any Tron address. |
-
----
-
-## API Reference
-
-The full OpenAPI specification is available in the [**API Reference**](#apiref) section.
+Field requirements can vary by country, rail, and configured use case. Examples are illustrative and do not make every shown field universally required or optional.

@@ -1,126 +1,35 @@
 ---
 title: Data Formats
-nav_order: 7
+parent: Core Concepts
 ---
 
-# Data Formats
-
-<div class="country-ar">
-
-## Currency
-
-**ARS** — Argentine Peso (ISO 4217)
-
-## Document numbers
-
-| Type      | Format                    | Example          |
-|-----------|---------------------------|------------------|
-| DNI       | 7–8 digits                | `12345678`       |
-| CUIT/CUIL | 11 digits (XX-XXXXXXXX-X) | `20-12345678-9`  |
-
-Digits only; hyphens for CUIT/CUIL are accepted but stripped internally.
-
-## Bank account identifiers
-
-| Type | Format    | Description                                  |
-|------|-----------|----------------------------------------------|
-| CBU  | 22 digits | Issued by banks (Clave Bancaria Uniforme)     |
-| CVU  | 22 digits | Issued by virtual wallets (e.g. Mercado Pago) |
-
-Digits only; no spaces or dashes.
-
-## Payout destination
-
-```json
-{
-  "destination": {
-    "identifierType": "cbu",
-    "identifierValue": "0070327530004025541644",
-    "name": "Ana Martínez",
-    "taxId": "20234567897"
-  }
-}
-```
+# Data formats
 
 ## Amounts
 
-Decimal string, e.g. `"1500.50"`. Two decimal places for ARS.
-
-</div>
-
-<div class="country-br">
-
-## Currency
-
-**BRL** — Brazilian Real (ISO 4217)
-
-## Document numbers
-
-| Type  | Format                         | Example              |
-|-------|--------------------------------|----------------------|
-| CPF   | 11 digits (XXX.XXX.XXX-XX)     | `123.456.789-09`     |
-| CNPJ  | 14 digits (XX.XXX.XXX/XXXX-XX) | `58.084.921/0001-60` |
-
-Digits only when sending via API; formatting punctuation is accepted but stripped internally.
-
-## PIX key types
-
-| `identifierType`   | Example                                |
-|--------------------|----------------------------------------|
-| `pix_key_cpf`      | `12345678909`                          |
-| `pix_key_cnpj`     | `58084921000160`                       |
-| `pix_key_phone`    | `+5511999999999`                       |
-| `pix_key_email`    | `payer@example.com`                    |
-| `pix_key_random`   | `bc8ba248-fb33-4022-bea1-c9fab2efd341` |
-
-For `pix_key_phone`, `pix_key_email`, and `pix_key_random`, `taxId` (CPF/CNPJ) is required.
-
-## Pay-in — PIX response
-
-BRL payments use PIX via a static deposit key. The `paymentData` object contains the key and reference:
+Send and receive monetary values as JSON strings, never binary floating-point numbers.
 
 ```json
-{
-  "transactionId": "f90c7c31-7a38-46dc-99ba-188a4c99da29",
-  "status": "started",
-  "amount": "100.00",
-  "currency": "BRL",
-  "paymentData": {
-    "type": "pix_transfer",
-    "pixKey": "bc8ba248-fb33-4022-bea1-c9fab2efd341",
-    "pixKeyType": "random",
-    "reference": "f90c7c31-7a38-46dc-99ba-188a4c99da29"
-  }
-}
+{ "amount": "150.00", "currency": "USD" }
 ```
 
-The customer opens their bank app, selects PIX, enters the key, and sends exactly the requested amount. Payment confirmation arrives via webhook once the transfer is matched.
+Precision is currency-specific. For example, CLP uses integer amounts such as `"25000"`; currencies with two decimal places may use values such as `"150.00"`. Do not assume every currency has two decimals.
 
-## Payout destination
+## Currency and country codes
 
-```json
-{
-  "destination": {
-    "identifierType": "pix_key_cpf",
-    "identifierValue": "12345678901",
-    "name": "João Silva"
-  }
-}
-```
+- Currency values use uppercase ISO 4217 codes such as `ARS`, `MXN`, `CLP`, `PEN`, `USD`, and `VES`. The API also supports the public crypto code `USDT` where specified.
+- Country values use uppercase ISO 3166-1 alpha-2 codes such as `AR`, `MX`, `CL`, `VE`, `PE`, and `EC`.
+- Nationality may use an uppercase two- or three-letter country code when accepted by the resource schema.
 
-## Amounts
+## Dates and timestamps
 
-Decimal string, e.g. `"100.50"`. Two decimal places for BRL.
+- Timestamps use RFC 3339 UTC strings, for example `2026-09-10T20:00:00Z`.
+- Calendar dates use `YYYY-MM-DD`, for example `1985-06-15`.
 
-</div>
+## Identifiers
 
----
+Treat Dinaria identifiers and pagination cursors as opaque strings. Do not derive an `actionUrl`, account number, or provider reference from a resource ID. Preserve `externalId` as your business reference and use `Idempotency-Key` independently for retry safety.
 
-## ISO standards
+## Identity and rail data
 
-| Field          | Standard                | Example          |
-|----------------|-------------------------|------------------|
-| Country        | ISO 3166-1 alpha-2      | `AR`, `BR`       |
-| State / region | ISO 3166-2 (recommended)| `AR-B`, `BR-SP`  |
-| City           | Free-text string        | `Buenos Aires`   |
-| Currency       | ISO 4217                | `ARS`, `BRL`     |
+Document formats, account identifiers, bank codes, phone formats, and required party fields vary by country and rail. Validate against the active capability and preserve leading zeroes by representing these values as strings.

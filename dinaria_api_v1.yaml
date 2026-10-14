@@ -8,7 +8,6 @@ info:
     **Supported scopes**
     - **Argentina (ARS)** — CBU/CVU bank transfer. Customer is identified by CUIT or DNI.
     - **Brazil (BRL)** — PIX instant transfer. Customer is identified by CPF or CNPJ.
-    - **Venezuela (VES)** — remittance payout funded in USDT and delivered by bank account or mobile payment.
 
     **Key rules**
     - Payments are single-use. Create a new payment for each attempt.
@@ -26,26 +25,14 @@ security:
   - ApiKeyAuth: []
 
 tags:
-  - name: Account
-    description: Query account-level balance and settings.
   - name: Payments
     description: Create and retrieve pay-in orders.
   - name: Payouts
-    description: Send money to beneficiaries through country-specific bank, mobile, and PIX rails.
+    description: Send money out to customers via bank rails.
   - name: Merchant Settings
     description: Configure per-merchant reconciliation behaviour.
   - name: Webhooks
     description: Register webhook URLs and receive payment events.
-  - name: Stablecoin Settlement
-    description: |
-      Convert BRL from your Dinaria balance into USDT and deliver it on-chain to any Tron address.
-      The on-ramp executes synchronously through the Exchange — no polling required.
-      Use `GET /payouts/rates` for indicative prices, then `POST /payouts` with `destination.identifierType: tron_address` to execute.
-  - name: Blockchain Access
-    description: |
-      Authenticated access to Dinaria's Tron full node. Query TRX and TRC-20 balances, check
-      allowances, broadcast pre-signed transactions, and check submission status — all without
-      exposing your private key to Dinaria. Base path: `/v1/chains`.
 
 # ─────────────────────────────────────────────────────────────
 # Components
@@ -133,6 +120,7 @@ components:
       type: object
       required:
         - name
+        - documentNumber
       properties:
         id:
           type: string
@@ -142,16 +130,9 @@ components:
           type: string
           description: Full name of the payer.
           example: Ana Martínez
-        externalId:
-          type: string
-          description: |
-            Stable customer identifier in the merchant's system. Required for Binance Pay.
-            This is not an identity document or a Binance identifier.
-          example: customer-12345
         documentNumber:
           type: string
           description: |
-            Optional for Binance Pay. Local payment methods may require it for reconciliation.
             **ARS**: CUIT (11 digits, e.g. `20221370075`) or DNI (7–8 digits, e.g. `22137007`).
             **BRL**: CPF (11 digits, e.g. `12345678901`) or CNPJ (14 digits, e.g. `58084921000160`).
             Format is validated server-side including checksum for CUIT, CPF, and CNPJ.
@@ -168,28 +149,18 @@ components:
           format: email
         phoneNumber:
           type: string
-        country:
-          type: string
-          pattern: '^[A-Z]{2}$'
-          description: ISO 3166-1 alpha-2 country code for the payer. Required for Binance Pay.
-          example: UY
 
     PaymentDataARS:
       type: object
       description: Bank transfer instructions for ARS payments.
-      required: [type, cbu, reference]
       properties:
         type:
           type: string
-          enum: [bank_transfer]
+          enum: [transfer_to_cbu]
         cbu:
           type: string
           description: Dinaria's 22-digit receiving CBU. Customer must transfer funds here.
           example: "4310009922100000122004"
-        alias:
-          type: string
-          description: Optional alias for the receiving CBU.
-          example: DINARIA.ARS
         reference:
           type: string
           description: |
@@ -199,65 +170,24 @@ components:
 
     PaymentDataBRL:
       type: object
-      description: |
-        PIX collection instructions for BRL payments. Two shapes are returned
-        depending on `paymentMethod`:
-
-        - `paymentMethod=instant_bank_transfer` (default) → `type=pix_transfer`:
-          a static PIX deposit key (`pixKey` / `pixKeyType`) plus a `reference`
-          to include in the transfer description. Reconciled by CPF/CNPJ + amount.
-        - `paymentMethod=pix_qr` → `type=pix_qr`: a per-order dynamic BR-Code
-          (`qrCodeString` + `qrCodeBase64`) that the customer scans in their
-          bank app. Expires in 15 minutes. Reconciled by the QR's embedded
-          `externalId` for guaranteed 1:1 matching.
+      description: PIX transfer instructions for BRL payments.
       properties:
         type:
           type: string
-          enum: [pix_transfer, pix_qr]
-          description: |
-            - `pix_transfer`: returned for `paymentMethod=instant_bank_transfer`.
-            - `pix_qr`: returned for `paymentMethod=pix_qr`.
+          enum: [pix_transfer]
         pixKey:
           type: string
-          description: |
-            Present only when `type=pix_transfer`. Dinaria's static PIX deposit key.
-            The customer initiates a PIX transfer to this key from their bank app.
+          description: Dinaria's static PIX deposit key. Customer initiates a PIX transfer here.
           example: "bc8ba248-fb33-4022-bea1-c9fab2efd341"
         pixKeyType:
           type: string
           enum: [random]
-          description: Present only when `type=pix_transfer`. Type of the PIX key (EVP/random).
-        qrCodeString:
-          type: string
-          description: |
-            Present only when `type=pix_qr`. The EMV/BR-Code TLV payload as a
-            single string — render it with any standard QR encoder, or display
-            it verbatim for "copy-and-paste PIX". Customers scan this with their
-            bank app to pay the exact amount.
-          example: "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/...6304ABCD"
-        qrCodeBase64:
-          type: string
-          description: |
-            Present only when `type=pix_qr`. Base64-encoded PNG of the QR code,
-            ready to embed directly in HTML via
-            `<img src="data:image/png;base64,...">` — no extra rendering step.
-        qrExpiresAt:
-          type: string
-          format: date-time
-          description: |
-            Present only when `type=pix_qr`. ISO 8601 timestamp at which the QR
-            becomes invalid (15 minutes from creation). For `pix_qr` orders this
-            value is identical to the order's top-level `expiresAt` /
-            `expirationDate`. After this instant the merchant must create a
-            new payment if the customer wants to retry.
-          example: "2026-05-13T16:34:26Z"
+          description: Type of the PIX key (EVP/random).
         reference:
           type: string
           description: |
-            The transactionId. For `pix_transfer` payments, instruct the customer
-            to include this in the PIX transfer description so the reconciler can
-            match the payment. For `pix_qr` payments, the reference is already
-            embedded in the QR code's `externalId` — exposed here for traceability.
+            The transactionId. Instruct the customer to include this in the PIX transfer
+            description so the reconciler can match the payment automatically.
           example: "f90c7c31-7a38-46dc-99ba-188a4c99da29"
 
     PaymentRequest:
@@ -270,9 +200,8 @@ components:
         merchantId:
           type: string
           description: |
-            Target merchant ID. Required when using an account-level API key and
-            automatically resolved when using a merchant-scoped key. If included with
-            a merchant-scoped key, it must match the merchant associated with that credential.
+            Target merchant ID. Required when using an account-level API key.
+            Automatically resolved when using a merchant-scoped key.
           example: acme_ars_merch1
         amount:
           type: string
@@ -280,41 +209,21 @@ components:
           example: "1500.00"
         currency:
           type: string
-          enum: [ARS, BRL, USDT]
+          enum: [ARS, BRL]
           description: ISO 4217 currency code.
         paymentMethod:
           type: string
-          enum: [bank_transfer, instant_bank_transfer, pix_qr, crypto_payment]
+          enum: [bank_transfer, instant_bank_transfer]
           description: |
             Payment method to use. If omitted, the platform selects the default for the currency:
-            - `ARS` → `bank_transfer` (CBU/CVU bank transfer).
-            - `BRL` → `instant_bank_transfer` (static PIX deposit key; reconciled
-              by CPF/CNPJ + amount).
-
-            **Global method:**
-            - `crypto_payment`: Binance Pay checkout denominated in `USDT`. The response
-              resolves `rail=binance_pay` and returns `actionUrl` plus optional `qrData`.
-
-            **Brazil only — opt-in alternative:**
-            - `pix_qr`: a per-order **dynamic** PIX QR (BR-Code) is minted at
-              creation time. The response carries `paymentData.qrCodeString` and
-              `paymentData.qrCodeBase64`. Reconciliation uses the QR's embedded
-              `externalId` for guaranteed 1:1 matching. The QR (and the order)
-              expires in 15 minutes regardless of `expiresAfter` / `expiration`.
-
-            `pix_qr` is **not yet available for ARS** — dynamic-QR support
-            for Argentina is on the roadmap.
+            - `ARS` → `bank_transfer` (CBU/CVU bank transfer)
+            - `BRL` → `instant_bank_transfer` (PIX instant transfer)
         customer:
           $ref: "#/components/schemas/Customer"
         externalId:
           type: string
           description: Your internal order reference. Returned in responses and webhooks.
           example: ORD-1001
-        description:
-          type: string
-          maxLength: 256
-          description: Payment description. For Binance Pay, it may appear in the hosted payment details.
-          example: Order 1001
         allowOverUnder:
           type: boolean
           default: false
@@ -322,30 +231,12 @@ components:
             **ARS only.** When `true`, the reconciler will match this order even if the
             received transfer amount differs slightly from `amount` (rounding, bank fees).
             The most recently created matching order takes priority.
-        expiresAfter:
-          type: integer
-          minimum: 60
-          maximum: 1296000
-          description: |
-            Lifetime of this payment order in **seconds** from creation time.
-            When set, the order will transition to `expired` status after this many seconds.
-            Takes precedence over the legacy `expiration` field and the merchant's
-            `defaultOrderExpirationHours` setting.
-            If neither `expiresAfter` nor `expiration` is provided, the platform default
-            applies (currently 24 hours / 86 400 s).
-
-            **Note:** ignored when `paymentMethod=pix_qr` — the QR code carries
-            its own hard 15-minute expiry and the order expiration is aligned
-            to it so the customer can never see a still-open order with a dead
-            QR.
-          example: 3600
         expiration:
           type: string
           format: date-time
           description: |
-            **Deprecated in favour of `expiresAfter`.**
-            ISO 8601 absolute datetime after which the order expires.
-            Ignored for `paymentMethod=pix_qr` (forced to creation + 15 minutes).
+            ISO 8601 datetime after which the order expires. If omitted, the merchant's
+            `defaultOrderExpirationHours` setting applies (0 = never expires automatically).
         metadata:
           type: object
           description: Free-form key-value pairs. Returned in responses and webhooks.
@@ -392,10 +283,9 @@ components:
           example: ORD-1001
         status:
           type: string
-          enum: [started, pending, confirmed, cancelled, expired]
+          enum: [started, confirmed, cancelled, expired]
           description: |
-            - `started`: Payment created, awaiting customer action.
-            - `pending`: Payment processing is pending, when applicable.
+            - `started`: Payment created, awaiting customer transfer.
             - `confirmed`: Transfer received and matched. Terminal.
             - `cancelled`: Mismatched or rejected. Terminal.
             - `expired`: Order expired before matching. Terminal.
@@ -405,29 +295,14 @@ components:
         currency:
           type: string
           example: ARS
-        description:
-          type: string
-          description: Payment description mirrored from the request.
-          example: Order 1001
         paymentMethod:
           type: string
           description: Resolved payment method code.
           example: bank_transfer
         rail:
           type: string
-          description: Resolved rail code. Binance Pay payments return `binance_pay`.
+          description: Resolved rail code from the routing table.
           example: ar_bank_transfer
-        actionUrl:
-          type: string
-          format: uri
-          description: |
-            Hosted customer action URL. For Binance Pay, use this value for the primary
-            “Pay with Binance Pay” button and treat it as opaque.
-        qrData:
-          type: string
-          description: |
-            Optional QR payload for Binance Pay. Encode the exact returned value with a QR
-            library; do not derive it from provider identifiers.
         bankSystemReference:
           type: string
           description: |
@@ -444,7 +319,7 @@ components:
           oneOf:
             - $ref: "#/components/schemas/PaymentDataARS"
             - $ref: "#/components/schemas/PaymentDataBRL"
-          description: Local transfer instructions. May be omitted for hosted methods such as Binance Pay.
+          description: Transfer instructions to display to the customer.
         customer:
           $ref: "#/components/schemas/Customer"
         receivedAmount:
@@ -462,16 +337,9 @@ components:
         refundedAmount:
           type: string
           nullable: true
-        expiresAt:
-          type: string
-          format: date-time
-          description: |
-            ISO 8601 timestamp when this payment order will expire (or has expired).
-            Identical to `expirationDate`; prefer this field for new integrations.
         expirationDate:
           type: string
           format: date-time
-          description: "Deprecated alias for `expiresAt`. Both fields are always present."
         metadata:
           type: object
           additionalProperties:
@@ -481,297 +349,50 @@ components:
           format: date-time
           description: Timestamp when the payment order was created.
 
-    PayoutBeneficiary:
+    PayoutDestination:
       type: object
       required:
-        - name
-      properties:
-        name:
-          type: string
-          description: Beneficiary full name or legal entity name.
-          example: María González
-        documentType:
-          type: string
-          enum: [RIF, CUIT, CPF, CNPJ]
-          description: |
-            Beneficiary document type for the destination country:
-            optional `RIF` for Venezuela, generally `CUIT` for Argentina, and `CPF` or `CNPJ`
-            for Brazil. Required for Argentina and Brazil.
-        documentNumber:
-          type: string
-          description: Beneficiary document number. Optional for Venezuela; required for Argentina and Brazil.
-          example: V40001469
-        mobile:
-          type: string
-          description: Required for the `ve_mobile_payment` rail.
-          example: "+58 424 2005748"
-
-    PayoutPixKey:
-      type: object
-      required: [type, value]
-      properties:
-        type:
-          type: string
-          enum: [cpf, cnpj, email, phone, evp]
-          description: PIX key type. `evp` is a random PIX key.
-        value:
-          type: string
-          description: PIX key value in the format corresponding to `type`.
-          example: "12345678901"
-
-    PayoutVEBankCode:
-      type: string
-      title: Venezuela bank code
+        - identifierType
+        - identifierValue
       description: |
-        Bank entity code. Always send this value as a four-character string; never
-        convert it to a number. Supported values:
+        Canonical payout destination. Use this object for all new integrations.
 
-        - `0102` — Banco de Venezuela
-        - `0104` — Venezolano de Crédito
-        - `0105` — Banco Mercantil
-        - `0108` — Banco Provincial
-        - `0114` — Bancaribe
-        - `0115` — Banco Exterior
-        - `0128` — Banco Caroní
-        - `0134` — Banesco
-        - `0137` — Banco Sofitasa
-        - `0138` — Banco Plaza
-        - `0146` — Bangente
-        - `0151` — BFC Banco Fondo Común
-        - `0156` — 100% Banco
-        - `0157` — Del Sur Banco Universal
-        - `0163` — Banco del Tesoro
-        - `0166` — Banco Agrícola de Venezuela
-        - `0168` — Bancrecer
-        - `0169` — R4 Banco
-        - `0171` — Banco Activo
-        - `0172` — Bancamiga
-        - `0173` — Banco Internacional de Desarrollo
-        - `0174` — Banplus
-        - `0175` — Banco Digital de los Trabajadores
-        - `0177` — BANFANB
-        - `0178` — N58 Banco Digital
-        - `0191` — Banco Nacional de Crédito
-        - `0601` — Instituto Municipal de Crédito Popular
-        - `3621` — Banco de Comercio Exterior
-      minLength: 4
-      maxLength: 4
-      pattern: '^\d{4}$'
-      enum:
-        - "0102"
-        - "0104"
-        - "0105"
-        - "0108"
-        - "0114"
-        - "0115"
-        - "0128"
-        - "0134"
-        - "0137"
-        - "0138"
-        - "0146"
-        - "0151"
-        - "0156"
-        - "0157"
-        - "0163"
-        - "0166"
-        - "0168"
-        - "0169"
-        - "0171"
-        - "0172"
-        - "0173"
-        - "0174"
-        - "0175"
-        - "0177"
-        - "0178"
-        - "0191"
-        - "0601"
-        - "3621"
-      example: "0102"
+        **ARS identifier types**
+        | `identifierType` | Meaning |
+        |---|---|
+        | `cbu` | 22-digit CBU or CVU number |
+        | `alias_cbu` | CBU alias (e.g. `mialiascbu`) — auto-resolved before transfer |
 
-    PayoutRailVEBankAccount:
-      title: Venezuela bank account
-      type: object
-      required: [type, bankCode, accountNumber]
-      properties:
-        type:
-          type: string
-          enum: [ve_bank_account]
-        bankCode:
-          $ref: "#/components/schemas/PayoutVEBankCode"
-        accountNumber:
-          type: string
-          minLength: 20
-          maxLength: 20
-          pattern: '^\d{20}$'
-          description: |
-            Beneficiary bank account number. Must contain exactly 20 digits and its first
-            four digits must match the selected `bankCode`.
-          example: "01020305810000263562"
+        **BRL (PIX) identifier types**
+        | `identifierType` | Meaning |
+        |---|---|
+        | `pix_key_cpf` | CPF number (11 digits) |
+        | `pix_key_cnpj` | CNPJ number (14 digits) |
+        | `pix_key_email` | Email address registered as PIX key |
+        | `pix_key_phone` | Phone number registered as PIX key |
+        | `pix_key_random` | Random 36-char UUID PIX key |
 
-    PayoutRailVEMobilePayment:
-      title: Venezuela mobile payment
-      type: object
-      required: [type, bankCode]
-      properties:
-        type:
-          type: string
-          enum: [ve_mobile_payment]
-        bankCode:
-          $ref: "#/components/schemas/PayoutVEBankCode"
-
-    PayoutRailVECash:
-      title: Venezuela cash
-      type: object
-      required: [type]
-      properties:
-        type:
-          type: string
-          enum: [ve_cash_pickup]
-          description: Cash payout. Bank details are not required.
-
-    PayoutRailARCVU:
-      title: Argentina CVU
-      type: object
-      required: [type, cvu]
-      properties:
-        type:
-          type: string
-          enum: [ar_cvu]
-        cvu:
-          type: string
-          pattern: '^\d{22}$'
-          description: Beneficiary's 22-digit CVU.
-          example: "2850590940090418135201"
-
-    PayoutRailARCBU:
-      title: Argentina CBU
-      type: object
-      required: [type, cbu]
-      properties:
-        type:
-          type: string
-          enum: [ar_cbu]
-        cbu:
-          type: string
-          pattern: '^\d{22}$'
-          description: Beneficiary's 22-digit CBU.
-          example: "0070327530004025541644"
-
-    PayoutRailARAlias:
-      title: Argentina alias
-      type: object
-      required: [type, alias]
-      properties:
-        type:
-          type: string
-          enum: [ar_alias]
-        alias:
-          type: string
-          description: Beneficiary's CBU/CVU alias.
-          example: mialias
-
-    PayoutRailBRPix:
-      title: Brazil PIX
-      type: object
-      required: [type, pixKey]
-      properties:
-        type:
-          type: string
-          enum: [br_pix]
-        pixKey:
-          $ref: "#/components/schemas/PayoutPixKey"
-
-    PayoutRail:
-      description: Country-specific delivery rail. Select the schema matching the destination country.
-      oneOf:
-        - $ref: "#/components/schemas/PayoutRailVEBankAccount"
-        - $ref: "#/components/schemas/PayoutRailVEMobilePayment"
-        - $ref: "#/components/schemas/PayoutRailVECash"
-        - $ref: "#/components/schemas/PayoutRailARCBU"
-        - $ref: "#/components/schemas/PayoutRailARCVU"
-        - $ref: "#/components/schemas/PayoutRailARAlias"
-        - $ref: "#/components/schemas/PayoutRailBRPix"
-      discriminator:
-        propertyName: type
-        mapping:
-          ve_bank_account: "#/components/schemas/PayoutRailVEBankAccount"
-          ve_mobile_payment: "#/components/schemas/PayoutRailVEMobilePayment"
-          ve_cash_pickup: "#/components/schemas/PayoutRailVECash"
-          ar_cbu: "#/components/schemas/PayoutRailARCBU"
-          ar_cvu: "#/components/schemas/PayoutRailARCVU"
-          ar_alias: "#/components/schemas/PayoutRailARAlias"
-          br_pix: "#/components/schemas/PayoutRailBRPix"
-
-    PayoutFiatDestination:
-      type: object
-      required: [country, beneficiary, rail]
-      properties:
-        country:
-          type: string
-          enum: [VE, AR, BR]
-        currency:
-          type: string
-          enum: [VES, ARS, BRL]
-          description: Destination currency. Required for Argentina and Brazil; Venezuela remittances settle in VES.
-        beneficiary:
-          $ref: "#/components/schemas/PayoutBeneficiary"
-        rail:
-          $ref: "#/components/schemas/PayoutRail"
-
-    PayoutOnRampDestination:
-      type: object
-      required: [identifierType, identifierValue]
-      description: Legacy destination shape used only for BRL to USDT on-ramp payouts.
+        For `pix_key_cpf` and `pix_key_cnpj` the `taxId` field is inferred from
+        `identifierValue` if not provided. For other PIX key types `taxId` is required.
       properties:
         identifierType:
           type: string
-          enum: [tron_address]
+          example: cbu
         identifierValue:
           type: string
-          description: Tron wallet address.
-          example: TUcVE7YGbVJ2oXe7e3MiHAGiDqEbVz1GkB
+          example: "0070327530004025541644"
+        taxId:
+          type: string
+          description: Recipient CPF/CNPJ (BRL) or CUIT (ARS).
+          example: "20221370075"
+        taxIdCountry:
+          type: string
+          description: ISO 3166-1 alpha-2 country code of the tax ID. Inferred when possible.
+          example: AR
         name:
           type: string
-        destinationCurrency:
-          type: string
-          enum: [USDT]
-        network:
-          type: string
-          enum: [mainnet, shasta]
-        settlement:
-          type: string
-          enum: [D0, D1, D2]
-
-    PayoutDestination:
-      description: Fiat payout destination, or the legacy on-ramp destination shape.
-      oneOf:
-        - $ref: "#/components/schemas/PayoutFiatDestination"
-        - $ref: "#/components/schemas/PayoutOnRampDestination"
-
-    PayoutRemitter:
-      type: object
-      description: Sender identity and contact data. Required for remittance use cases.
-      required: [identification, firstName, lastName]
-      properties:
-        identification:
-          type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        birthDate:
-          type: string
-          format: date
-        nationality:
-          type: string
-          description: ISO 3166-1 alpha-3 nationality code.
-        mobile:
-          type: string
-        address:
-          type: string
-        email:
-          type: string
-          format: email
+          description: Recipient name. Auto-resolved for ARS CBU/alias if not provided.
+          example: Ana Martínez
 
     PayoutRequest:
       type: object
@@ -786,16 +407,12 @@ components:
           example: "500.00"
         currency:
           type: string
-          enum: [USDT, ARS, BRL]
+          enum: [ARS, BRL]
         destination:
           $ref: "#/components/schemas/PayoutDestination"
         externalId:
           type: string
           example: PAY-OUT-001
-        remitter:
-          allOf:
-            - $ref: "#/components/schemas/PayoutRemitter"
-          description: Required when the payout represents a remittance, including the Venezuela remittance flow.
         customerId:
           type: string
           description: Optional — link payout to an existing customer record.
@@ -803,6 +420,23 @@ components:
           type: object
           additionalProperties:
             type: string
+        # Deprecated ARS flat fields — still accepted for backward compatibility.
+        # Use destination object for all new integrations.
+        destinationCbu:
+          type: string
+          description: "**Deprecated** — use `destination.identifierValue` instead. Accepted for backward compat (ARS only)."
+          deprecated: true
+          example: "0070327530004025541644"
+        destinationCuit:
+          type: string
+          description: "**Deprecated** — use `destination.taxId` instead."
+          deprecated: true
+          example: "20221370075"
+        destinationName:
+          type: string
+          description: "**Deprecated** — use `destination.name` instead."
+          deprecated: true
+          example: Ana Martínez
 
     PayoutResponse:
       type: object
@@ -819,12 +453,13 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, processing, completed, failed]
+          enum: [pending, processing, completed, failed, cancelled]
           description: |
             - `pending`: Queued, not yet submitted to the payment network.
-            - `processing`: Submitted and awaiting final confirmation.
+            - `processing`: Submitted and awaiting final confirmation (BRL/PIX only).
             - `completed`: Transfer confirmed by the banking/payment system. Terminal.
             - `failed`: Permanently rejected after max retry attempts. Balance restored. Terminal.
+            - `cancelled`: Cancelled before processing. Balance restored. Terminal.
         amount:
           type: string
           example: "500.00"
@@ -856,71 +491,6 @@ components:
         completedAt:
           type: string
           format: date-time
-        destCurrency:
-          type: string
-          description: Destination currency for a payout that includes currency conversion.
-          example: VES
-        destinationCurrency:
-          type: string
-          description: Destination currency for a payout that includes currency conversion.
-          example: VES
-        fixedFee:
-          type: string
-          description: Fixed fee charged for the conversion.
-          example: "0.60"
-        amountToConvert:
-          type: string
-          description: Source amount converted after deducting the fixed fee.
-          example: "24.40"
-        destinationAmount:
-          type: string
-          description: Amount delivered in the destination currency.
-          example: "881.71"
-        exchangeRate:
-          type: string
-          description: Exchange rate applied to the payout.
-          example: "36.1355"
-
-    PayoutRatesResponse:
-      type: object
-      properties:
-        fromCurrency:
-          type: string
-          example: USDT
-        amount:
-          type: string
-          example: "25.00"
-        destCurrency:
-          type: string
-          example: VES
-        fixedFee:
-          type: string
-          example: "0.60"
-        amountToConvert:
-          type: string
-          example: "24.40"
-        exchangeRate:
-          type: string
-          example: "36.1355"
-        destinationAmount:
-          type: string
-          example: "881.71"
-        toCurrency:
-          type: string
-          description: Used by the BRL to USDT on-ramp rate response.
-          example: USDT
-        price:
-          type: number
-          description: Used by the BRL to USDT on-ramp rate response. BRL per 1 USDT.
-          example: 5.72
-        settlement:
-          type: string
-          description: Used by the BRL to USDT on-ramp rate response.
-          enum: [D0, D1, D2]
-          example: D0
-        indicativeAt:
-          type: string
-          format: date-time
 
     PayoutListResponse:
       type: object
@@ -934,250 +504,6 @@ components:
             $ref: "#/components/schemas/PayoutResponse"
         hasMore:
           type: boolean
-
-    # ── Blockchain Access schemas ──────────────────────────────
-
-    TronAddressBalanceResponse:
-      type: object
-      properties:
-        address:
-          type: string
-          description: Tron address queried.
-          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
-        network:
-          type: string
-          description: Network code (`mainnet` or `shasta`).
-          example: mainnet
-        trxSun:
-          type: string
-          description: TRX balance in sun (1 TRX = 1,000,000 sun).
-          example: "1500000000"
-        tokens:
-          type: array
-          description: TRC-20 token balances for each requested contract.
-          items:
-            $ref: "#/components/schemas/TronTokenBalanceEntry"
-
-    TronTokenBalanceEntry:
-      type: object
-      properties:
-        contract:
-          type: string
-          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-        symbol:
-          type: string
-          example: USDT
-        decimals:
-          type: integer
-          example: 6
-        balance:
-          type: string
-          description: Raw balance in the token's smallest unit. Divide by 10^decimals for human-readable amount.
-          example: "50000000"
-
-    TronContractBalanceResponse:
-      type: object
-      properties:
-        contract:
-          type: string
-          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-        owner:
-          type: string
-          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
-        balance:
-          type: string
-          description: Raw balance in token's smallest unit.
-          example: "50000000"
-        decimals:
-          type: integer
-          example: 6
-
-    TronAllowanceResponse:
-      type: object
-      properties:
-        contract:
-          type: string
-          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-        owner:
-          type: string
-          example: TOwnerAddr...
-        spender:
-          type: string
-          example: TSpenderAddr...
-        allowance:
-          type: string
-          description: Approved amount in token's smallest unit.
-          example: "0"
-        decimals:
-          type: integer
-          example: 6
-
-    TronBroadcastRequest:
-      type: object
-      required: [signedTransaction]
-      properties:
-        network:
-          type: string
-          enum: [mainnet, shasta]
-          default: mainnet
-          description: Target network. Can also be set via the `X-Network` header.
-        signedTransaction:
-          type: object
-          description: |
-            The signed transaction object from Tron's `triggersmartcontract` after adding the signature.
-            Must include `raw_data`, `raw_data_hex`, `txID`, and `signature` fields.
-        clientReference:
-          type: string
-          description: Optional caller-defined reference stored with the submission.
-
-    TronBroadcastResponse:
-      type: object
-      properties:
-        submissionId:
-          type: string
-          format: uuid
-          description: Dinaria-internal UUID for polling status.
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        status:
-          type: string
-          enum: [pending, confirmed, failed]
-          example: pending
-        network:
-          type: string
-          example: mainnet
-        txid:
-          type: string
-          nullable: true
-          description: On-chain transaction ID once confirmed.
-          example: a1b2c3d4...
-        submittedAt:
-          type: string
-          format: date-time
-          nullable: true
-        clientReference:
-          type: string
-          nullable: true
-        errorCode:
-          type: string
-          nullable: true
-        errorMessage:
-          type: string
-          nullable: true
-
-    TronSubmissionResponse:
-      type: object
-      properties:
-        submissionId:
-          type: string
-          format: uuid
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        status:
-          type: string
-          enum: [pending, confirmed, failed]
-          description: |
-            `pending` — submitted, not yet on-chain.
-            `confirmed` — included in a block.
-            `failed` — node rejected or dropped.
-          example: confirmed
-        network:
-          type: string
-          example: mainnet
-        txid:
-          type: string
-          nullable: true
-          example: a1b2c3d4...
-        submittedAt:
-          type: string
-          format: date-time
-          nullable: true
-        clientReference:
-          type: string
-          nullable: true
-        errorCode:
-          type: string
-          nullable: true
-        errorMessage:
-          type: string
-          nullable: true
-
-    TronNetworkListResponse:
-      type: object
-      properties:
-        object:
-          type: string
-          enum: [list]
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/TronNetworkItem"
-
-    TronNetworkItem:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        code:
-          type: string
-          example: mainnet
-        type:
-          type: string
-          example: tron
-        displayName:
-          type: string
-          example: Tron Mainnet
-        isActive:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-
-    TronNetworkDetailResponse:
-      type: object
-      properties:
-        network:
-          $ref: "#/components/schemas/TronNetworkItem"
-        assets:
-          type: array
-          description: TRC-20 tokens registered in Dinaria's catalog for this network.
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-                format: uuid
-              contractAddress:
-                type: string
-                example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-              symbol:
-                type: string
-                example: USDT
-              decimals:
-                type: integer
-                example: 6
-              tokenStandard:
-                type: string
-                example: TRC-20
-              isBroadcastAllowed:
-                type: boolean
-              isActive:
-                type: boolean
-        rpcNodes:
-          type: array
-          description: RPC endpoint configuration for the network.
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-                format: uuid
-              baseUrl:
-                type: string
-                example: https://api.trongrid.io
-              priority:
-                type: integer
-              isActive:
-                type: boolean
 
     MerchantSettingsRequest:
       type: object
@@ -1227,10 +553,7 @@ components:
         webhookUrl:
           type: string
           format: uri
-          description: |
-            HTTPS URL on your server where payment events will be delivered.
-            With a **merchant-scoped** API key, the registration is stored for that merchant only.
-            With an **account-scoped** key, the registration applies to all merchants under the account.
+          description: HTTPS URL on your server where payment events will be delivered.
           example: https://your-server.com/webhooks/dinaria
 
     WebhookRegistrationResponse:
@@ -1268,71 +591,12 @@ components:
           nullable: true
           description: When the old secret stops being accepted (grace period).
 
-    WebhookRotateRequest:
-      type: object
-      properties:
-        webhookUrl:
-          type: string
-          format: uri
-          description: |
-            Registered URL to rotate. Include this when you have **more than one** webhook URL
-            under the same API key scope so the correct row is selected.
-        merchantId:
-          type: string
-          description: |
-            **Account-scoped API keys only:** set this to rotate the webhook registered for a
-            **specific merchant** under your account. Omit to rotate the **account-level** registration
-            (the webhook you registered with the account-wide key).
-            With a **merchant-scoped** API key, do **not** send `merchantId` — the merchant is implied by the key.
-
-    WebhookListItem:
-      type: object
-      properties:
-        webhookUrl:
-          type: string
-          format: uri
-        scope:
-          type: string
-          enum: [merchant, account]
-        createdAt:
-          type: string
-          format: date-time
-
-    WebhookListResponse:
-      type: object
-      required: [object, data]
-      properties:
-        object:
-          type: string
-          enum: [list]
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/WebhookListItem"
-
-    WebhookDeleteRequest:
-      type: object
-      required: [webhookUrl]
-      properties:
-        webhookUrl:
-          type: string
-          format: uri
-          description: The exact URL previously registered to remove.
-
     WebhookPaymentEvent:
       type: object
-      required: [eventType, eventId, transactionId, status, amount, currency]
       description: |
-        Event delivered by the platform when a payment is created or changes status.
-        Delivery is at-least-once and event order is not guaranteed. Deduplicate by
-        `eventId`; retrieve `GET /payments/{transactionId}` when the current state is unclear.
+        Event delivered by the platform to your registered webhook URL when a payment changes status.
+        Delivery is at-least-once — deduplicate by `transactionId`.
       properties:
-        eventType:
-          type: string
-          enum: [payment.created, payment.status_changed]
-        eventId:
-          type: string
-          description: Unique event identifier used for idempotent processing.
         transactionId:
           type: string
         externalId:
@@ -1341,12 +605,10 @@ components:
           type: string
         status:
           type: string
-          enum: [started, pending, confirmed, cancelled, expired]
+          enum: [started, confirmed, cancelled, expired]
         amount:
           type: string
         currency:
-          type: string
-        description:
           type: string
         bankSystemTrxId:
           type: string
@@ -1422,62 +684,6 @@ components:
           documentType: CNPJ
           documentNumber: "58084921000160"
 
-    PaymentRequestBRLPixQR:
-      summary: "BRL — dynamic PIX QR (Brazil only)"
-      value:
-        merchantId: bpn_merch_1
-        amount: "100.00"
-        currency: BRL
-        paymentMethod: pix_qr
-        externalId: ORD-2003
-        customer:
-          name: Belo Brasil Ltda
-          documentType: CNPJ
-          documentNumber: "58084921000160"
-        metadata:
-          orderId: ORD-2003
-
-    PaymentRequestBinancePay:
-      summary: "USDT — Binance Pay (merchant API key)"
-      value:
-        externalId: order-2026-0001
-        amount: "0.25"
-        currency: USDT
-        paymentMethod: crypto_payment
-        description: Super Test
-        successUrl: https://merchant.example/payment/success
-        cancelUrl: https://merchant.example/payment/cancel
-        expiresAfter: 3600
-        customer:
-          externalId: customer-12345
-          name: Sebastian Gonzalez
-          country: UY
-          email: sebastian@example.com
-          phoneNumber: "+59899123456"
-        metadata:
-          source: checkout
-
-    PaymentRequestBinancePayAccountKey:
-      summary: "USDT — Binance Pay (account API key)"
-      value:
-        merchantId: merchant1
-        externalId: order-2026-0001
-        amount: "0.25"
-        currency: USDT
-        paymentMethod: crypto_payment
-        description: Super Test
-        successUrl: https://merchant.example/payment/success
-        cancelUrl: https://merchant.example/payment/cancel
-        expiresAfter: 3600
-        customer:
-          externalId: customer-12345
-          name: Sebastian Gonzalez
-          country: UY
-          email: sebastian@example.com
-          phoneNumber: "+59899123456"
-        metadata:
-          source: checkout
-
     # POST /payments — response
     PaymentResponseARS:
       summary: "ARS — started"
@@ -1492,9 +698,8 @@ components:
         rail: ar_bank_transfer
         bankSystemReference: "9032000000000000023"
         paymentData:
-          type: bank_transfer
+          type: transfer_to_cbu
           cbu: "4310009922100000122004"
-          alias: DINARIA.ARS
           reference: "9032000000000000023"
         customer:
           id: ea272dd4-bde7-4d9a-a432-0de9e9566af5
@@ -1524,7 +729,7 @@ components:
           documentNumber: "20221370075"
 
     PaymentResponseBRL:
-      summary: "BRL — started (static PIX key)"
+      summary: "BRL — started"
       value:
         transactionId: f90c7c31-7a38-46dc-99ba-188a4c99da29
         merchantId: bpn_merch_1
@@ -1545,379 +750,118 @@ components:
           documentNumber: "12345678901"
         reconciliationStatus: unknown
 
-    PaymentResponseBRLPixQR:
-      summary: "BRL — started (dynamic PIX QR)"
-      value:
-        transactionId: 3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1
-        merchantId: bpn_merch_1
-        externalId: ORD-2003
-        status: started
-        amount: "100.00"
-        currency: BRL
-        paymentMethod: pix_qr
-        rail: pix
-        expirationDate: "2026-05-13T16:34:26Z"
-        expiresAt: "2026-05-13T16:34:26Z"
-        paymentData:
-          type: pix_qr
-          qrCodeString: "00020101021226790014br.gov.bcb.pix2557brcode.example.com/v2/e9570fcb77f94a27adb462e9b09591ce5204000053039865802BR5907Dinaria6014Rio de Janeiro62070503***6304ABCD"
-          qrCodeBase64: "iVBORw0KGgoAAAANSUhEUgAAAVkAAAFZAQAAAAAaiWF2AAA...(truncated)"
-          qrExpiresAt: "2026-05-13T16:34:26Z"
-          reference: 3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1
-        customer:
-          name: Belo Brasil Ltda
-          documentType: CNPJ
-          documentNumber: "58084921000160"
-        reconciliationStatus: unknown
-
-    PaymentResponseBinancePay:
-      summary: "USDT — Binance Pay started"
-      value:
-        transactionId: 8b8a1d72-7b8f-4a64-a978-4db144de91f2
-        merchantId: merchant_demo
-        externalId: order-2026-0001
-        amount: "0.25"
-        currency: USDT
-        description: Super Test
-        paymentMethod: crypto_payment
-        rail: binance_pay
-        actionUrl: https://app.binance.com/payment/secpay?checkout=example
-        qrData: https://app.binance.com/qr/example
-        status: started
-        expirationDate: "2026-08-05T18:00:00Z"
-        expiresAt: "2026-08-05T18:00:00Z"
-        metadata:
-          source: checkout
-        customer:
-          externalId: customer-12345
-          name: Sebastian Gonzalez
-          country: UY
-          email: sebastian@example.com
-          phoneNumber: "+59899123456"
-
     # POST /payouts — request
-    PayoutRequestVE:
-      summary: "Venezuela remittance — bank account"
-      value:
-        amount: "25.00"
-        currency: USDT
-        externalId: order-123
-        destination:
-          country: VE
-          beneficiary:
-            name: María González
-            documentType: RIF
-            documentNumber: V40001469
-          rail:
-            type: ve_bank_account
-            bankCode: "0102"
-            accountNumber: "01020305810000263562"
-        remitter:
-          identification: V201234567
-          firstName: Juan
-          lastName: Pérez
-          birthDate: "1985-06-15"
-          nationality: ARG
-          mobile: "04141234567"
-          address: Buenos Aires, Argentina
-          email: remitente@example.com
-
-    PayoutRequestVEMobile:
-      summary: "Venezuela remittance — mobile payment"
-      value:
-        amount: "10.00"
-        currency: USDT
-        externalId: order-456
-        destination:
-          country: VE
-          beneficiary:
-            name: Wil Barragán
-            documentType: RIF
-            documentNumber: V27127416
-            mobile: "+58 424 2005748"
-          rail:
-            type: ve_mobile_payment
-            bankCode: "0175"
-        remitter:
-          identification: V201234567
-          firstName: Juan
-          lastName: Pérez
-          birthDate: "1985-06-15"
-          nationality: ARG
-          mobile: "04141234567"
-          address: Buenos Aires, Argentina
-          email: remitente@example.com
-
-    PayoutRequestVECash:
-      summary: "Venezuela remittance — cash"
-      value:
-        amount: "10.00"
-        currency: USDT
-        externalId: order-cash-789
-        destination:
-          country: VE
-          beneficiary:
-            name: María González
-            documentType: RIF
-            documentNumber: V40001469
-          rail:
-            type: ve_cash_pickup
-        remitter:
-          identification: V201234567
-          firstName: Juan
-          lastName: Pérez
-
-    PayoutRequestARSCBU:
-      summary: "Argentina — CBU destination"
-      value:
-        amount: "1500.00"
-        currency: ARS
-        externalId: order-ar-cbu-123
-        destination:
-          country: AR
-          currency: ARS
-          beneficiary:
-            name: María González
-            documentType: CUIT
-            documentNumber: "27-12345678-5"
-          rail:
-            type: ar_cbu
-            cbu: "0070327530004025541644"
-
     PayoutRequestARS:
-      summary: "Argentina — CVU destination"
+      summary: "ARS — CBU destination"
       value:
-        amount: "1500.00"
+        amount: "500.00"
         currency: ARS
-        externalId: order-ar-123
         destination:
-          country: AR
-          currency: ARS
-          beneficiary:
-            name: María González
-            documentType: CUIT
-            documentNumber: "27-12345678-5"
-          rail:
-            type: ar_cvu
-            cvu: "2850590940090418135201"
+          identifierType: cbu
+          identifierValue: "0070327530004025541644"
+          taxId: "20221370075"
+          name: Ana Martínez
+        externalId: PAY-OUT-001
 
     PayoutRequestARSAlias:
-      summary: "Argentina — alias destination"
+      summary: "ARS — alias destination (auto-resolved)"
       value:
         amount: "200.00"
         currency: ARS
-        externalId: payout-ar-alias-123
         destination:
-          country: AR
-          currency: ARS
-          beneficiary:
-            name: María González
-            documentType: CUIT
-            documentNumber: "27-12345678-5"
-          rail:
-            type: ar_alias
-            alias: mialias
+          identifierType: alias_cbu
+          identifierValue: mialiascbu
+        externalId: PAY-OUT-002
 
     PayoutRequestBRLPix:
-      summary: "Brazil — PIX (CPF key)"
+      summary: "BRL — PIX (CPF key)"
       value:
         amount: "150.00"
         currency: BRL
-        externalId: payout-br-123
         destination:
-          country: BR
-          currency: BRL
-          beneficiary:
-            name: João Silva
-            documentType: CPF
-            documentNumber: "12345678901"
-          rail:
-            type: br_pix
-            pixKey:
-              type: cpf
-              value: "12345678901"
+          identifierType: pix_key_cpf
+          identifierValue: "12345678901"
+          name: João Silva
+        externalId: PAY-OUT-003
 
     PayoutRequestBRLPixRandom:
-      summary: "Brazil — PIX (EVP key)"
+      summary: "BRL — PIX (random key)"
       value:
         amount: "75.50"
         currency: BRL
-        externalId: payout-br-evp-123
         destination:
-          country: BR
-          currency: BRL
-          beneficiary:
-            name: João Silva
-            documentType: CPF
-            documentNumber: "12345678901"
-          rail:
-            type: br_pix
-            pixKey:
-              type: evp
-              value: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          identifierType: pix_key_random
+          identifierValue: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          taxId: "12345678901"
+          taxIdCountry: BR
+          name: João Silva
+        externalId: PAY-OUT-004
 
     # POST /payouts — response
-    PayoutResponseVE:
-      summary: "Venezuela remittance processing"
-      value:
-        id: 9ca35a0b-1097-464c-91ea-c0bbcb3d8dd8
-        accountId: account_123
-        merchantId: merchant_123
-        externalId: order-123
-        amount: "25.00"
-        currency: USDT
-        destCurrency: VES
-        destinationCurrency: VES
-        fixedFee: "0.60"
-        amountToConvert: "24.40"
-        exchangeRate: "36.1355"
-        destinationAmount: "881.71"
-        destination:
-          country: VE
-          beneficiary:
-            name: María González
-            documentType: RIF
-            documentNumber: V40001469
-          rail:
-            type: ve_bank_account
-            bankCode: "0102"
-            accountNumber: "01020305810000263562"
-        status: processing
-        bankSystemTrxId: "1608460"
-        attempts: 1
-        createdAt: "2026-07-22T15:00:00Z"
-
     PayoutResponsePending:
-      summary: "Argentina payout pending"
+      summary: "Payout pending (ARS)"
       value:
-        id: de598197-bb56-4a92-af5c-f4929a84ed1a
-        amount: "1500.00"
+        id: 1078d6c2-a452-44fb-94f4-525390231ce2
+        merchantId: acme_ars_merch1
+        status: pending
+        amount: "500.00"
         currency: ARS
         destination:
-          country: AR
-          currency: ARS
-          beneficiary:
-            name: María González
-            documentType: CUIT
-            documentNumber: "27-12345678-5"
-          rail:
-            type: ar_cvu
-            cvu: "2850590940090418135201"
-        status: pending
-        createdAt: "2026-03-11T23:01:17Z"
+          identifierType: cbu
+          identifierValue: "0070327530004025541644"
+          taxId: "20221370075"
+          taxIdCountry: AR
+          name: Ana Martínez
+        externalId: PAY-OUT-001
+        attempts: 0
+        createdAt: "2026-03-10T15:00:00Z"
 
     PayoutResponseCompleted:
-      summary: "Argentina payout completed"
+      summary: "Payout completed (ARS)"
       value:
-        id: de598197-bb56-4a92-af5c-f4929a84ed1a
+        id: 1078d6c2-a452-44fb-94f4-525390231ce2
+        merchantId: acme_ars_merch1
         status: completed
-        amount: "1500.00"
+        amount: "500.00"
         currency: ARS
         destination:
-          country: AR
-          currency: ARS
-          beneficiary:
-            name: María González
-            documentType: CUIT
-            documentNumber: "27-12345678-5"
-          rail:
-            type: ar_cvu
-            cvu: "2850590940090418135201"
+          identifierType: cbu
+          identifierValue: "0070327530004025541644"
+          taxId: "20221370075"
+          taxIdCountry: AR
+          name: Ana Martínez
         bankSystemTrxId: 3D5W612E65ZJKDJW2GXYVR
         attempts: 1
-        createdAt: "2026-03-11T23:01:17Z"
-        submittedAt: "2026-03-11T23:01:32Z"
-        completedAt: "2026-03-11T23:01:44Z"
+        externalId: PAY-OUT-001
+        createdAt: "2026-03-10T15:00:00Z"
+        submittedAt: "2026-03-10T15:00:05Z"
+        completedAt: "2026-03-10T15:00:08Z"
 
     PayoutResponseCompletedBRL:
-      summary: "Brazil PIX payout completed"
+      summary: "Payout completed (BRL PIX)"
       value:
         id: d1e2f3a4-b5c6-7890-abcd-ef0123456789
+        accountId: acme_br
+        merchantId: acme_br_merch1
         status: completed
-        amount: "150.00"
+        amount: "2.00"
         currency: BRL
-        externalId: payout-br-123
         destination:
-          country: BR
-          currency: BRL
-          beneficiary:
-            name: João Silva
-            documentType: CPF
-            documentNumber: "12345678901"
-          rail:
-            type: br_pix
-            pixKey:
-              type: cpf
-              value: "12345678901"
+          identifierType: pix_key_cpf
+          identifierValue: "98765432100"
+          taxId: "98765432100"
+          taxIdCountry: BR
+          name: Carlos Menezes
         bankSystemTrxId: f4e3d2c1-b0a9-8765-4321-fedcba987654
         attempts: 1
         createdAt: "2026-03-11T23:01:17Z"
         submittedAt: "2026-03-11T23:01:32Z"
         completedAt: "2026-03-11T23:01:44Z"
 
-    PayoutRequestOnRamp:
-      summary: "On-ramp (BRL → USDT on Tron)"
-      value:
-        amount: "1000.00"
-        currency: BRL
-        destination:
-          identifierType: tron_address
-          identifierValue: TUcVE7YGbVJ2oXe7e3MiHAGiDqEbVz1GkB
-          name: My USDT Wallet
-          destinationCurrency: USDT
-          network: mainnet
-          settlement: D0
-
-    PayoutResponseOnRamp:
-      summary: "On-ramp completed (BRL → USDT)"
-      value:
-        id: a1b2c3d4-e5f6-7890-abcd-ef0123456789
-        accountId: acme_br
-        merchantId: acme_br_merch1
-        status: completed
-        amount: "1000.00"
-        currency: BRL
-        destination:
-          identifierType: tron_address
-          identifierValue: TUcVE7YGbVJ2oXe7e3MiHAGiDqEbVz1GkB
-          network: mainnet
-          settlement: D0
-        destinationCurrency: USDT
-        destinationAmount: "174.825874"
-        exchangeRate: "5.72000000"
-        bankSystemTrxId: ord_abc123
-        attempts: 1
-        createdAt: "2026-04-03T14:01:00Z"
-        submittedAt: "2026-04-03T14:01:00Z"
-        completedAt: "2026-04-03T14:01:05Z"
-
     # Webhook events
-    WebhookPaymentCreatedBinancePay:
-      summary: "Binance Pay — payment created"
-      value:
-        eventType: payment.created
-        eventId: c5a1270d-f218-4c3d-8107-87bb10ed45e6
-        transactionId: 8b8a1d72-7b8f-4a64-a978-4db144de91f2
-        merchantId: merchant_demo
-        externalId: order-2026-0001
-        status: started
-        amount: "0.25"
-        currency: USDT
-        description: Super Test
-        metadata:
-          source: checkout
-        customer:
-          externalId: customer-12345
-          name: Sebastian Gonzalez
-          country: UY
-          email: sebastian@example.com
-          phoneNumber: "+59899123456"
-
     WebhookConfirmedARS:
       summary: "ARS — payment confirmed"
       value:
-        eventType: payment.status_changed
-        eventId: evt_ars_01J9Z6Y2F4A7B8C9D0E1F2G3H4
         transactionId: a3f7c821-4b2e-4c1a-9d3f-7e8b9c0d1e2f
         externalId: ORD-1001
         merchantId: acme_ars_merch1
@@ -1936,8 +880,6 @@ components:
     WebhookConfirmedBRL:
       summary: "BRL — payment confirmed"
       value:
-        eventType: payment.status_changed
-        eventId: evt_brl_01J9Z6Y2F4A7B8C9D0E1F2G3H5
         transactionId: f90c7c31-7a38-46dc-99ba-188a4c99da29
         externalId: ORD-2001
         merchantId: bpn_merch_1
@@ -2018,53 +960,6 @@ components:
 # ─────────────────────────────────────────────────────────────
 paths:
 
-  # ── Account ───────────────────────────────────────────────
-
-  /balance:
-    get:
-      tags: [Account]
-      summary: Get account balance
-      description: |
-        Returns the current balance for your account, broken down by currency.
-
-        Requires an **account-scoped API key** — not a merchant key.
-      security:
-        - ApiKeyAuth: []
-      responses:
-        '200':
-          description: Account balance
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  accountId:
-                    type: string
-                    example: acme_br
-                  balances:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        currency:
-                          type: string
-                          example: BRL
-                        balance:
-                          type: string
-                          example: "34.60"
-              example:
-                accountId: acme_br
-                balances:
-                  - currency: BRL
-                    balance: "34.60"
-        '401':
-          description: Missing or invalid API key
-          content:
-            application/json:
-              example:
-                code: unauthorized
-                message: Invalid or missing API key.
-
   # ── Pay-in ────────────────────────────────────────────────
 
   /payments:
@@ -2079,28 +974,8 @@ paths:
         initiates a CBU/CVU bank transfer and **must include the reference in the
         transfer concept/description field**. The reconciler matches it automatically.
 
-        **BRL** — two methods (choose with `paymentMethod`):
-
-        - `instant_bank_transfer` *(default)* — `paymentData.type = "pix_transfer"`:
-          display `paymentData.pixKey` and `paymentData.reference`. The customer
-          initiates a PIX transfer using the reference as the description. The
-          reconciler matches by CPF/CNPJ + amount. Order expiration is
-          merchant-controlled.
-        - `pix_qr` — `paymentData.type = "pix_qr"`: a per-order dynamic PIX QR
-          (BR-Code) is minted by Dinaria. Display `paymentData.qrCodeBase64`
-          inline (`<img src="data:image/png;base64,...">`) or render
-          `paymentData.qrCodeString` with any QR encoder; "copy-and-paste PIX"
-          is supported by showing the same string verbatim. **The QR (and
-          order) expire in 15 minutes** — any merchant-supplied `expiresAfter`
-          or `expiration` is ignored. The reconciler binds the credit to this
-          order via the QR's embedded `externalId`, giving guaranteed 1:1
-          matching even when the payer's tax ID is unknown ahead of time.
-
-        **Binance Pay (global)**: set `currency = "USDT"` and
-        `paymentMethod = "crypto_payment"`. The same payment response resolves
-        `rail = "binance_pay"` and returns `actionUrl` plus optional `qrData`.
-        Open `actionUrl` for the primary checkout experience. A customer redirect
-        is not payment confirmation; verify `confirmed` via webhook or retrieval.
+        **BRL**: Display `paymentData.pixKey`. The customer initiates a PIX transfer
+        using `paymentData.reference` as the transfer description.
 
         Payments are single-use. Create a new one for each attempt.
       parameters:
@@ -2120,12 +995,6 @@ paths:
                 $ref: "#/components/examples/PaymentRequestBRL"
               brl_cnpj:
                 $ref: "#/components/examples/PaymentRequestBRLCNPJ"
-              brl_pix_qr:
-                $ref: "#/components/examples/PaymentRequestBRLPixQR"
-              binance_pay:
-                $ref: "#/components/examples/PaymentRequestBinancePay"
-              binance_pay_account_key:
-                $ref: "#/components/examples/PaymentRequestBinancePayAccountKey"
       responses:
         "200":
           description: Payment created successfully.
@@ -2138,10 +1007,6 @@ paths:
                   $ref: "#/components/examples/PaymentResponseARS"
                 brl_started:
                   $ref: "#/components/examples/PaymentResponseBRL"
-                brl_pix_qr_started:
-                  $ref: "#/components/examples/PaymentResponseBRLPixQR"
-                binance_pay_started:
-                  $ref: "#/components/examples/PaymentResponseBinancePay"
         "400":
           description: Invalid request.
           content:
@@ -2185,14 +1050,14 @@ paths:
           in: query
           schema:
             type: string
-            enum: [started, pending, confirmed, cancelled, expired]
+            enum: [started, confirmed, cancelled, expired]
           description: Filter by payment status.
         - name: currency
           in: query
           schema:
             type: string
             example: BRL
-          description: Filter by currency code (e.g. `BRL`, `ARS`, `USDT`).
+          description: Filter by currency code (e.g. `BRL`, `ARS`).
         - name: merchantId
           in: query
           schema:
@@ -2267,8 +1132,6 @@ paths:
                   $ref: "#/components/examples/PaymentResponseARS"
                 brl_started:
                   $ref: "#/components/examples/PaymentResponseBRL"
-                binance_pay_started:
-                  $ref: "#/components/examples/PaymentResponseBinancePay"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -2321,30 +1184,23 @@ paths:
 
   /payouts:
     post:
-      tags: [Payouts, Stablecoin Settlement]
+      tags: [Payouts]
       summary: Create a payout
       description: |
-        Sends money to a beneficiary using a country-specific payout rail.
+        Sends money out to a customer's bank account.
 
         The merchant's balance is debited immediately at creation time.
         Processing happens asynchronously every ~5 minutes via the payout processor.
 
-        **Venezuela remittances**: fund the payout in `USDT`; the beneficiary receives `VES`.
-        Retrieve an indicative quote with `GET /payouts/rates` first. The `remitter` object is
-        required for remittance use cases. Use `ve_bank_account`, `ve_mobile_payment`, or
-        `ve_cash_pickup` as the rail. `ve_cash_pickup` does not require bank details.
+        **ARS CBU alias**: set `destination.identifierType` to `alias_cbu` and `destination.identifierValue`
+        to the alias (e.g. `mialiascbu`) — the real CBU, CUIT, and name are resolved automatically before sending.
 
-        **Argentina**: use `ar_cbu` with `rail.cbu`, `ar_cvu` with `rail.cvu`, or
-        `ar_alias` with `rail.alias`. The beneficiary document type is generally `CUIT`.
+        **ARS CUIT auto-resolution**: `destination.taxId` is optional for `cbu` type — the platform
+        resolves it from the CBU automatically. Providing it explicitly skips the lookup.
 
-        **Brazil**: use the `br_pix` rail. `rail.pixKey.type` accepts `cpf`, `cnpj`, `email`,
-        `phone`, or `evp`. The beneficiary document type must be `CPF` or `CNPJ`.
-
-        **On-ramp (BRL → USDT)**: set `destination.identifierType` to `tron_address` and
-        `destination.identifierValue` to the recipient's Tron wallet address. The conversion is
-        executed synchronously — the response is returned with `status: "completed"` and the confirmed
-        `exchangeRate`, `destinationAmount`, and `destinationCurrency`. Use `GET /payouts/rates` first
-        to check indicative prices. Optionally set `destination.settlement` to `D0` (default), `D1`, or `D2`.
+        **BRL PIX key**: use `destination.identifierType` of `pix_key_cpf`, `pix_key_cnpj`,
+        `pix_key_email`, `pix_key_phone`, or `pix_key_random`. The value must be the recipient's
+        registered PIX key — a CNPJ is only valid if explicitly registered as a PIX key by the recipient.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -2354,43 +1210,24 @@ paths:
             schema:
               $ref: "#/components/schemas/PayoutRequest"
             examples:
-              venezuela_bank_account:
-                $ref: "#/components/examples/PayoutRequestVE"
-              venezuela_mobile_payment:
-                $ref: "#/components/examples/PayoutRequestVEMobile"
-              venezuela_cash:
-                $ref: "#/components/examples/PayoutRequestVECash"
-              argentina_cbu:
-                $ref: "#/components/examples/PayoutRequestARSCBU"
-              argentina_cvu:
+              cbu:
                 $ref: "#/components/examples/PayoutRequestARS"
-              argentina_alias:
+              alias:
                 $ref: "#/components/examples/PayoutRequestARSAlias"
-              brazil_pix_cpf:
+              brl_pix_cpf:
                 $ref: "#/components/examples/PayoutRequestBRLPix"
-              brazil_pix_evp:
+              brl_pix_random:
                 $ref: "#/components/examples/PayoutRequestBRLPixRandom"
-              on_ramp:
-                $ref: "#/components/examples/PayoutRequestOnRamp"
       responses:
-        "201":
-          description: |
-            Payout created. Fiat payouts usually start as `pending` or `processing` until the
-            payment rail confirms the transfer. For on-ramp (`tron_address`) the conversion is
-            synchronous and returns `completed` in the same response.
+        "200":
+          description: Payout created. Status will be `pending` until processed.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PayoutResponse"
               examples:
-                venezuela_processing:
-                  $ref: "#/components/examples/PayoutResponseVE"
-                argentina_pending:
+                pending:
                   $ref: "#/components/examples/PayoutResponsePending"
-                brazil_completed:
-                  $ref: "#/components/examples/PayoutResponseCompletedBRL"
-                on_ramp:
-                  $ref: "#/components/examples/PayoutResponseOnRamp"
         "400":
           description: Invalid request.
           content:
@@ -2427,7 +1264,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [pending, processing, completed, failed]
+            enum: [pending, processing, completed, failed, cancelled]
           description: Filter by status.
         - name: limit
           in: query
@@ -2453,471 +1290,6 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
-  /payouts/rates:
-    get:
-      tags: [Payouts, Stablecoin Settlement]
-      summary: Get an indicative payout conversion rate
-      description: |
-        Returns an indicative conversion without locking a quote. Use `USDT` to `VES` with an
-        `amount` before creating a Venezuela remittance payout. The endpoint also supports the
-        existing `BRL` to `USDT` on-ramp rate flow.
-      parameters:
-        - name: fromCurrency
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [USDT, BRL]
-          description: Source currency. Use `USDT` for a Venezuela remittance or `BRL` for on-ramp.
-        - name: toCurrency
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [VES, USDT]
-          description: Destination currency. Use `VES` for a Venezuela remittance or `USDT` for on-ramp.
-        - name: amount
-          in: query
-          schema:
-            type: string
-            pattern: '^\d+(\.\d{1,2})?$'
-            example: "25.00"
-          description: Source amount. Required for the Venezuela remittance quote.
-        - name: settlement
-          in: query
-          schema:
-            type: string
-            enum: [D0, D1, D2]
-            default: D0
-          description: Settlement window.
-      responses:
-        "200":
-          description: Indicative rate.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PayoutRatesResponse"
-              examples:
-                venezuela_remittance:
-                  summary: USDT to VES remittance quote
-                  value:
-                    fromCurrency: USDT
-                    amount: "25.00"
-                    destCurrency: VES
-                    fixedFee: "0.60"
-                    amountToConvert: "24.40"
-                    exchangeRate: "36.1355"
-                    destinationAmount: "881.71"
-                    indicativeAt: "2026-07-22T15:00:00Z"
-                on_ramp:
-                  summary: BRL to USDT on-ramp rate
-                  value:
-                    fromCurrency: BRL
-                    toCurrency: USDT
-                    price: 5.72
-                    settlement: D0
-                    indicativeAt: "2026-04-03T14:00:00Z"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          description: The requested conversion corridor is unavailable in this environment.
-
-  # ── Blockchain Access ─────────────────────────────────────
-
-  /v1/chains/networks:
-    get:
-      tags: [Blockchain Access]
-      summary: List networks
-      description: Returns all blockchain networks Dinaria supports.
-      responses:
-        "200":
-          description: List of networks.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TronNetworkListResponse"
-              example:
-                object: list
-                data:
-                  - code: mainnet
-                    type: tron
-                    displayName: Tron Mainnet
-                    isActive: true
-                  - code: shasta
-                    type: tron
-                    displayName: Tron Shasta (Testnet)
-                    isActive: true
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /v1/chains/networks/{code}:
-    get:
-      tags: [Blockchain Access]
-      summary: Get network details
-      description: Returns RPC configuration, catalog assets, and status for a specific network.
-      parameters:
-        - name: code
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [mainnet, shasta]
-          description: Network code.
-      responses:
-        "200":
-          description: Network detail.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TronNetworkDetailResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /v1/chains/tron/addresses/{address}/balance:
-    get:
-      tags: [Blockchain Access]
-      summary: Get address balance
-      description: |
-        Returns the TRX balance (in sun) for any Tron address, and optionally one or more
-        TRC-20 token balances. Pass `contracts` once or multiple times, or as a comma-separated value.
-
-        `trxSun` is the TRX balance in sun (1 TRX = 1,000,000 sun). Token `balance` is in the
-        token's smallest unit — divide by `10^decimals` for the human-readable amount.
-      parameters:
-        - name: address
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Tron address in base58check format (`T…`).
-          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
-        - name: network
-          in: query
-          schema:
-            type: string
-            enum: [mainnet, shasta]
-            default: mainnet
-          description: Target network. Can also be set via `X-Network` header.
-        - name: contracts
-          in: query
-          schema:
-            type: string
-          description: |
-            Optional. TRC-20 contract address(es) to include token balances for.
-            Repeat the parameter or use comma-separated values. Contract must exist in Dinaria's catalog.
-          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-      responses:
-        "200":
-          description: Address balance.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TronAddressBalanceResponse"
-              example:
-                address: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
-                network: mainnet
-                trxSun: "1500000000"
-                tokens:
-                  - contract: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-                    symbol: USDT
-                    decimals: 6
-                    balance: "50000000"
-        "400":
-          description: Invalid address or contract.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: Unknown contract in catalog.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /v1/chains/tron/contracts/{contract}/balance:
-    get:
-      tags: [Blockchain Access]
-      summary: Get TRC-20 token balance
-      description: Returns the TRC-20 token balance of a specific owner address for a given contract.
-      parameters:
-        - name: contract
-          in: path
-          required: true
-          schema:
-            type: string
-          description: TRC-20 contract address. Must exist in Dinaria's catalog.
-          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-        - name: owner
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Address whose balance to query.
-          example: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
-        - name: network
-          in: query
-          schema:
-            type: string
-            enum: [mainnet, shasta]
-            default: mainnet
-      responses:
-        "200":
-          description: Token balance.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TronContractBalanceResponse"
-              example:
-                contract: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-                owner: TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE
-                balance: "50000000"
-                decimals: 6
-        "400":
-          description: Invalid address or missing owner.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: Unknown contract in catalog.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /v1/chains/tron/contracts/{contract}/allowance:
-    get:
-      tags: [Blockchain Access]
-      summary: Get TRC-20 allowance
-      description: Returns how much a spender is approved to transfer on behalf of an owner.
-      parameters:
-        - name: contract
-          in: path
-          required: true
-          schema:
-            type: string
-          description: TRC-20 contract address.
-          example: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-        - name: owner
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Address that granted the allowance.
-          example: TOwnerAddress...
-        - name: spender
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Address that may spend on owner's behalf.
-          example: TSpenderAddress...
-        - name: network
-          in: query
-          schema:
-            type: string
-            enum: [mainnet, shasta]
-            default: mainnet
-      responses:
-        "200":
-          description: Allowance amount.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TronAllowanceResponse"
-              example:
-                contract: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
-                owner: TOwnerAddress...
-                spender: TSpenderAddress...
-                allowance: "0"
-                decimals: 6
-        "400":
-          description: Invalid address or missing parameters.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: Unknown contract in catalog.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /v1/chains/tron/transactions/broadcast:
-    post:
-      tags: [Blockchain Access]
-      summary: Broadcast a transaction
-      description: |
-        Submits a pre-signed Tron transaction to the network via Dinaria's full node.
-        Your private key **never** leaves your system — you sign locally and pass only the signed transaction object.
-
-        The `X-Idempotency-Key` header is required. Reusing the same key with the same body returns
-        the original response without re-broadcasting.
-      parameters:
-        - name: X-Idempotency-Key
-          in: header
-          required: true
-          schema:
-            type: string
-          description: UUID or unique string to prevent duplicate broadcasts on retry.
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TronBroadcastRequest"
-            example:
-              network: mainnet
-              signedTransaction:
-                raw_data:
-                  contract: []
-                  timestamp: 1712000000000
-                  expiration: 1712003600000
-                raw_data_hex: "0a02..."
-                txID: a1b2c3...
-                signature: ["3045..."]
-      responses:
-        "200":
-          description: Transaction submitted. Poll `GET /v1/chains/tron/transactions/{submissionId}` for confirmation.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TronBroadcastResponse"
-              example:
-                submissionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                status: pending
-                network: mainnet
-                txid: a1b2c3d4...
-                submittedAt: "2026-04-03T14:01:05Z"
-        "400":
-          description: Invalid request or node rejection.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "502":
-          description: All configured RPC nodes failed.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /v1/chains/tron/transactions/dry-run:
-    post:
-      tags: [Blockchain Access]
-      summary: Dry-run a transaction
-      description: |
-        Estimates energy consumption without broadcasting. Use before submitting to check fee cost.
-        Passes the signed transaction through Tron's `triggerconstantcontract` and returns the wrapped result.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TronBroadcastRequest"
-            example:
-              network: mainnet
-              signedTransaction:
-                raw_data_hex: "0a02..."
-                txID: a1b2c3...
-                signature: ["3045..."]
-      responses:
-        "200":
-          description: Dry-run result from the Tron node.
-          content:
-            application/json:
-              example:
-                httpStatus: 200
-                result:
-                  energy_used: 13382
-                  constant_result: ["..."]
-                  result:
-                    result: true
-        "400":
-          description: Invalid request.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-
-  /v1/chains/tron/transactions/{submissionId}:
-    get:
-      tags: [Blockchain Access]
-      summary: Get submission status
-      description: Retrieve the status of a previously broadcast transaction by its Dinaria submission ID.
-      parameters:
-        - name: submissionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: The `submissionId` returned by `POST /v1/chains/tron/transactions/broadcast`.
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-      responses:
-        "200":
-          description: Submission status.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TronSubmissionResponse"
-              examples:
-                pending:
-                  summary: Transaction pending on-chain
-                  value:
-                    submissionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                    status: pending
-                    network: mainnet
-                    txid: null
-                    submittedAt: "2026-04-03T14:01:05Z"
-                confirmed:
-                  summary: Transaction confirmed
-                  value:
-                    submissionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                    status: confirmed
-                    network: mainnet
-                    txid: a1b2c3d4e5f6...
-                    submittedAt: "2026-04-03T14:01:05Z"
-        "400":
-          description: Invalid submission ID format.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /payouts/{payoutId}:
     get:
       tags: [Payouts]
@@ -2932,18 +1304,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/PayoutResponse"
               examples:
-                venezuela:
-                  $ref: "#/components/examples/PayoutResponseVE"
-                argentina:
+                completed:
                   $ref: "#/components/examples/PayoutResponseCompleted"
-                brazil:
-                  $ref: "#/components/examples/PayoutResponseCompletedBRL"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /payouts/{payoutId}/cancel:
+    post:
+      tags: [Payouts]
+      summary: Cancel a payout
+      description: |
+        Cancels a `pending` payout before the processor picks it up.
+        The debited amount is immediately restored to the merchant's balance.
+        Returns `409` if the payout has already been processed.
+      parameters:
+        - $ref: "#/components/parameters/PayoutIdPath"
+      responses:
+        "200":
+          description: Payout cancelled. Balance restored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Payout is not in `pending` status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: not_cancelable
+                  message: Only pending payouts can be cancelled.
 
   # ── Merchant settings ─────────────────────────────────────
 
@@ -3016,27 +1418,6 @@ paths:
   # ── Webhooks ──────────────────────────────────────────────
 
   /webhooks/payments:
-    get:
-      tags: [Webhooks]
-      summary: List registered webhook URLs
-      description: |
-        Returns webhook URLs for your API key scope. **Secrets are never returned.**
-        Use a **merchant-scoped** or **account-scoped** key consistent with how you registered.
-      responses:
-        "200":
-          description: List of registrations.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WebhookListResponse"
-              example:
-                object: list
-                data:
-                  - webhookUrl: https://your-server.com/webhooks/dinaria
-                    scope: merchant
-                    createdAt: "2026-03-10T12:00:00Z"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Webhooks]
       summary: Register a webhook URL
@@ -3045,9 +1426,6 @@ paths:
 
         Call this once during setup. If your URL changes, call again to update it.
         This endpoint is called **by you** — it does not deliver any events itself.
-
-        **Scope** matches your API key: a **merchant-scoped** key ties the registration to that merchant;
-        an **account-scoped** key registers at account level (all merchants under the account).
 
         The `webhookSecret` is returned **only once**. Store it securely in a secret manager.
         You will use it to verify the `X-Webhook-Signature` on every incoming event.
@@ -3078,36 +1456,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
-    delete:
-      tags: [Webhooks]
-      summary: Deregister a webhook URL
-      description: |
-        Removes the registration for the given `webhookUrl` within your API key scope.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WebhookDeleteRequest"
-            example:
-              webhookUrl: https://your-server.com/webhooks/dinaria
-      responses:
-        "204":
-          description: Webhook removed.
-        "400":
-          description: Missing or invalid body.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          description: No registration found for this URL and scope.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   /webhooks/payments/rotate-secret:
     post:
@@ -3117,37 +1465,8 @@ paths:
         Issues a new signing secret for your registered webhook endpoint.
         The new `webhookSecret` is returned only once — store it immediately.
 
-        **Merchant-scoped API key:** send `webhookUrl` when you have multiple URLs registered; otherwise
-        the single registration for that merchant is rotated. Do **not** send `merchantId`.
-
-        **Account-scoped API key:** omit `merchantId` to rotate the account-level registration, or set
-        `merchantId` to rotate that merchant's registration. Use `webhookUrl` when needed to pick a URL.
-
-        Equivalent paths (same handler): `/webhooks/payments/rotate`, `/webhooks/rotate-secret`, `/webhooks/rotate`.
-        If you terminate TLS on a reverse proxy, ensure these paths are forwarded (not only an exact match on `/webhooks/payments`).
-
         If `previousSecretExpiresAt` is set, the old secret remains valid until that time
         (grace period), giving you time to deploy the new secret before the old one stops working.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WebhookRotateRequest"
-            examples:
-              merchantScoped:
-                summary: Merchant-scoped key (typical)
-                value:
-                  webhookUrl: https://your-server.com/webhooks/dinaria
-              accountScoped:
-                summary: Account-scoped key, account-level webhook
-                value:
-                  webhookUrl: https://your-server.com/webhooks/dinaria
-              accountScopedMerchant:
-                summary: Account-scoped key, merchant-specific webhook
-                value:
-                  merchantId: acme_merch_1
-                  webhookUrl: https://your-server.com/webhooks/dinaria
       responses:
         "200":
           description: Secret rotated. Save the new `webhookSecret`.
@@ -3162,22 +1481,13 @@ paths:
                 previousSecretExpiresAt: "2026-03-11T13:00:00Z"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: No matching webhook registration for this key and request.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   /webhooks/payments/updates:
     post:
       tags: [Webhooks]
       summary: Receive payment events (endpoint on your server)
       description: |
-        **This endpoint is on YOUR server.** The platform calls it when a payment is created
-        or changes status.
+        **This endpoint is on YOUR server.** The platform calls it when a payment changes status.
         Do not call this endpoint yourself.
 
         **Signature verification** (required before processing):
@@ -3189,9 +1499,7 @@ paths:
         6. Reject with HTTP 401 if verification fails.
 
         Respond with **HTTP 200 immediately**. Process the event asynchronously.
-        Delivery is at-least-once — deduplicate by **`eventId`** (the same event keeps its
-        `eventId` across retries). Events are not guaranteed to arrive in order. Retrieve
-        `GET /payments/{transactionId}` when the current state is unclear.
+        Delivery is at-least-once — deduplicate by `transactionId`.
       parameters:
         - name: X-Webhook-Timestamp
           in: header
@@ -3214,8 +1522,6 @@ paths:
             schema:
               $ref: "#/components/schemas/WebhookPaymentEvent"
             examples:
-              binance_pay_created:
-                $ref: "#/components/examples/WebhookPaymentCreatedBinancePay"
               ars_confirmed:
                 $ref: "#/components/examples/WebhookConfirmedARS"
               brl_confirmed:

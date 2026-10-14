@@ -4,7 +4,7 @@ let NAV = null;
 let currentFile = null;
 
 const DEFAULT_PAGE = 'content/index.md';
-const REDOC_CDN = 'https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js';
+const REDOC_BUNDLE = 'assets/vendor/redoc.standalone.js?v=2.5.0-1';
 const SPEC_URL = 'dinapay-v2.yaml';
 
 /* ── Country filter ─────────────────────────────────────────────── */
@@ -23,9 +23,9 @@ function selectCountry(c) {
 
 function getAvailableCountries() {
   const available = [];
-  if (document.querySelector('.country-ar')) available.push('ar');
-  if (document.querySelector('.country-br')) available.push('br');
-  if (document.querySelector('.country-ve')) available.push('ve');
+  ['ar', 'mx', 'cl', 've', 'pe', 'ec'].forEach(code => {
+    if (document.querySelector('.country-' + code)) available.push(code);
+  });
   return available;
 }
 
@@ -43,7 +43,7 @@ function setupCountryToggle() {
   const available = getAvailableCountries();
   toggle.hidden = available.length === 0;
 
-  ['ar', 'br', 've'].forEach(code => {
+  ['ar', 'mx', 'cl', 've', 'pe', 'ec'].forEach(code => {
     const btn = document.getElementById('cbtn-' + code);
     if (!btn) return;
     const show = available.includes(code);
@@ -60,21 +60,15 @@ function applyCountry(c) {
   const available = getAvailableCountries();
   const current = (c && available.includes(c)) ? c : (available[0] || null);
 
-  ['ar', 'br', 've'].forEach(code => {
+  ['ar', 'mx', 'cl', 've', 'pe', 'ec'].forEach(code => {
     const btn = document.getElementById('cbtn-' + code);
     if (btn) btn.classList.toggle('active', current === code);
   });
 
-  document.querySelectorAll('.country-ar').forEach(el => {
-    el.style.display = current === 'ar' ? '' : 'none';
-  });
-
-  document.querySelectorAll('.country-br').forEach(el => {
-    el.style.display = current === 'br' ? '' : 'none';
-  });
-
-  document.querySelectorAll('.country-ve').forEach(el => {
-    el.style.display = current === 've' ? '' : 'none';
+  ['ar', 'mx', 'cl', 've', 'pe', 'ec'].forEach(code => {
+    document.querySelectorAll('.country-' + code).forEach(el => {
+      el.style.display = current === code ? '' : 'none';
+    });
   });
 }
 
@@ -247,11 +241,11 @@ async function loadApiRef() {
   // Lazy-load Redoc bundle only when needed
   if (!window.Redoc) {
     try {
-      await loadScript(REDOC_CDN);
+      await loadScript(REDOC_BUNDLE);
     } catch (e) {
       inner.innerHTML = `<div class="error-msg" style="margin:40px">
         <h2>Failed to load API Reference</h2>
-        <p>Could not load the Redoc renderer. Check your internet connection.</p>
+        <p>Could not load the local Redoc renderer.</p>
         <small>${e}</small>
       </div>`;
       return;

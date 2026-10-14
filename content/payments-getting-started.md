@@ -9,8 +9,8 @@ parent: Guides
 ## Base URL
 Use the base URL for the environment you are integrating with.
 
-- Sandbox: `https://api.sandbox.dinaria.com`
-- Production: `https://api.dinaria.com`
+- Sandbox: `https://sbx.dinaria.com`
+- Production: `https://payments.dinaria.com`
 
 In sandbox you can simulate inbound pay-ins without a real bank transfer — see [Sandbox: Simulate a Pay-in](payments-sandbox-simulate.md).
 

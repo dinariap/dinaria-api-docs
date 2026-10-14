@@ -14,7 +14,7 @@ Binance Pay is one use case of the general Payments V2 contract. It does not hav
 
 ```bash
 curl --request POST \
-  --url https://api.sandbox.dinaria.com/v2/payments \
+  --url https://sbx.dinaria.com/v2/payments \
   --header 'Authorization: Bearer <YOUR_API_KEY>' \
   --header 'Idempotency-Key: order-1001-attempt-1' \
   --header 'Content-Type: application/json' \

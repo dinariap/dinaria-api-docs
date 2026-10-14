@@ -1,389 +1,475 @@
 ---
 title: Create a Payment
-nav_order: 2
 parent: Money In
 ---
 
 # Create a Payment
 
 ```http
-POST https://api.sandbox.dinaria.com/v2/payments
-Authorization: Bearer <YOUR_API_KEY>
-Idempotency-Key: <UNIQUE_IDEMPOTENCY_KEY>
+POST https://sbx.dinaria.com/v2/payments
+Authorization: Bearer <API_KEY>
 Content-Type: application/json
+Idempotency-Key: <UNIQUE_PERSISTED_VALUE>
 ```
 
-All amounts are decimal strings such as `"1500.00"`, never JSON floating-point numbers.
-
-Select Argentina or Brasil in the country switcher to display the corresponding request and response examples. Binance Pay remains available as a separate provider-specific example built on this same Payments V2 contract.
+A Payment is a provider-neutral order for receiving funds. `externalId` identifies the order in your system; `Idempotency-Key` identifies the technical creation attempt.
 
 ## Request fields
 
 | Field | Required | Description |
 |---|---:|---|
+| `merchantId` | conditional | Send only with an account credential when Dinaria cannot infer the merchant. |
 | `externalId` | yes | Stable order identifier in your system. |
 | `amount` | yes | Positive decimal string. |
-| `currency` | yes | Supported currency or asset code. |
-| `paymentMethod` | yes | Requested method, such as `crypto_payment`, `qr`, `bank_transfer`, or `card`. |
-| `customer` | yes | Payer information. Base fields are `type`, `externalId`, and `country`. |
-| `merchantId` | conditional | Only when an account-scoped credential cannot infer the merchant. |
-| `rail` | no | Requested processing rail within the selected `paymentMethod`. Omit it when Dinaria should infer the compatible rail. |
-| `destinationMode` | no | `single_use` or `reusable`. |
-| `description` | no | Description associated with the order. |
-| `successUrl` | no | Customer return URL after a successful user experience. |
-| `cancelUrl` | no | Customer return URL after cancellation. |
-| `expirationDate` | no | Requested ISO 8601 expiration, when supported. |
-| `metadata` | no | Client-owned information returned unchanged. |
+| `currency` | yes | Currency or configured asset code. |
+| `paymentMethod` | yes | General way the customer pays. |
+| `rail` | conditional | Country-specific payment rail. It may be inferred when only one compatible rail exists. |
+| `destinationMode` | conditional | `single_use` or `reusable`, when supported. |
+| `collectionKey` | conditional | Stable opaque merchant key for a reusable Payments destination. It is not an account, document, or transfer reference. |
+| `expirationDate` | no | Requested RFC 3339 expiration. |
+| `description` | no | Payment description, propagated when supported. |
+| `customer` | yes | Payer profile. Required fields vary by country, rail, method, and merchant policy. |
+| `metadata` | no | Additional merchant-owned data. Do not use it for routing or reconciliation-critical fields. |
 
-### Payment method versus rail
+`customer.externalId` identifies the customer in your system; it is not an identity document. When identity data is required, use the `documentType` applicable to the country and configured use case.
 
-`paymentMethod` selects the general way the payer will pay, while `rail` optionally narrows that request to a compatible processing network or local scheme.
-
-For example, a payment could request `paymentMethod: bank_transfer` and, in a corridor that supports it, `rail: spei`. When a method has only one compatible rail—or when Dinaria should choose transparently—omit `rail`.
-
-Do not confuse the request field with:
-
-- `paymentData.type`: the structure returned to complete the payment, such as `redirect` or `bank_transfer`.
-- `paymentData.bankTransfer.rail`: the rail resolved in returned bank-transfer instructions.
-
-Only send a `rail` explicitly supported for the merchant, country, currency, and `paymentMethod`. The base OpenAPI does not publish a universal rail enum because compatibility depends on the active corridor.
-
-## Customer
-
-Individual:
-
-```json
-{
-  "type": "individual",
-  "externalId": "customer-123",
-  "firstName": "Sebastian",
-  "lastName": "Gonzalez",
-  "email": "sebastian@example.com",
-  "phone": "+59899123456",
-  "country": "UY",
-  "state": "UY-MO",
-  "city": "Montevideo",
-  "address": "18 de Julio 1234",
-  "zipcode": "11200",
-  "documentType": "CI",
-  "documentNumber": "12345678",
-  "documentCountry": "UY"
-}
-```
-
-Business:
-
-```json
-{
-  "type": "business",
-  "externalId": "company-456",
-  "legalName": "Example Company S.A.",
-  "email": "payments@example.com",
-  "phone": "+59829000000",
-  "country": "UY",
-  "documentType": "RUT",
-  "documentNumber": "211234560019",
-  "documentCountry": "UY"
-}
-```
-
-`customer.externalId` is your stable customer identifier and can be an email if that is your established identifier. It is not necessarily an identity document. Additional fields depend on method, country, and risk rules. Use the dedicated customer fields instead of putting personal data in `metadata`.
-
-## Examples by country
-
-> **The fields shown in these examples are for demonstration purposes and may vary depending on the use case.**
-
-All examples use the same `POST /v2/payments` endpoint and require `Authorization`, `Idempotency-Key`, and `Content-Type: application/json`. The country examples illustrate currently supported request shapes; availability still depends on the merchant configuration.
+The identity fields shown in the following examples are demonstrative. They can vary by country, payment method, merchant policy, and configured use case.
 
 <div class="country-ar">
 
-### Argentina — bank transfer
+## Argentina
 
-#### Individual identified by CUIT
+### Interoperable QR
 
 ```json
 {
-  "externalId": "ORD-AR-1001",
-  "amount": "1500.00",
+  "externalId": "ORDER-AR-QR-001",
+  "amount": "1000.00",
   "currency": "ARS",
-  "paymentMethod": "bank_transfer",
+  "paymentMethod": "qr",
+  "rail": "ar_qr",
+  "destinationMode": "single_use",
+  "expirationDate": "2026-10-15T20:00:00Z",
+  "description": "Compra ORDER-AR-QR-001",
   "customer": {
     "type": "individual",
-    "externalId": "customer-ar-1001",
-    "firstName": "Ana",
-    "lastName": "Martínez",
+    "externalId": "CUSTOMER-AR-001",
+    "firstName": "Juan",
+    "lastName": "Pérez",
     "country": "AR",
     "documentType": "CUIT",
-    "documentNumber": "20221370075",
-    "documentCountry": "AR"
-  },
-  "metadata": {
-    "orderId": "ORD-AR-1001"
+    "documentNumber": "20234567897"
   }
 }
 ```
 
-#### Individual identified by DNI
+### Single-use bank transfer
 
 ```json
 {
-  "externalId": "ORD-AR-1002",
-  "amount": "500.00",
+  "externalId": "ORDER-AR-BANK-001",
+  "amount": "1500.00",
   "currency": "ARS",
   "paymentMethod": "bank_transfer",
+  "rail": "ar_bank_transfer",
+  "destinationMode": "single_use",
   "customer": {
     "type": "individual",
-    "externalId": "customer-ar-1002",
-    "firstName": "María",
-    "lastName": "López",
+    "externalId": "CUSTOMER-AR-002",
+    "firstName": "Ana",
+    "lastName": "Martínez",
     "country": "AR",
-    "documentType": "DNI",
-    "documentNumber": "22137007",
-    "documentCountry": "AR"
+    "documentType": "CUIT",
+    "documentNumber": "27234567891"
   }
 }
 ```
 
 </div>
 
-<div class="country-br">
+<div class="country-mx">
 
-### Brasil
+## Mexico — SPEI
 
-#### Instant bank transfer — CPF
-
-```json
-{
-  "externalId": "ORD-BR-2001",
-  "amount": "100.00",
-  "currency": "BRL",
-  "paymentMethod": "instant_bank_transfer",
-  "customer": {
-    "type": "individual",
-    "externalId": "customer-br-2001",
-    "firstName": "João",
-    "lastName": "Silva",
-    "country": "BR",
-    "documentType": "CPF",
-    "documentNumber": "12345678901",
-    "documentCountry": "BR"
-  },
-  "metadata": {
-    "orderId": "ORD-BR-2001"
-  }
-}
-```
-
-#### Instant bank transfer — CNPJ
+Single-use:
 
 ```json
 {
-  "externalId": "ORD-BR-2002",
+  "externalId": "ORDER-MX-001",
   "amount": "250.00",
-  "currency": "BRL",
-  "paymentMethod": "instant_bank_transfer",
-  "customer": {
-    "type": "business",
-    "externalId": "company-br-2002",
-    "legalName": "Belo Brasil Ltda",
-    "country": "BR",
-    "documentType": "CNPJ",
-    "documentNumber": "58084921000160",
-    "documentCountry": "BR"
-  }
-}
-```
-
-#### Dynamic PIX QR
-
-```json
-{
-  "externalId": "ORD-BR-2003",
-  "amount": "100.00",
-  "currency": "BRL",
-  "paymentMethod": "pix_qr",
-  "customer": {
-    "type": "business",
-    "externalId": "company-br-2003",
-    "legalName": "Belo Brasil Ltda",
-    "country": "BR",
-    "documentType": "CNPJ",
-    "documentNumber": "58084921000160",
-    "documentCountry": "BR"
-  },
-  "metadata": {
-    "orderId": "ORD-BR-2003"
-  }
-}
-```
-
-</div>
-
-## Response
-
-Both successful responses return the same Payment representation:
-
-| HTTP | Meaning |
-|---:|---|
-| `201 Created` | A new payment was created and the response contains that Payment resource. |
-| `200 OK` | No new payment was created. Dinaria recognized an identical replay using the same `Idempotency-Key`, returns the original Payment, and includes `Idempotent-Replayed: true`. |
-
-Reusing the same key with a different body returns `409 Conflict`.
-
-<div class="country-ar">
-
-### Argentina response
-
-```json
-{
-  "transactionId": "a3f7c821-4b2e-4c1a-9d3f-7e8b9c0d1e2f",
-  "externalId": "ORD-AR-1001",
-  "status": "started",
-  "amount": "1500.00",
-  "currency": "ARS",
+  "currency": "MXN",
   "paymentMethod": "bank_transfer",
-  "creationDate": "2026-09-09T18:30:00Z",
-  "expirationDate": "2026-09-09T19:30:00Z",
-  "actionUrl": "https://pay.sand.dinaria.com/checkout/cs_ar_public_token",
+  "rail": "spei",
+  "destinationMode": "single_use",
   "customer": {
     "type": "individual",
-    "externalId": "customer-ar-1001",
-    "firstName": "Ana",
-    "lastName": "Martínez",
-    "country": "AR",
-    "documentType": "CUIT",
-    "documentNumber": "20221370075",
-    "documentCountry": "AR"
-  },
-  "metadata": { "orderId": "ORD-AR-1001" },
-  "paymentData": {
-    "type": "bank_transfer",
-    "bankTransfer": {
-      "rail": "ar_bank_transfer",
-      "destinationMode": "reusable",
-      "destination": {
-        "accountIdentifier": {
-          "type": "cbu",
-          "value": "4310009922100000122004"
-        },
-        "accountHolder": { "name": "Dinaria" }
-      },
-      "transferReference": "9032000000000000023"
-    }
+    "externalId": "CUSTOMER-MX-001",
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "country": "MX",
+    "documentType": "CURP",
+    "documentNumber": "GOSJ800101HDFNRN09"
   }
 }
 ```
 
-</div>
-
-<div class="country-br">
-
-### Brasil response
+Reusable destination managed by Payments:
 
 ```json
 {
-  "transactionId": "3d99d177-aa3f-4b34-9e1d-8d5b69e0c1b1",
-  "externalId": "ORD-BR-2003",
-  "status": "started",
-  "amount": "100.00",
-  "currency": "BRL",
-  "paymentMethod": "pix_qr",
-  "creationDate": "2026-09-09T18:30:00Z",
-  "expirationDate": "2026-09-09T18:45:00Z",
-  "actionUrl": "https://pay.sand.dinaria.com/checkout/cs_br_public_token",
+  "externalId": "ORDER-MX-REUSABLE-001",
+  "amount": "250.00",
+  "currency": "MXN",
+  "paymentMethod": "bank_transfer",
+  "rail": "spei",
+  "destinationMode": "reusable",
+  "collectionKey": "CUSTOMER-MX-001",
   "customer": {
-    "type": "business",
-    "externalId": "company-br-2003",
-    "legalName": "Belo Brasil Ltda",
-    "country": "BR",
-    "documentType": "CNPJ",
-    "documentNumber": "58084921000160",
-    "documentCountry": "BR"
-  },
-  "metadata": { "orderId": "ORD-BR-2003" },
-  "paymentData": {
-    "type": "qr",
-    "qr": {
-      "qrCodeString": "00020101021243430010ar.com.pvs0105...6304B081",
-      "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
-      "qrExpiresAt": "2026-08-17T21:04:04Z"
-    }
+    "type": "individual",
+    "externalId": "CUSTOMER-MX-001",
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "country": "MX",
+    "documentType": "CURP",
+    "documentNumber": "GOSJ800101HDFNRN09"
+  }
+}
+```
+
+The same compatible merchant and `collectionKey` relationship returns the same destination. It does not necessarily create an administrable Virtual Account.
+
+</div>
+
+<div class="country-cl">
+
+## Chile — bank transfer
+
+Chile uses `single_use`, requires integer CLP amounts, and does not use `collectionKey`.
+
+```json
+{
+  "externalId": "ORDER-CL-001",
+  "amount": "10000",
+  "currency": "CLP",
+  "paymentMethod": "bank_transfer",
+  "rail": "cl_bank_transfer",
+  "destinationMode": "single_use",
+  "expirationDate": "2026-10-15T20:00:00Z",
+  "description": "Transferencia ORDER-CL-001",
+  "customer": {
+    "type": "individual",
+    "externalId": "CUSTOMER-CL-001",
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "country": "CL",
+    "documentType": "RUT",
+    "documentNumber": "12345678-5"
   }
 }
 ```
 
 </div>
 
-`creationDate`, `expirationDate`, `actionUrl`, and `paymentData` are part of the common resource. Method-specific expiration fields, such as `qrExpiresAt`, live inside their corresponding instructions.
+<div class="country-pe">
 
-## Payment data variants
+## Peru
 
-### Bank transfer
-
-```json
-{
-  "type": "bank_transfer",
-  "bankTransfer": {
-    "rail": "spei",
-    "destinationMode": "single_use",
-    "destination": {
-      "accountIdentifier": { "type": "clabe", "value": "646180157034181180" },
-      "accountHolder": { "name": "Dinaria" }
-    },
-    "transferReference": "ORDER-1002"
-  }
-}
-```
-
-`accountIdentifier.type` depends on country and rail. `transferReference` appears only when the payer must use one; there is no generic reference field for every method.
+Use `pe_qr` with `paymentMethod: qr`, or `pe_bank_transfer` with `paymentMethod: bank_transfer`. Both use `single_use`, PEN, and a future `expirationDate`.
 
 ### QR
 
 ```json
 {
-  "type": "qr",
-  "qr": {
-    "qrCodeString": "00020101021243430010ar.com.pvs0105...6304B081",
-    "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
-    "qrExpiresAt": "2026-08-17T21:04:04Z"
+  "externalId": "ORDER-PE-QR-001",
+  "amount": "100.00",
+  "currency": "PEN",
+  "paymentMethod": "qr",
+  "rail": "pe_qr",
+  "destinationMode": "single_use",
+  "expirationDate": "2026-10-15T20:00:00-05:00",
+  "customer": {
+    "type": "individual",
+    "externalId": "CUSTOMER-PE-001",
+    "firstName": "María",
+    "lastName": "Gómez",
+    "country": "PE",
+    "documentType": "DNI",
+    "documentNumber": "12345678"
   }
 }
 ```
 
-Use `qrCodeString` to render or copy the QR payload. `qrCodeBase64` can be displayed directly, and `qrExpiresAt` is the expiration of these instructions. An optional `format` can identify the QR format when provided.
-
-### Cash
-
-```json
-{ "type": "cash", "cash": { "paycode": "1234567890" } }
-```
-
-### Card
+### Bank transfer
 
 ```json
 {
-  "type": "card",
-  "card": {
-    "sessionToken": "session_public_token",
-    "sdk": "provider-neutral-sdk"
+  "externalId": "ORDER-PE-BANK-002",
+  "amount": "150.00",
+  "currency": "PEN",
+  "paymentMethod": "bank_transfer",
+  "rail": "pe_bank_transfer",
+  "destinationMode": "single_use",
+  "expirationDate": "2026-10-15T20:00:00-05:00",
+  "customer": {
+    "type": "individual",
+    "externalId": "CUSTOMER-PE-002",
+    "firstName": "Lucía",
+    "lastName": "Torres",
+    "country": "PE"
   }
 }
 ```
 
-## Idempotency
+</div>
 
-`Idempotency-Key` identifies the technical attempt; `externalId` identifies the business order. After a timeout, repeat exactly the same body with the same key. An identical replay returns `200 OK`, the original Payment, and `Idempotent-Replayed: true`. Reusing the key with a different body returns `409 Conflict`. Generating a new key while the outcome is unknown can create a second payment.
+<div class="country-ec">
 
-## Errors
-
-Errors use the common shape:
+## Ecuador — bank transfer
 
 ```json
 {
-  "code": "invalid_request",
-  "message": "amount must be a positive decimal string",
-  "requestId": "req-01J7A8JH7MY2V9KQ4X1G7EMD8P"
+  "externalId": "ORDER-EC-BANK-001",
+  "amount": "25.00",
+  "currency": "USD",
+  "paymentMethod": "bank_transfer",
+  "rail": "ec_bank_transfer",
+  "destinationMode": "single_use",
+  "expirationDate": "2026-10-15T20:00:00-05:00",
+  "description": "Compra ORDER-EC-BANK-001",
+  "customer": {
+    "type": "individual",
+    "externalId": "CUSTOMER-EC-001",
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "email": "juan.perez@example.com",
+    "country": "EC",
+    "documentType": "CC",
+    "documentNumber": "1712345678"
+  }
 }
 ```
 
-Create can return `400`, `401`, `403`, `409`, `422`, or `503`. Retain `requestId` for support and troubleshooting.
+</div>
+
+## Successful response
+
+`201 Created` returns a new Payment. An identical idempotent replay returns the original Payment with `200 OK` and `Idempotent-Replayed: true`.
+
+<div class="country-ar">
+
+### Argentina QR response
+
+```json
+{
+  "transactionId": "8dd5d1ee-1ba0-4311-bbbd-fd19765b2f93",
+  "externalId": "ORDER-AR-QR-001",
+  "status": "started",
+  "amount": "1000.00",
+  "currency": "ARS",
+  "paymentMethod": "qr",
+  "creationDate": "2026-10-14T18:00:00Z",
+  "expirationDate": "2026-10-15T20:00:00Z",
+  "actionUrl": "https://pay.dinaria.com/checkout/demo-order-ar-qr-001",
+  "paymentData": {
+    "type": "qr",
+    "qr": {
+      "qrCodeString": "00020101021243430010ar.com.demo...6304B081",
+      "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "qrExpiresAt": "2026-10-15T20:00:00Z"
+    }
+  }
+}
+```
+
+### Argentina bank-transfer response
+
+```json
+{
+  "transactionId": "43e01b19-8ee2-43cb-9d38-150dc66e74c7",
+  "externalId": "ORDER-AR-BANK-001",
+  "status": "started",
+  "amount": "1500.00",
+  "currency": "ARS",
+  "paymentMethod": "bank_transfer",
+  "creationDate": "2026-10-14T18:00:00Z",
+  "expirationDate": "2026-10-15T20:00:00Z",
+  "actionUrl": "https://pay.dinaria.com/checkout/demo-order-ar-bank-001",
+  "paymentData": {
+    "type": "bank_transfer",
+    "bankTransfer": {
+      "rail": "ar_bank_transfer",
+      "destinationMode": "single_use",
+      "destination": {
+        "accountIdentifier": {
+          "type": "cvu",
+          "value": "0000003100000000000001"
+        }
+      }
+    }
+  }
+}
+```
+
+</div>
+
+<div class="country-mx">
+
+### Mexico SPEI response
+
+```json
+{
+  "transactionId": "77b891fc-f225-49b5-82d4-c19c739d26b0",
+  "externalId": "ORDER-MX-001",
+  "status": "started",
+  "amount": "250.00",
+  "currency": "MXN",
+  "paymentMethod": "bank_transfer",
+  "creationDate": "2026-10-14T18:00:00Z",
+  "actionUrl": "https://pay.dinaria.com/checkout/demo-order-mx-001",
+  "paymentData": {
+    "type": "bank_transfer",
+    "bankTransfer": {
+      "rail": "spei",
+      "destinationMode": "single_use",
+      "destination": {
+        "accountIdentifier": {
+          "type": "clabe",
+          "value": "646180157034181180"
+        }
+      }
+    }
+  }
+}
+```
+
+</div>
+
+<div class="country-cl">
+
+### Chile response
+
+```json
+{
+  "transactionId": "59c8a946-4618-463f-b2d4-891d788acbbc",
+  "externalId": "ORDER-CL-001",
+  "status": "started",
+  "amount": "10000",
+  "currency": "CLP",
+  "paymentMethod": "bank_transfer",
+  "creationDate": "2026-10-14T18:00:00Z",
+  "expirationDate": "2026-10-15T20:00:00Z",
+  "actionUrl": "https://pay.dinaria.com/checkout/demo-order-cl-001",
+  "paymentData": {
+    "type": "bank_transfer",
+    "bankTransfer": {
+      "rail": "cl_bank_transfer",
+      "destinationMode": "single_use",
+      "destination": {
+        "accountIdentifier": {
+          "type": "account_number",
+          "value": "1234567890"
+        },
+        "accountHolder": {
+          "name": "Dinaria"
+        }
+      },
+      "transferReference": "PAY-59C8A946"
+    }
+  }
+}
+```
+
+</div>
+
+<div class="country-pe">
+
+### Peru QR response
+
+```json
+{
+  "transactionId": "e46e7f83-713f-42d0-a3ae-b99bc5eb1c36",
+  "externalId": "ORDER-PE-QR-001",
+  "status": "started",
+  "amount": "100.00",
+  "currency": "PEN",
+  "paymentMethod": "qr",
+  "creationDate": "2026-10-14T18:00:00Z",
+  "expirationDate": "2026-10-16T01:00:00Z",
+  "actionUrl": "https://pay.dinaria.com/checkout/demo-order-pe-qr-001",
+  "paymentData": {
+    "type": "qr",
+    "qr": {
+      "format": "emv",
+      "qrCodeString": "000201010212...6304ABCD",
+      "qrCodeBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "qrExpiresAt": "2026-10-16T01:00:00Z"
+    }
+  }
+}
+```
+
+### Peru bank-transfer response
+
+```json
+{
+  "transactionId": "f31bfc91-acde-4f25-9e6b-bd4c5809b029",
+  "externalId": "ORDER-PE-BANK-002",
+  "status": "started",
+  "amount": "150.00",
+  "currency": "PEN",
+  "paymentMethod": "bank_transfer",
+  "creationDate": "2026-10-14T18:00:00Z",
+  "expirationDate": "2026-10-16T01:00:00Z",
+  "actionUrl": "https://pay.dinaria.com/checkout/demo-order-pe-bank-002",
+  "paymentData": {
+    "type": "bank_transfer",
+    "bankTransfer": {
+      "rail": "pe_bank_transfer",
+      "destinationMode": "single_use",
+      "destination": {
+        "accountIdentifier": {
+          "type": "cci",
+          "value": "00212345678901234567"
+        }
+      }
+    }
+  }
+}
+```
+
+</div>
+
+<div class="country-ec">
+
+### Ecuador response
+
+```json
+{
+  "transactionId": "8b76207c-5317-4d20-ac65-90d14a6e64a3",
+  "externalId": "ORDER-EC-BANK-001",
+  "status": "started",
+  "amount": "25.00",
+  "currency": "USD",
+  "paymentMethod": "bank_transfer",
+  "creationDate": "2026-10-14T18:00:00Z",
+  "expirationDate": "2026-10-16T01:00:00Z",
+  "actionUrl": "https://pay.dinaria.com/checkout/demo-order-ec-bank-001",
+  "paymentData": {
+    "type": "redirect",
+    "redirect": {
+      "recommendedAlternative": "web",
+      "links": {
+        "web": "https://pay.dinaria.com/checkout/demo-order-ec-bank-001"
+      }
+    }
+  }
+}
+```
+
+</div>
+
+`actionUrl` is Dinaria's recommended hosted completion experience. `paymentData` contains structured instructions for custom experiences. Its `type` may be `qr`, `bank_transfer`, `redirect`, `cash`, or `card` as formally defined by the API Reference.
+
+Bank-transfer instructions identify the resolved rail, destination lifecycle, account identifier, holder data, and a transfer reference only when that rail requires one.
+
+See [Binance Pay](payments-binance-pay.md) for the public crypto redirect product and [Country & Capability Matrix](country-capabilities.md) for the complete capability summary.

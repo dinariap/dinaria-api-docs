@@ -9,7 +9,9 @@ Represents the sender of funds.
 
 Used in:
 
-- Payments
+- Payments, as embedded payer data
+- Customers, as a persistent person or business profile
+- Virtual Accounts, through `customerId`
 
 ## Beneficiary
 
@@ -17,11 +19,11 @@ Represents the receiver of funds.
 
 Used in:
 
-- Payouts (bank)
-- Cash withdrawals
+- Payouts
 
-Beneficiary is the payout destination, not a cash-specific concept.
+The fields required for a beneficiary vary by country, rail, and configured use case.
 
+## Remitter
 
-> Beneficiaries are used for all payout rails (bank, cash, and proxy-key schemes like PIX).
+Represents the originator of a Payout when corridor rules require sender information. It is distinct from the beneficiary and may be an individual or business.
 

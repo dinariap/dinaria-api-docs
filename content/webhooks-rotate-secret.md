@@ -7,7 +7,7 @@ parent: Webhooks
 # Rotate a V2 webhook secret
 
 ```http
-POST https://api.sandbox.dinaria.com/v2/webhooks/{webhookId}/rotate-secret
+POST https://sbx.dinaria.com/v2/webhooks/{webhookId}/rotate-secret
 Authorization: Bearer <YOUR_API_KEY>
 ```
 

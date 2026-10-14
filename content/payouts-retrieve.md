@@ -11,7 +11,7 @@ Use `GET /v2/payouts/{payoutId}` to retrieve the canonical current state and `GE
 ## Retrieve a payout
 
 ```http
-GET https://api.sandbox.dinaria.com/v2/payouts/{payoutId}
+GET https://sbx.dinaria.com/v2/payouts/{payoutId}
 Authorization: Bearer <YOUR_API_KEY>
 ```
 
@@ -60,40 +60,12 @@ Authorization: Bearer <YOUR_API_KEY>
     "currency": "ARS",
     "beneficiary": {
       "type": "individual",
-      "name": "Ana Martínez",
-      "documentType": "CUIT",
-      "documentNumber": "20-22137007-5"
-    },
-    "rail": { "type": "ar_cbu", "cbu": "0070327530004025541644" }
-  },
-  "status": "processing",
-  "creationDate": "2026-09-10T20:00:00Z"
-}
-```
-
-</div>
-
-<div class="country-br">
-
-### Brazil example
-
-```json
-{
-  "payoutId": "d1e2f3a4-b5c6-7890-abcd-ef0123456789",
-  "externalId": "PAYOUT-BR-1001",
-  "source": { "amount": "150.00", "currency": "BRL" },
-  "destination": {
-    "country": "BR",
-    "currency": "BRL",
-    "beneficiary": {
-      "type": "individual",
-      "name": "João Silva",
-      "documentType": "CPF",
-      "documentNumber": "12345678901"
+      "name": "Ana Martínez"
     },
     "rail": {
-      "type": "br_pix",
-      "pixKey": { "type": "cpf", "value": "12345678901" }
+      "type": "ar_bank_transfer",
+      "accountType": "cbu",
+      "accountNumber": "0070327530004025541644"
     }
   },
   "status": "processing",
@@ -106,7 +78,7 @@ Authorization: Bearer <YOUR_API_KEY>
 ## List payouts
 
 ```http
-GET https://api.sandbox.dinaria.com/v2/payouts?status=processing&externalId=PAYOUT-1001&limit=20
+GET https://sbx.dinaria.com/v2/payouts?status=processing&externalId=PAYOUT-1001&limit=20
 Authorization: Bearer <YOUR_API_KEY>
 ```
 

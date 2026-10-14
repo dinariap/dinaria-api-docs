@@ -1,44 +1,35 @@
 ---
 title: Money Movement Model
-nav_order: 2
-parent: Concepts
+parent: Core Concepts
 ---
 
-# Money Movement Model
+# Money movement model
 
-Dinaria is designed to be easy to integrate while supporting multiple rails and advanced flows.
+Dinaria separates inbound and outbound resources while presenting a consistent public lifecycle.
 
-At a high level:
+## Money in
+
+A Payment describes an amount a customer should pay. Create it with `POST /v2/payments`, show the returned `actionUrl` or structured `paymentData`, and wait for a signed webhook or retrieve the Payment before fulfilling the order.
+
+A Virtual Account is a persistent receiving destination linked to a Customer. Funds received into it are still represented as Payments, which identify the relevant `virtualAccountId`.
+
+Refunds reverse all or part of an eligible Payment. They are Money In lifecycle resources, not Payouts.
+
+## Balance
+
+`GET /v2/balance` reports the available amount by currency for the selected merchant. Available funds may come from successful inbound Payments or from a separate prefunding process, according to the configured financial model. Always read the balance rather than deriving it from Payment or Payout history.
+
+## Money out
+
+A Payout sends funds from a prefunded available balance to a beneficiary. Creation durably accepts the instruction and starts in `processing`; final delivery is asynchronous. Track `payout.status_changed` and retrieve the resource when reconciling.
 
 ```text
-Payment (money-in) → Account balance → Payout (money-out)
+Customer payment ──→ Payment ──────┐
+                         └──→ Refund ──→ customer
+                                   │
+External prefunding ───────────────┴──→ available balance ──→ Payout ──→ beneficiary
 ```
 
-## Money-in (Payments)
+Prefunding is a prerequisite for a Payout when sufficient funds are not already available. It is separate from creating the Payout and is not represented by `POST /v2/payouts`.
 
-Payments represent funds coming into Dinaria. Depending on the payment method, the payer may need to complete additional steps.
-
-After creating a payment, the response includes `paymentData` with transfer instructions (CBU/alias for ARS, PIX key for BRL). Display these to the customer to complete the transfer.
-
-## Funds live in Accounts
-
-Funds are credited into an **operating account**. Your balance is split into `available`, `pending`, and `reserved`.
-
-
-## Money-out (Payouts)
-
-Payouts debit funds from an operating account and deliver them to a beneficiary via a selected rail.
-
-See: [Payouts Overview](payouts-overview.md)
-
-## FX
-
-If the source and destination currencies differ, FX is required. You can lock a rate with a quote or let Dinaria quote automatically.
-
-See: [FX Handling](concepts-fx.md)
-
-## Cash withdrawals
-
-Cash payouts use agent networks and often require beneficiary identity data.
-
-See: [Cash Withdrawals](payouts-cash-withdrawals.md)
+Country-specific rails determine the fields required to complete either direction. See the [country and capability matrix](country-capabilities.md).

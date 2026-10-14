@@ -11,12 +11,12 @@
         "file": "content/getting-started-quickstart.md"
       },
       {
-        "title": "15-Minute Integration",
-        "file": "content/getting-started-15-minute.md"
+        "title": "Authentication & Idempotency",
+        "file": "content/authentication-idempotency.md"
       },
       {
-        "title": "Common Pitfalls",
-        "file": "content/getting-started-common-pitfalls.md"
+        "title": "Country Capabilities",
+        "file": "content/country-capabilities.md"
       }
     ]
   },
@@ -65,10 +65,22 @@
         "file": "content/payments-refunds.md"
       },
       {
+        "title": "Sandbox Simulation",
+        "file": "content/payments-sandbox-simulate.md"
+      },
+      {
         "title": "Best Practices",
         "file": "content/payments-best-practices.md"
       }
     ]
+  },
+  {
+    "title": "Customers",
+    "file": "content/customers.md"
+  },
+  {
+    "title": "Virtual Accounts",
+    "file": "content/virtual-accounts.md"
   },
   {
     "title": "Money Out",
@@ -122,27 +134,6 @@
       {
         "title": "Balance",
         "file": "content/accounts-balance.md"
-      },
-      {
-        "title": "Tools",
-        "file": "content/tools.md"
-      }
-    ]
-  },
-  {
-    "title": "Stablecoin Settlement",
-    "children": [
-      {
-        "title": "Overview",
-        "file": "content/crypto-overview.md"
-      },
-      {
-        "title": "Blockchain Access",
-        "file": "content/crypto-relay.md"
-      },
-      {
-        "title": "On-ramp",
-        "file": "content/crypto-settlement.md"
       }
     ]
   },

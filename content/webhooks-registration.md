@@ -11,7 +11,7 @@ Create and manage webhook subscriptions through the V2 API. The API key determin
 ## Create a subscription
 
 ```http
-POST https://api.sandbox.dinaria.com/v2/webhooks
+POST https://sbx.dinaria.com/v2/webhooks
 Authorization: Bearer <YOUR_API_KEY>
 Content-Type: application/json
 ```
@@ -64,7 +64,7 @@ Every event includes `merchantId`, allowing account-level consumers to route it 
 ## List subscriptions
 
 ```http
-GET https://api.sandbox.dinaria.com/v2/webhooks
+GET https://sbx.dinaria.com/v2/webhooks
 Authorization: Bearer <YOUR_API_KEY>
 ```
 
@@ -90,7 +90,7 @@ Authorization: Bearer <YOUR_API_KEY>
 ## Update a subscription
 
 ```http
-PATCH https://api.sandbox.dinaria.com/v2/webhooks/{webhookId}
+PATCH https://sbx.dinaria.com/v2/webhooks/{webhookId}
 Authorization: Bearer <YOUR_API_KEY>
 Content-Type: application/json
 ```
@@ -107,7 +107,7 @@ You can update `url`, `eventTypes`, or both. An empty `eventTypes` array removes
 ## Rotate the signing secret
 
 ```http
-POST https://api.sandbox.dinaria.com/v2/webhooks/{webhookId}/rotate-secret
+POST https://sbx.dinaria.com/v2/webhooks/{webhookId}/rotate-secret
 Authorization: Bearer <YOUR_API_KEY>
 ```
 
@@ -116,7 +116,7 @@ The response includes the new `webhookSecret`. The previous secret remains valid
 ## Delete a subscription
 
 ```http
-DELETE https://api.sandbox.dinaria.com/v2/webhooks/{webhookId}
+DELETE https://sbx.dinaria.com/v2/webhooks/{webhookId}
 Authorization: Bearer <YOUR_API_KEY>
 ```
 

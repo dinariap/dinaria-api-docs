@@ -262,13 +262,13 @@ TX=$(curl -s -X POST https://api.trongrid.io/wallet/triggersmartcontract \
 SIGNED=$(your-signing-tool sign "$TX")
 
 # 3. Broadcast via Dinaria Blockchain Access
-curl -X POST https://api.dinaria.com/v1/chains/tron/transactions/broadcast \
+curl -X POST https://payments.dinaria.com/v1/chains/tron/transactions/broadcast \
   -H "Authorization: Bearer di_live_..." \
   -H "Content-Type: application/json" \
   -d "{\"network\": \"mainnet\", \"signedTransaction\": $SIGNED}"
 
 # 4. Check balance afterward
-curl "https://api.dinaria.com/v1/chains/tron/addresses/TRECIPIENT/balance \
+curl "https://payments.dinaria.com/v1/chains/tron/addresses/TRECIPIENT/balance \
   ?network=mainnet \
   &contracts=TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" \
   -H "Authorization: Bearer di_live_..."

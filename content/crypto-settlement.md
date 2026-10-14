@@ -195,11 +195,11 @@ Repeating the same key with the same body returns the original response.
 
 ```bash
 # 1. Check indicative price
-curl https://api.dinaria.com/payouts/rates?settlement=D0 \
+curl https://payments.dinaria.com/payouts/rates?settlement=D0 \
   -H "Authorization: Bearer di_live_..."
 
 # 2. Execute on-ramp (synchronous — no polling needed)
-curl -X POST https://api.dinaria.com/payouts \
+curl -X POST https://payments.dinaria.com/payouts \
   -H "Authorization: Bearer di_live_..." \
   -H "Content-Type: application/json" \
   -d '{

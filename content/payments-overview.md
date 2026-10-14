@@ -58,7 +58,6 @@ A navigation to `successUrl` does not confirm payment. Fulfill the order only af
 | `started` | Created and awaiting payer action. |
 | `pending` | Processing is in progress. |
 | `confirmed` | The payment was confirmed. |
-| `paid` | Funds are available according to the financial model. |
 | `cancelled` | The order was cancelled. |
 | `expired` | The order expired without completion. |
 | `failed` | Definitive failure. |

@@ -3,27 +3,35 @@ openapi: 3.1.0
 info:
   title: Dinapay API
   version: 2.0.0
-  description: Receive funds from customers, return full or partial payments, and send funds to beneficiaries through one API. Dinaria manages provider selection, routing, and connector details transparently.
+  description: Public API for creating and tracking incoming Payments, payment Refunds and outbound Payouts, persistent Customers and Virtual Accounts. Provider selection, routing and connector details are managed by Dinaria and remain transparent to API consumers.
 servers:
-- url: https://api.sandbox.dinaria.com
+- url: https://sbx.dinaria.com
   description: Sandbox
-- url: https://api.dinaria.com
+- url: https://payments.dinaria.com
   description: Production
 tags:
 - name: Payments
-  description: Receive funds from customers through supported payment methods and currencies.
+  description: Create and query incoming payments.
+- name: Balances
+  description: Query merchant-owned available balances.
 - name: Refunds
-  description: Return all or part of a payment and track the result independently.
+  description: Create and query payment refunds.
+- name: Sandbox
+  description: Deterministic testing operations available only in Dinaria sandbox.
 - name: Webhooks
   description: Manage V2 merchant webhook subscriptions.
 - name: Payouts
-  description: Send funds from an available balance to beneficiaries through supported local rails.
+  description: Create and query outbound transfers.
+- name: Customers
+  description: Manage persistent individuals and businesses owned by a merchant.
+- name: Virtual Accounts
+  description: Manage persistent receiving destinations owned by a customer.
 webhooks:
   merchantEvent:
     post:
       operationId: receiveDinariaWebhookV2
-      summary: Payment, refund or payout lifecycle event
-      description: Signed at-least-once V2 delivery. Events may be duplicated or arrive out of order; deduplicate by eventId and retain the greatest resourceVersion. The registered webhook receives payment, refund and payout events through this same envelope.
+      summary: Payment, refund, payout or virtual-account lifecycle event
+      description: Signed at-least-once V2 delivery. Events may be duplicated or arrive out of order; deduplicate by eventId and retain the greatest resourceVersion. The registered webhook receives payment, refund, payout and virtual-account events through this same envelope.
       security: []
       parameters:
       - "$ref": "#/components/parameters/WebhookId"
@@ -57,7 +65,59 @@ webhooks:
       responses:
         '200':
           description: Event acknowledged. Any HTTP 2xx response acknowledges delivery.
+  virtualAccountEvent:
+    post:
+      summary: Virtual-account lifecycle event
+      description: Signed at-least-once delivery. Deposits received by a virtual account use the ordinary payment.created and payment.status_changed events and include virtualAccountId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/VirtualAccountWebhookEvent"
+      responses:
+        '200':
+          description: Acknowledged
 paths:
+  "/v2/balance":
+    get:
+      operationId: getMerchantBalanceV2
+      summary: Retrieve merchant balances
+      description: Returns the available balance owned by the selected merchant. Merchant-scoped credentials infer merchantId and must omit it. Account-scoped credentials must provide merchantId. The credential must grant balances:read; payments:read is accepted for compatibility with existing V2 keys.
+      tags:
+      - Balances
+      parameters:
+      - name: merchantId
+        in: query
+        required: false
+        description: Required for account-scoped credentials and omitted for merchant-scoped credentials.
+        schema:
+          type: string
+          minLength: 1
+      - name: currency
+        in: query
+        required: false
+        description: Optional ISO 4217 or supported digital-asset currency code. When omitted, all merchant currencies are returned.
+        schema:
+          type: string
+          pattern: "^[A-Z]{3,8}$"
+          examples:
+          - ARS
+      responses:
+        '200':
+          description: Merchant balances
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MerchantBalances"
+        '400':
+          "$ref": "#/components/responses/BadRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '503':
+          "$ref": "#/components/responses/Unavailable"
   "/v2/payments":
     get:
       operationId: listPaymentsV2
@@ -93,121 +153,107 @@ paths:
     post:
       operationId: createPaymentV2
       summary: Create a payment
-      description: Receive funds by creating a payment order. The response provides a standard actionUrl and structured paymentData with the instructions needed by the payer.
+      description: Creates a payment order and returns the customer action and payment-method-specific data needed to complete it.
       tags:
       - Payments
       parameters:
       - "$ref": "#/components/parameters/IdempotencyKey"
       requestBody:
-        description: The fields shown in the examples are for demonstration purposes and may vary depending on the use case.
         required: true
         content:
           application/json:
             schema:
               "$ref": "#/components/schemas/CreatePaymentRequest"
             examples:
-              argentina_cuit:
-                summary: Argentina — bank transfer, CUIT customer
+              argentinaQr:
+                summary: Argentina interoperable QR
                 value:
-                  externalId: ORD-AR-1001
-                  amount: "1500.00"
+                  externalId: ORDER-AR-QR-001
+                  amount: '1000.00'
+                  currency: ARS
+                  paymentMethod: qr
+                  rail: ar_qr
+                  destinationMode: single_use
+                  expirationDate: '2026-10-15T20:00:00Z'
+                  customer: {type: individual, externalId: CUSTOMER-AR-001, firstName: Juan, lastName: Perez, country: AR}
+              argentinaBankTransfer:
+                summary: Argentina single-use bank transfer
+                value:
+                  externalId: ORDER-AR-BANK-001
+                  amount: '1500.00'
                   currency: ARS
                   paymentMethod: bank_transfer
-                  customer:
-                    type: individual
-                    externalId: customer-ar-1001
-                    firstName: Ana
-                    lastName: Martínez
-                    country: AR
-                    documentType: CUIT
-                    documentNumber: "20221370075"
-                    documentCountry: AR
-                  metadata: { orderId: ORD-AR-1001 }
-              argentina_dni:
-                summary: Argentina — bank transfer, DNI customer
+                  rail: ar_bank_transfer
+                  destinationMode: single_use
+                  customer: {type: individual, externalId: CUSTOMER-AR-002, firstName: Ana, lastName: Martinez, country: AR}
+              mexicoSpeiSingleUse:
+                summary: Mexico single-use SPEI collection
                 value:
-                  externalId: ORD-AR-1002
-                  amount: "500.00"
-                  currency: ARS
+                  externalId: ORDER-MX-001
+                  amount: '250.00'
+                  currency: MXN
                   paymentMethod: bank_transfer
-                  customer:
-                    type: individual
-                    externalId: customer-ar-1002
-                    firstName: María
-                    lastName: López
-                    country: AR
-                    documentType: DNI
-                    documentNumber: "22137007"
-                    documentCountry: AR
-              brazil_cpf:
-                summary: Brazil — bank transfer, CPF customer
+                  rail: spei
+                  destinationMode: single_use
+                  customer: {type: individual, externalId: CUSTOMER-MX-001, firstName: Juan, lastName: Perez, country: MX}
+              mexicoSpeiReusable:
+                summary: Mexico reusable SPEI collection
                 value:
-                  externalId: ORD-BR-2001
-                  amount: "100.00"
-                  currency: BRL
-                  paymentMethod: instant_bank_transfer
-                  customer:
-                    type: individual
-                    externalId: customer-br-2001
-                    firstName: João
-                    lastName: Silva
-                    country: BR
-                    documentType: CPF
-                    documentNumber: "12345678901"
-                    documentCountry: BR
-                  metadata: { orderId: ORD-BR-2001 }
-              brazil_cnpj:
-                summary: Brazil — bank transfer, CNPJ customer
+                  externalId: ORDER-MX-REUSABLE-001
+                  amount: '250.00'
+                  currency: MXN
+                  paymentMethod: bank_transfer
+                  rail: spei
+                  destinationMode: reusable
+                  collectionKey: CUSTOMER-MX-001
+                  customer: {type: individual, externalId: CUSTOMER-MX-001, firstName: Juan, lastName: Perez, country: MX}
+              chileBankTransfer:
+                summary: Chile single-use bank transfer
                 value:
-                  externalId: ORD-BR-2002
-                  amount: "250.00"
-                  currency: BRL
-                  paymentMethod: instant_bank_transfer
-                  customer:
-                    type: business
-                    externalId: company-br-2002
-                    legalName: Belo Brasil Ltda
-                    country: BR
-                    documentType: CNPJ
-                    documentNumber: "58084921000160"
-                    documentCountry: BR
-              brazil_pix_qr:
-                summary: Brazil — dynamic PIX QR
+                  externalId: ORDER-CL-001
+                  amount: '10000'
+                  currency: CLP
+                  paymentMethod: bank_transfer
+                  rail: cl_bank_transfer
+                  destinationMode: single_use
+                  expirationDate: '2026-10-15T20:00:00Z'
+                  customer: {type: individual, externalId: CUSTOMER-CL-001, firstName: Juan, lastName: Perez, country: CL}
+              peruQr:
+                summary: Peru single-use QR
                 value:
-                  externalId: ORD-BR-2003
-                  amount: "100.00"
-                  currency: BRL
-                  paymentMethod: pix_qr
-                  customer:
-                    type: business
-                    externalId: company-br-2003
-                    legalName: Belo Brasil Ltda
-                    country: BR
-                    documentType: CNPJ
-                    documentNumber: "58084921000160"
-                    documentCountry: BR
-                  metadata: { orderId: ORD-BR-2003 }
-              binance_pay:
-                summary: USDT — Binance Pay
+                  externalId: ORDER-PE-QR-001
+                  amount: '100.00'
+                  currency: PEN
+                  paymentMethod: qr
+                  rail: pe_qr
+                  destinationMode: single_use
+                  expirationDate: '2026-10-15T20:00:00-05:00'
+                  customer: {type: individual, externalId: CUSTOMER-PE-001, firstName: Maria, lastName: Gomez, country: PE}
+              peruBankTransfer:
+                summary: Peru single-use bank transfer
                 value:
-                  externalId: ORDER-1001
-                  amount: "0.25"
-                  currency: USDT
-                  paymentMethod: crypto_payment
-                  description: Super Test
-                  successUrl: https://merchant.example.com/payments/success
-                  cancelUrl: https://merchant.example.com/payments/cancel
-                  customer:
-                    type: individual
-                    externalId: customer-123
-                    firstName: Sebastian
-                    lastName: Gonzalez
-                    email: sebastian@example.com
-                    country: UY
-                  metadata: { orderId: ORDER-1001 }
+                  externalId: ORDER-PE-BANK-002
+                  amount: '150.00'
+                  currency: PEN
+                  paymentMethod: bank_transfer
+                  rail: pe_bank_transfer
+                  destinationMode: single_use
+                  expirationDate: '2026-10-15T20:00:00-05:00'
+                  customer: {type: individual, externalId: CUSTOMER-PE-002, firstName: Lucia, lastName: Torres, country: PE}
+              ecuadorBankTransfer:
+                summary: Ecuador single-use bank transfer
+                value:
+                  externalId: ORDER-EC-BANK-001
+                  amount: '25.00'
+                  currency: USD
+                  paymentMethod: bank_transfer
+                  rail: ec_bank_transfer
+                  destinationMode: single_use
+                  expirationDate: '2026-10-15T20:00:00-05:00'
+                  customer: {type: individual, externalId: CUSTOMER-EC-001, firstName: Juan, lastName: Perez, email: juan.perez@example.com, country: EC, documentType: CC, documentNumber: '1712345678'}
       responses:
         '200':
-          description: No new payment was created. This is an idempotent replay of a previously accepted request with the same Idempotency-Key and identical body. The response returns the original Payment resource and includes Idempotent-Replayed true.
+          description: Idempotent replay of the original payment
           headers:
             Idempotent-Replayed:
               schema:
@@ -220,11 +266,134 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Payment"
         '201':
-          description: A new payment was created. The response returns the newly created Payment resource.
+          description: Payment created
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Payment"
+              examples:
+                argentinaQr:
+                  summary: Argentina QR payment created
+                  value:
+                    transactionId: 8dd5d1ee-1ba0-4311-bbbd-fd19765b2f93
+                    externalId: ORDER-AR-QR-001
+                    status: started
+                    amount: '1000.00'
+                    currency: ARS
+                    paymentMethod: qr
+                    creationDate: '2026-10-14T18:00:00Z'
+                    expirationDate: '2026-10-15T20:00:00Z'
+                    actionUrl: https://pay.dinaria.com/checkout/demo-order-ar-qr-001
+                    paymentData:
+                      type: qr
+                      qr: {format: emv, qrCodeString: '000201010212...6304B081', qrCodeBase64: 'iVBORw0KGgoAAAANSUhEUgAA...', qrExpiresAt: '2026-10-15T20:00:00Z'}
+                argentinaBankTransfer:
+                  summary: Argentina bank-transfer payment created
+                  value:
+                    transactionId: 43e01b19-8ee2-43cb-9d38-150dc66e74c7
+                    externalId: ORDER-AR-BANK-001
+                    status: started
+                    amount: '1500.00'
+                    currency: ARS
+                    paymentMethod: bank_transfer
+                    creationDate: '2026-10-14T18:00:00Z'
+                    actionUrl: https://pay.dinaria.com/checkout/demo-order-ar-bank-001
+                    paymentData:
+                      type: bank_transfer
+                      bankTransfer:
+                        rail: ar_bank_transfer
+                        destinationMode: single_use
+                        destination:
+                          accountIdentifier: {type: cvu, value: '0000003100000000000001'}
+                mexicoSpei:
+                  summary: Mexico SPEI payment created
+                  value:
+                    transactionId: 77b891fc-f225-49b5-82d4-c19c739d26b0
+                    externalId: ORDER-MX-001
+                    status: started
+                    amount: '250.00'
+                    currency: MXN
+                    paymentMethod: bank_transfer
+                    creationDate: '2026-10-14T18:00:00Z'
+                    actionUrl: https://pay.dinaria.com/checkout/demo-order-mx-001
+                    paymentData:
+                      type: bank_transfer
+                      bankTransfer:
+                        rail: spei
+                        destinationMode: single_use
+                        destination:
+                          accountIdentifier: {type: clabe, value: '646180157034181180'}
+                chileBankTransfer:
+                  summary: Chile bank-transfer payment created
+                  value:
+                    transactionId: 59c8a946-4618-463f-b2d4-891d788acbbc
+                    externalId: ORDER-CL-001
+                    status: started
+                    amount: '10000'
+                    currency: CLP
+                    paymentMethod: bank_transfer
+                    creationDate: '2026-10-14T18:00:00Z'
+                    actionUrl: https://pay.dinaria.com/checkout/demo-order-cl-001
+                    paymentData:
+                      type: bank_transfer
+                      bankTransfer:
+                        rail: cl_bank_transfer
+                        destinationMode: single_use
+                        destination:
+                          accountIdentifier: {type: account_number, value: '1234567890'}
+                          accountHolder: {name: Dinaria}
+                        transferReference: PAY-59C8A946
+                peruQr:
+                  summary: Peru QR payment created
+                  value:
+                    transactionId: e46e7f83-713f-42d0-a3ae-b99bc5eb1c36
+                    externalId: ORDER-PE-QR-001
+                    status: started
+                    amount: '100.00'
+                    currency: PEN
+                    paymentMethod: qr
+                    creationDate: '2026-10-14T18:00:00Z'
+                    expirationDate: '2026-10-16T01:00:00Z'
+                    actionUrl: https://pay.dinaria.com/checkout/demo-order-pe-qr-001
+                    paymentData:
+                      type: qr
+                      qr: {format: emv, qrCodeString: '000201010212...6304ABCD', qrCodeBase64: 'iVBORw0KGgoAAAANSUhEUgAA...', qrExpiresAt: '2026-10-16T01:00:00Z'}
+                peruBankTransfer:
+                  summary: Peru bank-transfer payment created
+                  value:
+                    transactionId: f31bfc91-acde-4f25-9e6b-bd4c5809b029
+                    externalId: ORDER-PE-BANK-002
+                    status: started
+                    amount: '150.00'
+                    currency: PEN
+                    paymentMethod: bank_transfer
+                    creationDate: '2026-10-14T18:00:00Z'
+                    expirationDate: '2026-10-16T01:00:00Z'
+                    actionUrl: https://pay.dinaria.com/checkout/demo-order-pe-bank-002
+                    paymentData:
+                      type: bank_transfer
+                      bankTransfer:
+                        rail: pe_bank_transfer
+                        destinationMode: single_use
+                        destination:
+                          accountIdentifier: {type: cci, value: '00212345678901234567'}
+                ecuadorBankTransfer:
+                  summary: Ecuador bank-transfer payment created
+                  value:
+                    transactionId: 8b76207c-5317-4d20-ac65-90d14a6e64a3
+                    externalId: ORDER-EC-BANK-001
+                    status: started
+                    amount: '25.00'
+                    currency: USD
+                    paymentMethod: bank_transfer
+                    creationDate: '2026-10-14T18:00:00Z'
+                    expirationDate: '2026-10-16T01:00:00Z'
+                    actionUrl: https://pay.dinaria.com/checkout/demo-order-ec-bank-001
+                    paymentData:
+                      type: redirect
+                      redirect:
+                        recommendedAlternative: web
+                        links: {web: "https://pay.dinaria.com/checkout/demo-order-ec-bank-001"}
         '400':
           "$ref": "#/components/responses/BadRequest"
         '401':
@@ -277,7 +446,7 @@ paths:
               "$ref": "#/components/schemas/CreateRefundRequest"
       responses:
         '200':
-          description: No new refund was created. This is an idempotent replay of a previously accepted request with the same Idempotency-Key and identical body. The response returns the original Refund resource and includes Idempotent-Replayed true.
+          description: Idempotent replay of the original refund
           headers:
             Idempotent-Replayed:
               schema:
@@ -290,7 +459,7 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Refund"
         '201':
-          description: A new refund was created and durably accepted for asynchronous processing. This does not mean the refund has completed; inspect its status for the final result.
+          description: Refund durably accepted; processing may still be pending
           headers:
             X-Request-Id:
               "$ref": "#/components/headers/RequestId"
@@ -355,13 +524,51 @@ paths:
           "$ref": "#/components/responses/Forbidden"
         '404':
           "$ref": "#/components/responses/NotFound"
+  "/v2/sandbox/payments/{transactionId}/simulate":
+    post:
+      operationId: simulatePaymentV2
+      summary: Simulate a sandbox payment observation
+      description: Asks the sandbox connector selected for this payment to publish a normal provider observation. The resulting state transition, ledger effects and signed merchant webhooks use the regular V2 processing path. This endpoint is not mounted in production.
+      tags:
+      - Sandbox
+      parameters:
+      - "$ref": "#/components/parameters/TransactionId"
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SimulatePaymentRequest"
+      responses:
+        '202':
+          description: Simulation durably accepted
+          headers:
+            X-Request-Id:
+              "$ref": "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SimulationAccepted"
+        '400':
+          "$ref": "#/components/responses/BadRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '403':
+          "$ref": "#/components/responses/Forbidden"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          "$ref": "#/components/responses/Conflict"
+        '422':
+          "$ref": "#/components/responses/Unprocessable"
+        '503':
+          "$ref": "#/components/responses/Unavailable"
   "/v2/webhooks":
     post:
       operationId: createWebhookV2
       summary: Create a V2 webhook subscription
-      description: Registers one URL for the authenticated account or merchant. Omitting
-        eventTypes subscribes to every current and future V2 event. The secret is returned
-        only in this response and after rotation.
+      description: Registers one URL for the authenticated account or merchant. Omitting eventTypes subscribes to every current and future V2 event. The secret is returned only in this response and after rotation.
       tags:
       - Webhooks
       requestBody:
@@ -476,119 +683,147 @@ paths:
     post:
       operationId: createPayoutV2
       summary: Create a payout
-      description: Send funds from the available balance to a beneficiary through a supported destination and rail. The transfer is durably accepted for asynchronous processing. Idempotency-Key identifies the technical request; externalId identifies the payout in the client's system.
+      description: Durably accepts an outbound transfer for asynchronous processing. Idempotency-Key identifies the technical request; externalId identifies the payout in the client's system.
       tags:
       - Payouts
       parameters:
       - "$ref": "#/components/parameters/IdempotencyKey"
       requestBody:
-        description: The fields shown in the examples are for demonstration purposes and may vary depending on the use case.
         required: true
         content:
           application/json:
             schema:
               "$ref": "#/components/schemas/CreatePayout"
             examples:
-              venezuela_bank_account:
-                summary: Venezuela remittance — bank account
+              argentinaBankTransfer:
+                summary: Argentina bank payout using a CBU
                 value:
-                  externalId: PAYOUT-VE-BANK-1001
-                  source: { amount: "25.00", currency: USDT }
+                  externalId: PAYOUT-AR-1001
+                  source:
+                    amount: '15000'
+                    currency: ARS
                   destination:
-                    country: VE
-                    currency: VES
+                    country: AR
+                    currency: ARS
                     beneficiary:
-                      { type: individual, name: María González, documentType: RIF, documentNumber: V40001469 }
+                      type: individual
+                      name: Maria Gonzalez
                     rail:
-                      { type: ve_bank_account, bankCode: "0102", accountNumber: "01020305810000263562" }
-                  remitter:
-                    { type: individual, documentType: DNI, documentNumber: "30123456", firstName: Juan, lastName: Pérez }
-              venezuela_mobile_payment:
-                summary: Venezuela remittance — mobile payment
+                      type: ar_bank_transfer
+                      accountType: cbu
+                      accountNumber: '0000003100012345678901'
+                  description: Supplier payment
+              venezuelaMobilePayment:
+                summary: Venezuela mobile payment remittance
                 value:
                   externalId: PAYOUT-VE-MOBILE-1001
-                  source: { amount: "10.00", currency: USDT }
+                  source:
+                    amount: '10.00'
+                    currency: USDT
                   destination:
                     country: VE
                     currency: VES
                     beneficiary:
-                      { type: individual, name: Wil Barragán, documentType: RIF, documentNumber: V27127416, mobile: "+584242005748" }
-                    rail: { type: ve_mobile_payment, bankCode: "0175" }
+                      type: individual
+                      name: Maria Gonzalez
+                      documentType: RIF
+                      documentNumber: V27127416
+                      mobile: "+584242005748"
+                      address: Caracas, Venezuela
+                      email: maria@example.com
+                    rail:
+                      type: ve_mobile_payment
+                      bankCode: '0102'
                   remitter:
-                    { type: individual, documentType: DNI, documentNumber: "30123456", firstName: Juan, lastName: Pérez }
-              venezuela_cash_pickup:
-                summary: Venezuela remittance — cash pickup
+                    type: individual
+                    documentType: DNI
+                    documentNumber: '30123456'
+                    firstName: Juan
+                    lastName: Perez
+                    birthDate: '1985-06-15'
+                    nationality: ARG
+                    mobile: "+5491112345678"
+                    address: Buenos Aires, Argentina
+                    email: juan@example.com
+                  description: Payment to beneficiary
+                  metadata:
+                    customerId: customer-456
+              venezuelaBankAccount:
+                summary: Venezuela bank account remittance
                 value:
-                  externalId: PAYOUT-VE-CASH-1001
-                  source: { amount: "10.00", currency: USDT }
+                  externalId: PAYOUT-VE-BANK-1001
+                  source:
+                    amount: '25.00'
+                    currency: USDT
                   destination:
                     country: VE
                     currency: VES
                     beneficiary:
-                      { type: individual, name: María González, documentType: RIF, documentNumber: V40001469 }
-                    rail: { type: ve_cash_pickup }
+                      type: individual
+                      name: Maria Gonzalez
+                      documentType: RIF
+                      documentNumber: V40001469
+                      mobile: "+584242005748"
+                      address: Caracas, Venezuela
+                      email: maria@example.com
+                    rail:
+                      type: ve_bank_account
+                      bankCode: '0102'
+                      accountType: 1
+                      accountNumber: '01020305810000263562'
                   remitter:
-                    { type: individual, documentType: DNI, documentNumber: "30123456", firstName: Juan, lastName: Pérez }
-              argentina_cbu:
-                summary: Argentina — CBU
+                    type: individual
+                    documentType: DNI
+                    documentNumber: '30123456'
+                    firstName: Juan
+                    lastName: Perez
+                    birthDate: '1985-06-15'
+                    nationality: ARG
+                    mobile: "+5491112345678"
+                    address: Buenos Aires, Argentina
+                    email: juan@example.com
+                  description: Bank payout to beneficiary
+                  metadata:
+                    customerId: customer-456
+              peruBankTransfer:
+                summary: Peru bank payout using a 20-digit CCI
                 value:
-                  externalId: PAYOUT-AR-CBU-1001
-                  source: { amount: "1500.00", currency: ARS }
+                  externalId: PAYOUT-PE-1001
+                  source:
+                    amount: '200.00'
+                    currency: PEN
                   destination:
-                    country: AR
-                    currency: ARS
+                    country: PE
+                    currency: PEN
                     beneficiary:
-                      { type: individual, name: María González, documentType: CUIT, documentNumber: "27-12345678-5" }
-                    rail: { type: ar_cbu, cbu: "0070327530004025541644" }
-              argentina_cvu:
-                summary: Argentina — CVU
-                value:
-                  externalId: PAYOUT-AR-CVU-1001
-                  source: { amount: "1500.00", currency: ARS }
-                  destination:
-                    country: AR
-                    currency: ARS
-                    beneficiary:
-                      { type: individual, name: María González, documentType: CUIT, documentNumber: "27-12345678-5" }
-                    rail: { type: ar_cvu, cvu: "2850590940090418135201" }
-              argentina_alias:
-                summary: Argentina — alias
-                value:
-                  externalId: PAYOUT-AR-ALIAS-1001
-                  source: { amount: "200.00", currency: ARS }
-                  destination:
-                    country: AR
-                    currency: ARS
-                    beneficiary:
-                      { type: individual, name: María González, documentType: CUIT, documentNumber: "27-12345678-5" }
-                    rail: { type: ar_alias, alias: mialias }
-              brazil_pix_cpf:
-                summary: Brazil — PIX CPF key
-                value:
-                  externalId: PAYOUT-BR-CPF-1001
-                  source: { amount: "150.00", currency: BRL }
-                  destination:
-                    country: BR
-                    currency: BRL
-                    beneficiary:
-                      { type: individual, name: João Silva, documentType: CPF, documentNumber: "12345678901" }
+                      type: individual
+                      name: Lucia Torres
+                      documentType: DNI
+                      documentNumber: '47123456'
                     rail:
-                      { type: br_pix, pixKey: { type: cpf, value: "12345678901" } }
-              brazil_pix_evp:
-                summary: Brazil — PIX random key (EVP)
+                      type: pe_bank_transfer
+                      cci: '00212345678901234567'
+              peruMobilePayment:
+                summary: Peru payout using a mobile directory alias
                 value:
-                  externalId: PAYOUT-BR-EVP-1001
-                  source: { amount: "75.50", currency: BRL }
+                  externalId: PAYOUT-PE-MOBILE-1002
+                  source:
+                    amount: '75.00'
+                    currency: PEN
                   destination:
-                    country: BR
-                    currency: BRL
+                    country: PE
+                    currency: PEN
                     beneficiary:
-                      { type: individual, name: João Silva, documentType: CPF, documentNumber: "12345678901" }
+                      type: individual
+                      name: Lucia Torres
+                      documentType: DNI
+                      documentNumber: '47123456'
                     rail:
-                      { type: br_pix, pixKey: { type: evp, value: a1b2c3d4-e5f6-7890-abcd-ef1234567890 } }
+                      type: pe_mobile_payment
+                      mobile: "+51987654321"
       responses:
         '200':
-          description: No new payout was created. This is an idempotent replay of a previously accepted request with the same Idempotency-Key and identical body. The response returns the original Payout resource and includes Idempotent-Replayed true.
+          description: Idempotent replay of the original payout
           headers:
             Idempotent-Replayed:
               schema:
@@ -601,11 +836,56 @@ paths:
               schema:
                 "$ref": "#/components/schemas/Payout"
         '201':
-          description: A new payout was created and durably accepted for asynchronous processing. This does not mean the beneficiary has received the funds; inspect its status for the final result.
+          description: Payout durably accepted
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Payout"
+              examples:
+                argentinaBankTransfer:
+                  summary: Argentina payout accepted for processing
+                  value:
+                    payoutId: 1078d6c2-a452-44fb-94f4-525390231ce2
+                    externalId: PAYOUT-AR-1001
+                    source:
+                      amount: '15000'
+                      currency: ARS
+                    destination:
+                      country: AR
+                      currency: ARS
+                      amount: '15000'
+                      beneficiary:
+                        type: individual
+                        name: Maria Gonzalez
+                      rail:
+                        type: ar_bank_transfer
+                        accountType: cbu
+                        accountNumber: '0000003100012345678901'
+                    status: processing
+                    creationDate: '2026-10-14T19:56:45Z'
+                venezuelaMobilePayment:
+                  summary: Venezuela payout accepted for processing
+                  value:
+                    payoutId: 82e07c90-82a5-4e40-bdf0-7a982de47745
+                    externalId: PAYOUT-VE-1001
+                    source:
+                      amount: '10.00'
+                      currency: USDT
+                    destination:
+                      country: VE
+                      currency: VES
+                      amount: '365.00'
+                      beneficiary:
+                        type: individual
+                        name: Maria Gonzalez
+                        documentType: RIF
+                        documentNumber: V27127416
+                        mobile: "+584242005748"
+                      rail:
+                        type: ve_mobile_payment
+                        bankCode: '0102'
+                    status: processing
+                    creationDate: '2026-10-14T19:56:45Z'
         '400':
           "$ref": "#/components/responses/PayoutBadRequest"
         '401':
@@ -679,6 +959,377 @@ paths:
           "$ref": "#/components/responses/Forbidden"
         '404':
           "$ref": "#/components/responses/PayoutNotFound"
+  "/v2/customers":
+    post:
+      operationId: createCustomerV2
+      summary: Create a customer
+      description: Creates a customer in the merchant resolved from the credential or merchantId. externalId is unique within that merchant.
+      tags:
+      - Customers
+      parameters:
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateCustomerRequest"
+      responses:
+        '200':
+          description: Idempotent replay
+          headers:
+            Idempotent-Replayed:
+              schema:
+                type: boolean
+                const: true
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CustomerResource"
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CustomerResource"
+        '400':
+          "$ref": "#/components/responses/DirectoryBadRequest"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+        '422':
+          "$ref": "#/components/responses/DirectoryUnprocessable"
+    get:
+      operationId: listCustomersV2
+      summary: List customers
+      tags:
+      - Customers
+      parameters:
+      - "$ref": "#/components/parameters/MerchantIdQuery"
+      - name: externalId
+        in: query
+        schema:
+          type: string
+      - name: status
+        in: query
+        schema:
+          "$ref": "#/components/schemas/CustomerStatus"
+      - "$ref": "#/components/parameters/Limit"
+      - "$ref": "#/components/parameters/Cursor"
+      responses:
+        '200':
+          description: Customers visible to the credential
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CustomerPage"
+        '400':
+          "$ref": "#/components/responses/DirectoryBadRequest"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+  "/v2/customers/{customerId}":
+    parameters:
+    - "$ref": "#/components/parameters/CustomerId"
+    get:
+      operationId: getCustomerV2
+      summary: Retrieve a customer
+      tags:
+      - Customers
+      responses:
+        '200':
+          description: Customer
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CustomerResource"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+    patch:
+      operationId: updateCustomerV2
+      summary: Update mutable customer data
+      description: Updates contact, address and metadata. Identity changes are audited and may be rejected when the customer owns an active virtual account.
+      tags:
+      - Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UpdateCustomerRequest"
+      responses:
+        '200':
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CustomerResource"
+        '400':
+          "$ref": "#/components/responses/DirectoryBadRequest"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+        '422':
+          "$ref": "#/components/responses/DirectoryUnprocessable"
+  "/v2/customers/{customerId}/block":
+    post:
+      operationId: blockCustomerV2
+      summary: Block a customer
+      tags:
+      - Customers
+      parameters:
+      - "$ref": "#/components/parameters/CustomerId"
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/LifecycleAction"
+      responses:
+        '200':
+          description: Customer blocked
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CustomerResource"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+  "/v2/customers/{customerId}/activate":
+    post:
+      operationId: activateCustomerV2
+      summary: Reactivate a blocked customer
+      tags:
+      - Customers
+      parameters:
+      - "$ref": "#/components/parameters/CustomerId"
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      responses:
+        '200':
+          description: Customer active
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CustomerResource"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+  "/v2/virtual-accounts":
+    post:
+      operationId: createVirtualAccountV2
+      summary: Create a virtual account
+      description: Creates a persistent receiving destination for an existing customer. It is not a payment order and is never recycled as a single-use destination.
+      tags:
+      - Virtual Accounts
+      parameters:
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateVirtualAccountRequest"
+      responses:
+        '200':
+          description: Idempotent replay
+          headers:
+            Idempotent-Replayed:
+              schema:
+                type: boolean
+                const: true
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VirtualAccount"
+        '201':
+          description: Virtual account created synchronously or accepted as pending
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VirtualAccount"
+        '400':
+          "$ref": "#/components/responses/DirectoryBadRequest"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+        '422':
+          "$ref": "#/components/responses/DirectoryUnprocessable"
+        '503':
+          "$ref": "#/components/responses/DirectoryUnavailable"
+    get:
+      operationId: listVirtualAccountsV2
+      summary: List virtual accounts
+      tags:
+      - Virtual Accounts
+      parameters:
+      - "$ref": "#/components/parameters/MerchantIdQuery"
+      - name: customerId
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: externalId
+        in: query
+        schema:
+          type: string
+      - name: status
+        in: query
+        schema:
+          "$ref": "#/components/schemas/VirtualAccountStatus"
+      - "$ref": "#/components/parameters/Limit"
+      - "$ref": "#/components/parameters/Cursor"
+      responses:
+        '200':
+          description: Virtual accounts visible to the credential
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VirtualAccountPage"
+        '400':
+          "$ref": "#/components/responses/DirectoryBadRequest"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+  "/v2/virtual-accounts/{virtualAccountId}":
+    get:
+      operationId: getVirtualAccountV2
+      summary: Retrieve a virtual account
+      tags:
+      - Virtual Accounts
+      parameters:
+      - "$ref": "#/components/parameters/VirtualAccountId"
+      responses:
+        '200':
+          description: Virtual account
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VirtualAccount"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+  "/v2/virtual-accounts/{virtualAccountId}/block":
+    post:
+      operationId: blockVirtualAccountV2
+      summary: Block a virtual account
+      tags:
+      - Virtual Accounts
+      parameters:
+      - "$ref": "#/components/parameters/VirtualAccountId"
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/LifecycleAction"
+      responses:
+        '200':
+          description: Virtual account blocked
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VirtualAccount"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+        '503':
+          "$ref": "#/components/responses/DirectoryUnavailable"
+  "/v2/virtual-accounts/{virtualAccountId}/activate":
+    post:
+      operationId: activateVirtualAccountV2
+      summary: Reactivate a blocked virtual account
+      tags:
+      - Virtual Accounts
+      parameters:
+      - "$ref": "#/components/parameters/VirtualAccountId"
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      responses:
+        '200':
+          description: Virtual account active
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VirtualAccount"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+        '503':
+          "$ref": "#/components/responses/DirectoryUnavailable"
+  "/v2/virtual-accounts/{virtualAccountId}/close":
+    post:
+      operationId: closeVirtualAccountV2
+      summary: Permanently close a virtual account
+      description: Closing is irreversible. Dinaria only reports closed after the provider confirms that the destination can no longer receive funds.
+      tags:
+      - Virtual Accounts
+      parameters:
+      - "$ref": "#/components/parameters/VirtualAccountId"
+      - "$ref": "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/LifecycleAction"
+      responses:
+        '200':
+          description: Virtual account closed or closure pending
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/VirtualAccount"
+        '401':
+          "$ref": "#/components/responses/DirectoryUnauthorized"
+        '403':
+          "$ref": "#/components/responses/DirectoryForbidden"
+        '404':
+          "$ref": "#/components/responses/DirectoryNotFound"
+        '409':
+          "$ref": "#/components/responses/DirectoryConflict"
+        '503':
+          "$ref": "#/components/responses/DirectoryUnavailable"
 components:
   securitySchemes:
     bearerAuth:
@@ -752,6 +1403,39 @@ components:
       schema:
         type: string
         format: uuid
+    CustomerId:
+      name: customerId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VirtualAccountId:
+      name: virtualAccountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MerchantIdQuery:
+      name: merchantId
+      in: query
+      description: Required only when account-level credentials can access more than one merchant.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
   schemas:
     WebhookEventType:
       type: string
@@ -762,6 +1446,8 @@ components:
       - refund.status_changed
       - payout.created
       - payout.status_changed
+      - virtual_account.created
+      - virtual_account.status_changed
     CreateWebhookSubscription:
       type: object
       additionalProperties: false
@@ -869,13 +1555,18 @@ components:
           minLength: 1
         rail:
           type: string
-          description: Optional requested processing rail within the selected paymentMethod. Omit it when Dinaria should infer the compatible rail. This request preference is different from paymentData.type and from the resolved rail that may appear in paymentData.bankTransfer.rail.
+          description: Optional requested payment rail. The router may infer it when the selected connector has a single compatible rail.
         destinationMode:
           type: string
           enum:
           - single_use
           - reusable
           description: Optional requested destination lifecycle. The router may infer it when only one compatible mode exists.
+        collectionKey:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Opaque merchant-defined key for a stable collection relationship. It is not a bank account or identity document. Whether it is required is determined by the active country, rail and destination-mode policy.
         description:
           type: string
           maxLength: 256
@@ -922,9 +1613,6 @@ components:
       - currency
       - paymentMethod
       - creationDate
-      - expirationDate
-      - actionUrl
-      - paymentData
       properties:
         transactionId:
           type: string
@@ -939,6 +1627,15 @@ components:
           type: string
         paymentMethod:
           type: string
+        collectionKey:
+          type: string
+          description: Merchant-defined collection key applied to this payment when supplied.
+        virtualAccountId:
+          type: string
+          format: uuid
+          description: Present when this payment records funds received through a persistent virtual account.
+        payer:
+          "$ref": "#/components/schemas/Payer"
         description:
           type: string
         creationDate:
@@ -962,8 +1659,6 @@ components:
           type: string
           format: date-time
           description: Date of the first successful refund. Individual refund dates live on each refund resource.
-        failure:
-          "$ref": "#/components/schemas/PaymentFailure"
         paymentData:
           "$ref": "#/components/schemas/PaymentData"
       example:
@@ -1000,74 +1695,112 @@ components:
               expiresAt: '2026-09-09T19:30:00Z'
     PaymentStatus:
       type: string
-      description: 'started: created and awaiting payer action; pending: provider processing; confirmed: provider confirmed funds; paid: funds are available for merchant settlement; cancelled/expired/failed: terminal unpaid outcomes; refunded: the confirmed payment has been fully refunded.'
+      description: 'started: created and awaiting payer action; pending: processing; confirmed: incoming payment confirmed; cancelled/expired/failed: terminal unpaid outcomes; refunded: the confirmed payment has been fully refunded.'
       enum:
       - started
       - pending
       - confirmed
-      - paid
       - cancelled
       - expired
       - failed
       - refunded
-    PaymentFailure:
+    Payer:
       type: object
-      description: Definitive provider-neutral payment failure. payment_not_received is only used after reconciliation conclusively determines that expected funds did not arrive; it never means that a started or pending payment has not arrived yet, and ordinary order expiry uses payment_expired.
+      description: Party reported by the payment network as the sender of funds. It is distinct from the customer that owns a virtual account.
       additionalProperties: false
-      required:
-      - code
-      - category
-      - message
       properties:
-        code:
+        name:
           type: string
-          enum:
-          - compliance_rejected
-          - limit_exceeded
-          - provider_unavailable
-          - processing_error
-          - unknown_error
-          - invalid_customer_data
-          - payment_method_unavailable
-          - payment_expired
-          - payer_cancelled
-          - amount_mismatch
-          - payment_rejected
-          - payment_not_received
-        category:
+        documentType:
           type: string
-        message:
+        documentNumber:
           type: string
-        errors:
-          type: array
-          items:
-            "$ref": "#/components/schemas/FieldError"
-    FieldError:
-      type: object
-      additionalProperties: false
-      required:
-      - code
-      - field
-      - message
-      properties:
-        code:
+        accountNumber:
           type: string
-          enum:
-          - required
-          - invalid_format
-          - invalid_type
-          - invalid_value
-          - unsupported_value
-          - out_of_range
-          - inconsistent_fields
-        field:
-          type: string
-        message:
-          type: string
+        institution:
+          type: object
+          additionalProperties: false
+          properties:
+            name:
+              type: string
+            code:
+              type: string
     DecimalAmount:
       type: string
       pattern: "^(0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(\\.[0-9]+)?)$"
       description: Exact positive decimal represented as a string; never a floating-point JSON number.
+    SimulationScenario:
+      type: string
+      description: Deterministic result requested from a sandbox connector. The scenario controls behavior but never changes the normal Payment or webhook representation.
+      enum:
+      - payment.pending
+      - payment.confirmed
+      - payment.rejected
+      - payment.expired
+    SimulatePaymentRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - scenario
+      properties:
+        scenario:
+          "$ref": "#/components/schemas/SimulationScenario"
+        delaySeconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+          default: 0
+          description: Optional delay before the simulated provider observation is published.
+        payer:
+          type: object
+          additionalProperties: false
+          properties:
+            name:
+              type: string
+            documentType:
+              type: string
+            documentNumber:
+              type: string
+            institution:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                code:
+                  type: string
+      example:
+        scenario: payment.confirmed
+        payer:
+          name: Juan Perez
+          documentType: CUIT
+          documentNumber: '20234567897'
+          institution:
+            name: Banco de Prueba
+    SimulationAccepted:
+      type: object
+      additionalProperties: false
+      required:
+      - simulationId
+      - transactionId
+      - requestedScenario
+      - status
+      - scheduledAt
+      properties:
+        simulationId:
+          type: string
+          format: uuid
+        transactionId:
+          type: string
+          format: uuid
+        requestedScenario:
+          "$ref": "#/components/schemas/SimulationScenario"
+        status:
+          type: string
+          const: accepted
+        scheduledAt:
+          type: string
+          format: date-time
     Customer:
       type: object
       additionalProperties: false
@@ -1115,7 +1848,6 @@ components:
           pattern: "^[A-Z]{2}$"
       description: Required fields beyond type, externalId and country are determined by payment-method class, country and risk profile.
     PaymentData:
-      description: Provider-neutral instructions for completing the payment. Select the variant using `type`.
       oneOf:
       - title: Redirect
         allOf:
@@ -1393,7 +2125,16 @@ components:
         providerReference:
           type: string
         failure:
-          "$ref": "#/components/schemas/RefundFailure"
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
         metadata:
           type: object
           additionalProperties: true
@@ -1408,37 +2149,12 @@ components:
         creationDate: '2026-09-09T20:00:00Z'
         metadata:
           caseId: CASE-42
-    RefundFailure:
-      type: object
-      additionalProperties: false
-      required:
-      - code
-      - category
-      - message
-      properties:
-        code:
-          type: string
-          enum:
-          - compliance_rejected
-          - limit_exceeded
-          - provider_unavailable
-          - processing_error
-          - unknown_error
-          - insufficient_funds
-          - refund_rejected
-        category:
-          type: string
-        message:
-          type: string
-        errors:
-          type: array
-          items:
-            "$ref": "#/components/schemas/FieldError"
     WebhookEvent:
       oneOf:
       - "$ref": "#/components/schemas/PaymentWebhookEvent"
       - "$ref": "#/components/schemas/RefundWebhookEvent"
       - "$ref": "#/components/schemas/PayoutWebhookEvent"
+      - "$ref": "#/components/schemas/VirtualAccountWebhookEvent"
       discriminator:
         propertyName: eventType
     PaymentWebhookEvent:
@@ -1529,6 +2245,42 @@ components:
           properties:
             object:
               "$ref": "#/components/schemas/Refund"
+    MerchantBalance:
+      type: object
+      additionalProperties: false
+      required:
+      - currency
+      - available
+      properties:
+        currency:
+          type: string
+          pattern: "^[A-Z]{3,8}$"
+          examples:
+          - ARS
+        available:
+          type: string
+          pattern: "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+          examples:
+          - '10000.00'
+    MerchantBalances:
+      type: object
+      additionalProperties: false
+      required:
+      - merchantId
+      - balances
+      properties:
+        merchantId:
+          type: string
+          minLength: 1
+        balances:
+          type: array
+          items:
+            "$ref": "#/components/schemas/MerchantBalance"
+      example:
+        merchantId: merchant_demo_001
+        balances:
+        - currency: ARS
+          available: '10000.00'
     Error:
       type: object
       additionalProperties: false
@@ -1684,6 +2436,10 @@ components:
           rail:
             type: ve_mobile_payment
             bankCode: '0102'
+        pricing:
+          feeAmount: '0.01'
+          platformFeeAmount: '0'
+          totalDebitAmount: '1.01'
         status: processing
         creationDate: '2026-09-10T19:56:45Z'
         description: Payment to beneficiary
@@ -1803,149 +2559,30 @@ components:
         address:
           type: string
     Rail:
-      description: Country-specific delivery rail. Select the variant matching the destination country and account configuration.
-      oneOf:
-      - title: Venezuela — bank account
-        allOf:
-        - "$ref": "#/components/schemas/RailVEBankAccount"
-      - title: Venezuela — mobile payment
-        allOf:
-        - "$ref": "#/components/schemas/RailVEMobilePayment"
-      - title: Venezuela — cash pickup
-        allOf:
-        - "$ref": "#/components/schemas/RailVECashPickup"
-      - title: Argentina — CBU
-        allOf:
-        - "$ref": "#/components/schemas/RailARCBU"
-      - title: Argentina — CVU
-        allOf:
-        - "$ref": "#/components/schemas/RailARCVU"
-      - title: Argentina — alias
-        allOf:
-        - "$ref": "#/components/schemas/RailARAlias"
-      - title: Brazil — PIX
-        allOf:
-        - "$ref": "#/components/schemas/RailBRPix"
-      discriminator:
-        propertyName: type
-        mapping:
-          ve_bank_account: "#/components/schemas/RailVEBankAccount"
-          ve_mobile_payment: "#/components/schemas/RailVEMobilePayment"
-          ve_cash_pickup: "#/components/schemas/RailVECashPickup"
-          ar_cbu: "#/components/schemas/RailARCBU"
-          ar_cvu: "#/components/schemas/RailARCVU"
-          ar_alias: "#/components/schemas/RailARAlias"
-          br_pix: "#/components/schemas/RailBRPix"
-    VenezuelaBankCode:
-      title: Venezuela bank code
-      type: string
-      description: Four-character bank entity code. Preserve leading zeroes.
-      pattern: "^\\d{4}$"
-      enum:
-      - "0102"
-      - "0104"
-      - "0105"
-      - "0108"
-      - "0114"
-      - "0115"
-      - "0128"
-      - "0134"
-      - "0137"
-      - "0138"
-      - "0146"
-      - "0151"
-      - "0156"
-      - "0157"
-      - "0163"
-      - "0166"
-      - "0168"
-      - "0169"
-      - "0171"
-      - "0172"
-      - "0173"
-      - "0174"
-      - "0175"
-      - "0177"
-      - "0178"
-      - "0191"
-      - "0601"
-      - "3621"
-    RailVEBankAccount:
-      title: Venezuela — bank account
       type: object
-      additionalProperties: false
-      required: [type, bankCode, accountNumber]
+      additionalProperties: true
+      required:
+      - type
       properties:
-        type: { type: string, const: ve_bank_account }
-        bankCode:
-          "$ref": "#/components/schemas/VenezuelaBankCode"
-        accountNumber:
+        type:
           type: string
-          pattern: "^\\d{20}$"
-          description: 20-digit account number whose first four digits match `bankCode`.
-    RailVEMobilePayment:
-      title: Venezuela — mobile payment
-      type: object
-      additionalProperties: false
-      required: [type, bankCode]
-      properties:
-        type: { type: string, const: ve_mobile_payment }
-        bankCode:
-          "$ref": "#/components/schemas/VenezuelaBankCode"
-    RailVECashPickup:
-      title: Venezuela — cash pickup
-      type: object
-      additionalProperties: false
-      required: [type]
-      properties:
-        type: { type: string, const: ve_cash_pickup }
-    RailARCBU:
-      title: Argentina — CBU
-      type: object
-      additionalProperties: false
-      required: [type, cbu]
-      properties:
-        type: { type: string, const: ar_cbu }
-        cbu: { type: string, pattern: "^\\d{22}$" }
-    RailARCVU:
-      title: Argentina — CVU
-      type: object
-      additionalProperties: false
-      required: [type, cvu]
-      properties:
-        type: { type: string, const: ar_cvu }
-        cvu: { type: string, pattern: "^\\d{22}$" }
-    RailARAlias:
-      title: Argentina — alias
-      type: object
-      additionalProperties: false
-      required: [type, alias]
-      properties:
-        type: { type: string, const: ar_alias }
-        alias: { type: string, minLength: 1 }
-    PixKey:
-      title: PIX key
-      type: object
-      additionalProperties: false
-      required: [type, value]
-      properties:
-        type: { type: string, enum: [cpf, cnpj, email, phone, evp] }
-        value: { type: string, minLength: 1 }
-    RailBRPix:
-      title: Brazil — PIX
-      type: object
-      additionalProperties: false
-      required: [type, pixKey]
-      properties:
-        type: { type: string, const: br_pix }
-        pixKey:
-          "$ref": "#/components/schemas/PixKey"
+          minLength: 1
     Pricing:
       type: object
       additionalProperties: false
       properties:
+        feeAmount:
+          "$ref": "#/components/schemas/NonNegativeDecimalAmount"
+          description: Dinaria payout fee charged in source.currency.
+        platformFeeAmount:
+          "$ref": "#/components/schemas/NonNegativeDecimalAmount"
+          description: Optional platform fee charged in source.currency.
+        totalDebitAmount:
+          "$ref": "#/components/schemas/DecimalAmount"
+          description: 'Total debited from the prefunded balance: source.amount plus Dinaria and platform fees.'
         fixedFee:
           "$ref": "#/components/schemas/DecimalAmount"
+          description: Provider execution fee when it is deducted before conversion.
         amountToConvert:
           "$ref": "#/components/schemas/DecimalAmount"
         exchangeRate:
@@ -1955,32 +2592,15 @@ components:
       additionalProperties: false
       required:
       - code
-      - category
       - message
+      - retryable
       properties:
         code:
           type: string
-          enum:
-          - compliance_rejected
-          - limit_exceeded
-          - provider_unavailable
-          - processing_error
-          - unknown_error
-          - invalid_remitter_data
-          - invalid_beneficiary_data
-          - invalid_destination
-          - destination_rejected
-          - beneficiary_blocked
-          - insufficient_funds
-          - payout_cancelled
-        category:
-          type: string
         message:
           type: string
-        errors:
-          type: array
-          items:
-            "$ref": "#/components/schemas/FieldError"
+        retryable:
+          type: boolean
     PayoutWebhookEvent:
       type: object
       description: Signed public event containing the complete current payout representation.
@@ -2059,6 +2679,417 @@ components:
             bankSystemTrxId: BANK-908172
             creationDate: '2026-09-10T19:56:45Z'
             confirmationDate: '2026-09-10T20:00:00Z'
+    NonNegativeDecimalAmount:
+      type: string
+      pattern: "^(0|0\\.[0-9]+|[1-9][0-9]*(\\.[0-9]+)?)$"
+      description: Exact non-negative decimal represented as a string; never a floating-point JSON number.
+    CustomerStatus:
+      type: string
+      enum:
+      - active
+      - blocked
+      - archived
+    CustomerType:
+      type: string
+      enum:
+      - individual
+      - business
+    Address:
+      type: object
+      additionalProperties: false
+      properties:
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        state:
+          type: string
+        city:
+          type: string
+        line1:
+          type: string
+        line2:
+          type: string
+        postalCode:
+          type: string
+    CreateCustomerRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - externalId
+      - type
+      - country
+      properties:
+        merchantId:
+          type: string
+          description: Required with account-level credentials; inferred with merchant credentials.
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 255
+        type:
+          "$ref": "#/components/schemas/CustomerType"
+        firstName:
+          type: string
+        lastName:
+          type: string
+        legalName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        documentCountry:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        address:
+          "$ref": "#/components/schemas/Address"
+        metadata:
+          type: object
+          additionalProperties: true
+      description: Required identity and contact fields are determined by the published country and product data policy. Individual customers use firstName/lastName; businesses use legalName.
+    UpdateCustomerRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        legalName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        documentCountry:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        address:
+          "$ref": "#/components/schemas/Address"
+        metadata:
+          type: object
+          additionalProperties: true
+    CustomerResource:
+      type: object
+      additionalProperties: false
+      required:
+      - customerId
+      - externalId
+      - type
+      - country
+      - status
+      - creationDate
+      - resourceVersion
+      properties:
+        merchantId:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+        externalId:
+          type: string
+        type:
+          "$ref": "#/components/schemas/CustomerType"
+        firstName:
+          type: string
+        lastName:
+          type: string
+        legalName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        documentCountry:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        address:
+          "$ref": "#/components/schemas/Address"
+        metadata:
+          type: object
+          additionalProperties: true
+        status:
+          "$ref": "#/components/schemas/CustomerStatus"
+        creationDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        resourceVersion:
+          type: integer
+          minimum: 1
+    CustomerPage:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      - hasMore
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/CustomerResource"
+        nextCursor:
+          type:
+          - string
+          - 'null'
+        hasMore:
+          type: boolean
+    VirtualAccountStatus:
+      type: string
+      description: 'pending: asynchronous provisioning; active: able to receive funds; blocked: reversibly disabled; closed: permanently disabled; failed: terminal provisioning failure.'
+      enum:
+      - pending
+      - active
+      - blocked
+      - closed
+      - failed
+    CreateVirtualAccountRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - externalId
+      - customerId
+      - country
+      - currency
+      - rail
+      properties:
+        merchantId:
+          type: string
+          description: Required with account-level credentials; inferred with merchant credentials.
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 255
+        customerId:
+          type: string
+          format: uuid
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        currency:
+          type: string
+          pattern: "^[A-Z]{3,5}$"
+        rail:
+          type: string
+          description: 'Canonical receiving rail. Initial supported value: ar_cvu.'
+          examples:
+          - ar_cvu
+        metadata:
+          type: object
+          additionalProperties: true
+    VirtualAccountDetails:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - number
+      properties:
+        type:
+          type: string
+          examples:
+          - cvu
+        number:
+          type: string
+        alias:
+          type: string
+        institution:
+          type: string
+    CustomerSnapshot:
+      type: object
+      additionalProperties: false
+      description: Immutable snapshot of the identity fields used to provision the provider destination.
+      required:
+      - customerId
+      - externalId
+      - type
+      - country
+      properties:
+        customerId:
+          type: string
+          format: uuid
+        externalId:
+          type: string
+        type:
+          "$ref": "#/components/schemas/CustomerType"
+        firstName:
+          type: string
+        lastName:
+          type: string
+        legalName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        documentCountry:
+          type: string
+          pattern: "^[A-Z]{2}$"
+    VirtualAccount:
+      type: object
+      additionalProperties: false
+      required:
+      - virtualAccountId
+      - externalId
+      - customerId
+      - country
+      - currency
+      - rail
+      - status
+      - customerSnapshot
+      - creationDate
+      - resourceVersion
+      properties:
+        merchantId:
+          type: string
+        virtualAccountId:
+          type: string
+          format: uuid
+        externalId:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        currency:
+          type: string
+          pattern: "^[A-Z]{3,5}$"
+        rail:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        status:
+          "$ref": "#/components/schemas/VirtualAccountStatus"
+        account:
+          "$ref": "#/components/schemas/VirtualAccountDetails"
+        customerSnapshot:
+          "$ref": "#/components/schemas/CustomerSnapshot"
+        creationDate:
+          type: string
+          format: date-time
+        activationDate:
+          type: string
+          format: date-time
+        blockedDate:
+          type: string
+          format: date-time
+        closedDate:
+          type: string
+          format: date-time
+        resourceVersion:
+          type: integer
+          minimum: 1
+    VirtualAccountPage:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      - hasMore
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/VirtualAccount"
+        nextCursor:
+          type:
+          - string
+          - 'null'
+        hasMore:
+          type: boolean
+    LifecycleAction:
+      type: object
+      additionalProperties: false
+      required:
+      - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    VirtualAccountWebhookEvent:
+      type: object
+      additionalProperties: false
+      required:
+      - eventId
+      - eventType
+      - createdAt
+      - resourceVersion
+      - data
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          enum:
+          - virtual_account.created
+          - virtual_account.status_changed
+        createdAt:
+          type: string
+          format: date-time
+        resourceVersion:
+          type: integer
+          minimum: 1
+        data:
+          type: object
+          additionalProperties: false
+          required:
+          - object
+          properties:
+            object:
+              "$ref": "#/components/schemas/VirtualAccount"
+    DirectoryError:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - message
+      - requestId
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+        field:
+          type: string
+        retryable:
+          type: boolean
   responses:
     BadRequest:
       description: Malformed request
@@ -2159,8 +3190,51 @@ components:
         application/json:
           schema:
             "$ref": "#/components/schemas/Error"
+    DirectoryBadRequest:
+      description: Malformed or invalid request
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/DirectoryError"
+    DirectoryUnauthorized:
+      description: Missing or invalid API credential
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/DirectoryError"
+    DirectoryForbidden:
+      description: Credential cannot perform this operation
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/DirectoryError"
+    DirectoryNotFound:
+      description: Resource does not exist or is not visible
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/DirectoryError"
+    DirectoryConflict:
+      description: Idempotency conflict, duplicate externalId or invalid state transition
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/DirectoryError"
+    DirectoryUnprocessable:
+      description: Required data policy or business validation failed
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/DirectoryError"
+    DirectoryUnavailable:
+      description: A required dependency is temporarily unavailable
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/DirectoryError"
 security:
 - bearerAuth: []
 x-generated-from:
 - openapi/payments-v2.json
 - openapi/payouts-v2.json
+- openapi/customers-virtual-accounts-v2.json

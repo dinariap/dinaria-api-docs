@@ -1,173 +1,251 @@
 ---
 title: Create a Payout
-nav_order: 2
 parent: Money Out
 ---
 
-# Create a Payout
+# Create a payout
 
-`POST /v2/payouts`
+Create a payout only after the source account has sufficient available balance. The request is accepted synchronously and delivery completes asynchronously.
 
-Creates a payout from the available balance of the source currency and sends it to a beneficiary through the selected destination and rail.
-
-> Before creating a payout, make sure your account has sufficient available balance in the source currency.
-
----
+```http
+POST https://sbx.dinaria.com/v2/payouts
+Authorization: Bearer <API_KEY>
+Idempotency-Key: <UNIQUE_KEY>
+Content-Type: application/json
+```
 
 ## Request
 
-```http
-POST https://api.sandbox.dinaria.com/v2/payouts
-Authorization: Bearer <YOUR_API_KEY>
-Content-Type: application/json
-Idempotency-Key: <UNIQUE_IDEMPOTENCY_KEY>
+| Field | Required | Description |
+|---|---|---|
+| `merchantId` | Conditional | Required with an account-scoped credential; inferred from a merchant-scoped credential. |
+| `externalId` | Yes | Stable reference from your system. |
+| `source` | Yes | Amount and currency debited from your available balance. |
+| `destination` | Yes | Country, currency, beneficiary, and delivery rail. |
+| `remitter` | Conditional | Originator data when required for the corridor or use case. |
+| `description` | No | Human-readable transfer purpose. |
+| `metadata` | No | Client-owned values returned unchanged. |
+
+The beneficiary, remitter, and rail fields shown below are illustrative. Required data varies by corridor, rail, and configured use case.
+
+## Country examples
+
+<div class="country-ar">
+
+### Argentina — bank transfer
+
+```json
+{
+  "externalId": "PAYOUT-AR-1001",
+  "source": {
+    "amount": "15000",
+    "currency": "ARS"
+  },
+  "destination": {
+    "country": "AR",
+    "currency": "ARS",
+    "beneficiary": {
+      "type": "individual",
+      "name": "María González"
+    },
+    "rail": {
+      "type": "ar_bank_transfer",
+      "accountType": "cbu",
+      "accountNumber": "0000003100012345678901"
+    }
+  },
+  "description": "Supplier payment"
+}
 ```
 
-### Fields
+</div>
+
+<div class="country-mx">
+
+### Mexico — SPEI
+
+```json
+{
+  "externalId": "PAYOUT-MX-1001",
+  "source": {
+    "amount": "850.50",
+    "currency": "MXN"
+  },
+  "destination": {
+    "country": "MX",
+    "currency": "MXN",
+    "beneficiary": {
+      "type": "individual",
+      "name": "Ana López"
+    },
+    "rail": {
+      "type": "spei",
+      "accountNumber": "646180157034181180"
+    }
+  }
+}
+```
+
+</div>
+
+<div class="country-cl">
+
+### Chile — bank transfer
+
+CLP amounts use integer precision.
+
+```json
+{
+  "externalId": "PAYOUT-CL-1001",
+  "source": {
+    "amount": "25000",
+    "currency": "CLP"
+  },
+  "destination": {
+    "country": "CL",
+    "currency": "CLP",
+    "beneficiary": {
+      "type": "individual",
+      "name": "Camila Soto",
+      "documentType": "RUT",
+      "documentNumber": "12345678-5"
+    },
+    "rail": {
+      "type": "cl_bank_transfer",
+      "bankCode": "001",
+      "accountType": "checking",
+      "accountNumber": "123456789"
+    }
+  }
+}
+```
+
+</div>
 
 <div class="country-ve">
 
-#### Venezuela
+### Venezuela — remittance flow
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `source` | object | ✅ | Amount and currency debited from the available balance. |
-| `source.amount` | string | ✅ | Decimal string. Use strings for all monetary amounts. |
-| `source.currency` | string | ✅ | Use `USDT` for the Venezuela corridor. |
-| `externalId` | string | ✅ | Stable business reference assigned by your system. |
-| `destination` | object | ✅ | Describes the destination country, beneficiary, and delivery rail. |
-| `remitter` | object | depends | Sender identity and contact data. Always required for remittance use cases. |
+The source currency can be `USD` or `USDT`, according to your account configuration, and the beneficiary receives VES. Venezuela supports `ve_bank_account` and `ve_mobile_payment`.
 
-</div>
+For remittance use cases, send the complete `remitter` object. Beneficiary, remitter, and compliance requirements can vary for other configured use cases.
 
-<div class="country-ar">
+#### Venezuela fields
 
-#### Argentina
+| Field | Required | Description |
+|---|---|---|
+| `destination.country` | Yes | Use `VE`. |
+| `destination.currency` | Yes | Use `VES`. |
+| `destination.beneficiary.name` | Yes | Beneficiary full name. |
+| `destination.beneficiary.documentType` | Conditional | Use `RIF` when a Venezuelan identity document is required. |
+| `destination.beneficiary.documentNumber` | Yes for this remittance flow | Beneficiary identity number, for example `V27127416`. |
+| `destination.beneficiary.mobile` | Yes for this remittance flow | Beneficiary phone in international format. It is also the mobile-payment destination. |
+| `destination.beneficiary.address` | Yes for this remittance flow | Beneficiary address. |
+| `destination.beneficiary.email` | Conditional | Include when required by the configured use case. |
+| `destination.rail.type` | Yes | `ve_bank_account` or `ve_mobile_payment`. |
+| `destination.rail.bankCode` | Yes | Four-character bank code, preserving any leading zero. |
+| `destination.rail.accountNumber` | Bank account only | Beneficiary bank account number. |
+| `destination.rail.accountType` | Bank account only | Account-type identifier required by the configured bank flow. |
+| `remitter` | Yes for remittances | Sender identity and contact information. |
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `source` | object | ✅ | Amount and currency debited from the available balance. |
-| `source.amount` | string | ✅ | Decimal string. Use strings for all monetary amounts. |
-| `source.currency` | string | ✅ | Use `ARS` for this example. |
-| `externalId` | string | ✅ | Stable business reference assigned by your system. |
-| `destination` | object | ✅ | Describes the destination country, beneficiary, and delivery rail. |
-| `remitter` | object | depends | Sender identity and contact data. Always required for remittance use cases. |
+#### Bank account
 
-</div>
+```json
+{
+  "externalId": "PAYOUT-VE-BANK-1001",
+  "source": {
+    "amount": "25.00",
+    "currency": "USDT"
+  },
+  "destination": {
+    "country": "VE",
+    "currency": "VES",
+    "beneficiary": {
+      "type": "individual",
+      "name": "Maria Gonzalez",
+      "documentType": "RIF",
+      "documentNumber": "V40001469",
+      "mobile": "+584242005748",
+      "address": "Caracas, Venezuela",
+      "email": "maria@example.com"
+    },
+    "rail": {
+      "type": "ve_bank_account",
+      "bankCode": "0102",
+      "accountType": 1,
+      "accountNumber": "01020305810000263562"
+    }
+  },
+  "remitter": {
+    "type": "individual",
+    "documentType": "DNI",
+    "documentNumber": "30123456",
+    "firstName": "Juan",
+    "lastName": "Perez",
+    "birthDate": "1985-06-15",
+    "nationality": "ARG",
+    "mobile": "+5491112345678",
+    "address": "Buenos Aires, Argentina",
+    "email": "juan@example.com"
+  },
+  "description": "Bank payout to beneficiary",
+  "metadata": {
+    "customerId": "customer-456"
+  }
+}
+```
 
-<div class="country-br">
+#### Mobile payment
 
-#### Brazil
+```json
+{
+  "externalId": "PAYOUT-VE-1001",
+  "source": {
+    "amount": "10.00",
+    "currency": "USDT"
+  },
+  "destination": {
+    "country": "VE",
+    "currency": "VES",
+    "beneficiary": {
+      "type": "individual",
+      "name": "Maria Gonzalez",
+      "documentType": "RIF",
+      "documentNumber": "V27127416",
+      "mobile": "+584242005748",
+      "address": "Caracas, Venezuela",
+      "email": "maria@example.com"
+    },
+    "rail": {
+      "type": "ve_mobile_payment",
+      "bankCode": "0102"
+    }
+  },
+  "remitter": {
+    "type": "individual",
+    "documentType": "DNI",
+    "documentNumber": "30123456",
+    "firstName": "Juan",
+    "lastName": "Perez",
+    "birthDate": "1985-06-15",
+    "nationality": "ARG",
+    "mobile": "+5491112345678",
+    "address": "Buenos Aires, Argentina",
+    "email": "juan@example.com"
+  },
+  "description": "Payment to beneficiary",
+  "metadata": {
+    "customerId": "customer-456"
+  }
+}
+```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `source` | object | ✅ | Amount and currency debited from the available balance. |
-| `source.amount` | string | ✅ | Decimal string. Use strings for all monetary amounts. |
-| `source.currency` | string | ✅ | Use `BRL` for this example. |
-| `externalId` | string | ✅ | Stable business reference assigned by your system. |
-| `destination` | object | ✅ | Describes the destination country, beneficiary, and delivery rail. |
-| `remitter` | object | depends | Sender identity and contact data. Always required for remittance use cases. |
+#### Bank codes
 
-</div>
-
-### `destination` object
-
-<div class="country-ve">
-
-#### Venezuela
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `country` | string | ✅ | Destination country code. Use `VE`. |
-| `currency` | string | ✅ | Destination currency. Use `VES`. |
-| `beneficiary` | object | ✅ | Beneficiary identity and contact details. |
-| `rail` | object | ✅ | Delivery method for the payout. |
-
-</div>
-
-<div class="country-ar">
-
-#### Argentina
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `country` | string | ✅ | Destination country code. Use `AR`. |
-| `currency` | string | ✅ | Destination currency. Use `ARS`. |
-| `beneficiary` | object | ✅ | Beneficiary identity details. |
-| `rail` | object | ✅ | Delivery method for the payout. |
-
-</div>
-
-<div class="country-br">
-
-#### Brazil
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `country` | string | ✅ | Destination country code. Use `BR`. |
-| `currency` | string | ✅ | Destination currency. Use `BRL`. |
-| `beneficiary` | object | ✅ | Beneficiary identity details. |
-| `rail` | object | ✅ | Delivery method for the payout. |
-
-</div>
-
-### `beneficiary` object
-
-<div class="country-ve">
-
-#### Venezuela
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | ✅ | Beneficiary full name. |
-| `documentType` | string | — | Optional beneficiary document type. When provided, use `RIF`. |
-| `documentNumber` | string | — | Optional beneficiary RIF number. |
-| `mobile` | string | depends | Required when the selected rail is `ve_mobile_payment`. |
-
-</div>
-
-<div class="country-ar">
-
-#### Argentina
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | ✅ | Beneficiary full name. |
-| `documentType` | string | ✅ | Beneficiary document type. Generally use `CUIT`. |
-| `documentNumber` | string | ✅ | Beneficiary's CUIT number. |
-
-</div>
-
-<div class="country-br">
-
-#### Brazil
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | ✅ | Beneficiary full name or legal entity name. |
-| `documentType` | string | ✅ | Beneficiary document type. Use `CPF` for an individual or `CNPJ` for a legal entity. |
-| `documentNumber` | string | ✅ | Beneficiary's CPF or CNPJ number. |
-
-</div>
-
-### `rail` object
-
-<div class="country-ve">
-
-#### Venezuela
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | ✅ | Supported rail: `ve_bank_account`, `ve_mobile_payment`, or `ve_cash_pickup`. |
-| `bankCode` | string | depends | Required when `type` is `ve_bank_account` or `ve_mobile_payment`. |
-| `accountNumber` | string | depends | Bank account number. Required when `type` is `ve_bank_account`. |
-
-##### Bank codes
-
-Use the bank name as the selector label and submit its `code` as `bankCode`. The code must remain a four-character string, including its leading zero. Codes outside this catalog are invalid.
+Submit the code as a four-character string, including its leading zero.
 
 | Code | Bank |
-|------|------|
+|---|---|
 | `0102` | Banco de Venezuela |
 | `0104` | Venezolano de Crédito |
 | `0105` | Banco Mercantil |
@@ -199,438 +277,178 @@ Use the bank name as the selector label and submit its `code` as `bankCode`. The
 
 </div>
 
-<div class="country-ar">
+<div class="country-pe">
 
-#### Argentina
+### Peru — bank transfer
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | ✅ | Supported rail: `ar_cbu`, `ar_cvu`, or `ar_alias`. |
-| `cbu` | string | depends | Beneficiary's 22-digit CBU. Required when `type` is `ar_cbu`. |
-| `cvu` | string | depends | Beneficiary's 22-digit CVU. Required when `type` is `ar_cvu`. |
-| `alias` | string | depends | Beneficiary's CBU/CVU alias. Required when `type` is `ar_alias`. |
-
-</div>
-
-<div class="country-br">
-
-#### Brazil
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | ✅ | Use `br_pix` for a PIX payout. |
-| `pixKey` | object | ✅ | PIX key used to identify the destination account. |
-| `pixKey.type` | string | ✅ | PIX key type: `cpf`, `cnpj`, `email`, `phone`, or `evp`. |
-| `pixKey.value` | string | ✅ | PIX key value in the format corresponding to `pixKey.type`. |
-
-</div>
-
-### `remitter` object
-
-The `remitter` object is required when the payout is a remittance. For other use cases, whether it is required depends on the corridor and compliance rules. The exact required identity fields are corridor-specific.
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | depends | `individual` or `business`. |
-| `documentType` | string | depends | Sender document type. |
-| `documentNumber` | string | depends | Sender document number. |
-| `firstName` | string | depends | Sender first name. |
-| `lastName` | string | depends | Sender last name. |
-| `birthDate` | string | — | Sender date of birth in `YYYY-MM-DD` format. |
-| `nationality` | string | — | Sender nationality code. |
-| `mobile` | string | — | Sender mobile phone. |
-| `address` | string | — | Sender address. |
-| `email` | string | — | Sender email address. |
-
-> The exact fields required in the destination object vary by country, currency, corridor, rail, beneficiary type, and compliance rules.
-
----
-
-## Examples
-
-> **The fields shown in these examples are for demonstration purposes and may vary depending on the use case.**
-
-The examples below show payout request bodies for each supported corridor. The specific fields required for your account may differ depending on the corridor and rail.
-
-<div class="country-ve">
-
-### Venezuela — remittance flow
-
-Remittance payouts to Venezuela can convert the funded `USDT` amount into `VES` for the beneficiary. The `remitter` object is required for this use case. Create the payout using one of the supported delivery rails.
-
-##### Bank account
+For a bank payout, provide the beneficiary's 20-digit CCI. A separate `bankCode` is not required: the participating bank is resolved from the CCI.
 
 ```json
 {
-  "externalId": "PAYOUT-VE-BANK-1001",
+  "externalId": "PAYOUT-PE-1001",
   "source": {
-    "amount": "25.00",
-    "currency": "USDT"
+    "amount": "200.00",
+    "currency": "PEN"
   },
   "destination": {
-    "country": "VE",
-    "currency": "VES",
+    "country": "PE",
+    "currency": "PEN",
     "beneficiary": {
       "type": "individual",
-      "name": "Maria Gonzalez",
-      "documentType": "RIF",
-      "documentNumber": "V40001469"
+      "name": "Lucía Torres",
+      "documentType": "DNI",
+      "documentNumber": "47123456"
     },
     "rail": {
-      "type": "ve_bank_account",
-      "bankCode": "0102",
-      "accountNumber": "01020305810000263562"
+      "type": "pe_bank_transfer",
+      "cci": "00212345678901234567"
     }
-  },
-  "remitter": {
-    "type": "individual",
-    "documentType": "DNI",
-    "documentNumber": "30123456",
-    "firstName": "Juan",
-    "lastName": "Perez",
-    "birthDate": "1985-06-15",
-    "nationality": "ARG",
-    "mobile": "+5491112345678",
-    "address": "Buenos Aires, Argentina",
-    "email": "juan@example.com"
-  },
-  "description": "Bank payout to beneficiary",
-  "metadata": {
-    "customerId": "customer-456"
   }
 }
 ```
 
-##### Mobile payment
+### Peru — mobile payment
+
+Use the beneficiary's mobile number when `pe_mobile_payment` is enabled for your account. The mobile directory resolves the receiving participant.
 
 ```json
 {
-  "externalId": "PAYOUT-1001",
+  "externalId": "PAYOUT-PE-MOBILE-1002",
   "source": {
-    "amount": "1.00",
+    "amount": "75.00",
+    "currency": "PEN"
+  },
+  "destination": {
+    "country": "PE",
+    "currency": "PEN",
+    "beneficiary": {
+      "type": "individual",
+      "name": "Lucía Torres",
+      "documentType": "DNI",
+      "documentNumber": "47123456"
+    },
+    "rail": {
+      "type": "pe_mobile_payment",
+      "mobile": "+51987654321"
+    }
+  }
+}
+```
+
+</div>
+
+<div class="country-ec">
+
+### Ecuador — bank transfer
+
+```json
+{
+  "externalId": "PAYOUT-EC-1001",
+  "source": {
+    "amount": "125.00",
+    "currency": "USD"
+  },
+  "destination": {
+    "country": "EC",
+    "currency": "USD",
+    "beneficiary": {
+      "type": "individual",
+      "name": "María Andrade",
+      "documentType": "CC",
+      "documentNumber": "1712345678",
+      "email": "maria@example.com"
+    },
+    "rail": {
+      "type": "ec_bank_transfer",
+      "bankCode": "0010",
+      "accountType": "savings",
+      "accountNumber": "1234567890"
+    }
+  }
+}
+```
+
+</div>
+
+## Accepted response
+
+A new payout returns `201 Created` with the Payout in `processing`. Reusing the same `Idempotency-Key` with the same payload returns the original result as `200 OK`, sets `Idempotent-Replayed: true`, and does not create another payout.
+
+The response preserves the resolved destination rail and starts in `processing`. The destination amount can be present when it has already been resolved.
+
+<div class="country-ar">
+
+### Argentina response
+
+```json
+{
+  "payoutId": "1078d6c2-a452-44fb-94f4-525390231ce2",
+  "externalId": "PAYOUT-AR-1001",
+  "source": {
+    "amount": "15000",
+    "currency": "ARS"
+  },
+  "destination": {
+    "country": "AR",
+    "currency": "ARS",
+    "amount": "15000",
+    "beneficiary": {
+      "type": "individual",
+      "name": "María González"
+    },
+    "rail": {
+      "type": "ar_bank_transfer",
+      "accountType": "cbu",
+      "accountNumber": "0000003100012345678901"
+    }
+  },
+  "status": "processing",
+  "creationDate": "2026-10-14T19:56:45Z"
+}
+```
+
+</div>
+
+<div class="country-ve">
+
+### Venezuela response
+
+```json
+{
+  "payoutId": "82e07c90-82a5-4e40-bdf0-7a982de47745",
+  "externalId": "PAYOUT-VE-1001",
+  "source": {
+    "amount": "10.00",
     "currency": "USDT"
   },
   "destination": {
     "country": "VE",
     "currency": "VES",
+    "amount": "365.00",
     "beneficiary": {
       "type": "individual",
-      "name": "Maria Gonzalez",
+      "name": "María González",
       "documentType": "RIF",
       "documentNumber": "V27127416",
-      "mobile": "+584242005748",
-      "email": "maria@example.com"
+      "mobile": "+584242005748"
     },
     "rail": {
       "type": "ve_mobile_payment",
       "bankCode": "0102"
     }
   },
-  "remitter": {
-    "type": "individual",
-    "documentType": "DNI",
-    "documentNumber": "30123456",
-    "firstName": "Juan",
-    "lastName": "Perez",
-    "birthDate": "1985-06-15",
-    "nationality": "ARG",
-    "mobile": "+5491112345678",
-    "address": "Buenos Aires, Argentina",
-    "email": "juan@example.com"
-  },
-  "description": "Payment to beneficiary",
-  "metadata": {
-    "customerId": "customer-456"
-  }
-}
-```
-
-##### Cash
-
-```json
-{
-  "source": { "amount": "10.00", "currency": "USDT" },
-  "externalId": "order-cash-789",
-  "destination": {
-    "country": "VE",
-    "currency": "VES",
-    "beneficiary": {
-      "name": "María González",
-      "documentType": "RIF",
-      "documentNumber": "V40001469"
-    },
-    "rail": {
-      "type": "ve_cash_pickup"
-    }
-  },
-  "remitter": {
-    "type": "individual",
-    "documentType": "DNI",
-    "documentNumber": "30123456",
-    "firstName": "Juan",
-    "lastName": "Pérez"
-  }
-}
-```
-
-</div>
-
-<div class="country-ar">
-
-### Argentina
-
-#### CBU
-
-```json
-{
-  "source": { "amount": "1500.00", "currency": "ARS" },
-  "externalId": "order-ar-cbu-123",
-  "destination": {
-    "country": "AR",
-    "currency": "ARS",
-    "beneficiary": {
-      "name": "María González",
-      "documentType": "CUIT",
-      "documentNumber": "27-12345678-5"
-    },
-    "rail": {
-      "type": "ar_cbu",
-      "cbu": "0070327530004025541644"
-    }
-  }
-}
-```
-
-#### CVU
-
-```json
-{
-  "source": { "amount": "1500.00", "currency": "ARS" },
-  "externalId": "order-ar-123",
-  "destination": {
-    "country": "AR",
-    "currency": "ARS",
-    "beneficiary": {
-      "name": "María González",
-      "documentType": "CUIT",
-      "documentNumber": "27-12345678-5"
-    },
-    "rail": {
-      "type": "ar_cvu",
-      "cvu": "2850590940090418135201"
-    }
-  }
-}
-```
-
-#### Alias
-
-```json
-{
-  "source": { "amount": "200.00", "currency": "ARS" },
-  "externalId": "payout-ar-alias-123",
-  "destination": {
-    "country": "AR",
-    "currency": "ARS",
-    "beneficiary": {
-      "name": "María González",
-      "documentType": "CUIT",
-      "documentNumber": "27-12345678-5"
-    },
-    "rail": {
-      "type": "ar_alias",
-      "alias": "mialias"
-    }
-  }
-}
-```
-
-</div>
-
-<div class="country-br">
-
-### Brasil (BRL / PIX)
-
-#### CPF key
-
-```json
-{
-  "source": { "amount": "150.00", "currency": "BRL" },
-  "externalId": "payout-br-123",
-  "destination": {
-    "country": "BR",
-    "currency": "BRL",
-    "beneficiary": {
-      "name": "João Silva",
-      "documentType": "CPF",
-      "documentNumber": "12345678901"
-    },
-    "rail": {
-      "type": "br_pix",
-      "pixKey": {
-        "type": "cpf",
-        "value": "12345678901"
-      }
-    }
-  }
-}
-```
-
-#### Random key (EVP)
-
-```json
-{
-  "source": { "amount": "75.50", "currency": "BRL" },
-  "externalId": "payout-br-evp-123",
-  "destination": {
-    "country": "BR",
-    "currency": "BRL",
-    "beneficiary": {
-      "name": "João Silva",
-      "documentType": "CPF",
-      "documentNumber": "12345678901"
-    },
-    "rail": {
-      "type": "br_pix",
-      "pixKey": {
-        "type": "evp",
-        "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-      }
-    }
-  }
-}
-```
-
-</div>
-
----
-
-## Response
-
-Both successful responses return the same Payout resource, but they describe different outcomes:
-
-| HTTP | Meaning |
-|---:|---|
-| `201 Created` | A new payout was created and durably accepted for asynchronous processing. This does not mean that the beneficiary has received the funds. |
-| `200 OK` | No new payout was created. Dinaria recognized an identical replay using the same `Idempotency-Key`, returns the original payout, and includes `Idempotent-Replayed: true`. |
-
-Reusing the key with a different body returns `409 Conflict`.
-
-<div class="country-ve">
-
-For the Venezuela remittance flow, the response can include the converted destination `amount` and the `pricing` details used for the `USDT` to `VES` conversion.
-
-```json
-{
-  "payoutId": "9ca35a0b-1097-464c-91ea-c0bbcb3d8dd8",
-  "externalId": "PAYOUT-VE-BANK-1001",
-  "source": { "amount": "25.00", "currency": "USDT" },
-  "destination": {
-    "country": "VE",
-    "currency": "VES",
-    "amount": "881.71",
-    "beneficiary": {
-      "name": "María González",
-      "documentType": "RIF",
-      "documentNumber": "V40001469"
-    },
-    "rail": {
-      "type": "ve_bank_account",
-      "bankCode": "0102",
-      "accountNumber": "01020305810000263562"
-    }
-  },
-  "pricing": {
-    "fixedFee": "0.60",
-    "amountToConvert": "24.40",
-    "exchangeRate": "36.1355"
-  },
   "status": "processing",
-  "bankSystemTrxId": "1608460",
-  "creationDate": "2026-09-10T20:00:00Z"
+  "creationDate": "2026-09-10T19:56:45Z"
 }
 ```
 
 </div>
 
-<div class="country-ar">
+Do not treat the HTTP response as delivery confirmation. Store `payoutId`, process Payout webhook events idempotently, and retrieve the Payout if you need to reconcile its current state.
 
-```json
-{
-  "payoutId": "de598197-bb56-4a92-af5c-f4929a84ed1a",
-  "externalId": "PAYOUT-AR-1001",
-  "source": { "amount": "1500.00", "currency": "ARS" },
-  "destination": {
-    "country": "AR",
-    "currency": "ARS",
-    "beneficiary": {
-      "name": "María González",
-      "documentType": "CUIT",
-      "documentNumber": "27-12345678-5"
-    },
-    "rail": {
-      "type": "ar_cvu",
-      "cvu": "2850590940090418135201"
-    }
-  },
-  "status": "processing",
-  "creationDate": "2026-09-10T20:00:00Z"
-}
-```
+## Next steps
 
-</div>
-
-<div class="country-br">
-
-```json
-{
-  "payoutId": "d1e2f3a4-b5c6-7890-abcd-ef0123456789",
-  "source": { "amount": "150.00", "currency": "BRL" },
-  "externalId": "payout-br-123",
-  "destination": {
-    "country": "BR",
-    "currency": "BRL",
-    "beneficiary": {
-      "name": "João Silva",
-      "documentType": "CPF",
-      "documentNumber": "12345678901"
-    },
-    "rail": {
-      "type": "br_pix",
-      "pixKey": {
-        "type": "cpf",
-        "value": "12345678901"
-      }
-    }
-  },
-  "status": "processing",
-  "creationDate": "2026-09-10T20:00:00Z"
-}
-```
-
-</div>
-
----
-
-## Error responses
-
-| Status | Code | Cause |
-|--------|------|-------|
-| `400` | `invalid_request` | Missing or malformed field. |
-| `401` | `unauthorized` | Missing or invalid API key. |
-| `403` | `payout_not_enabled` | Payouts are not enabled for this merchant. |
-| `409` | `idempotency_key_reused` | The same `Idempotency-Key` was reused with a different body. |
-
----
-
-## Idempotency
-
-Include an `Idempotency-Key` header to safely retry without creating duplicates:
-
-```http
-Idempotency-Key: payout-2026-03-11-order-1001
-```
-
-Reusing the same key with the same body returns the original payout. Reusing it with a different body returns `409 Conflict`.
-
-If the client times out or the payout remains in `processing`, retry only with the same key and exactly the same body. Do not create a replacement payout with a new key while the original result is unresolved.
+- [Payout lifecycle](payouts-flow.md)
+- [Retrieve and list payouts](payouts-retrieve.md)
+- [Country and capability matrix](country-capabilities.md)
+- [Webhooks](webhooks-overview.md)

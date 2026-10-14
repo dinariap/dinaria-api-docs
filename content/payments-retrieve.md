@@ -10,7 +10,7 @@ parent: Money In
 
 ```bash
 curl --request GET \
-  --url https://api.sandbox.dinaria.com/v2/payments/04058d70-7d15-4459-b046-d19b6f137c37 \
+  --url https://sbx.dinaria.com/v2/payments/04058d70-7d15-4459-b046-d19b6f137c37 \
   --header 'Authorization: Bearer <YOUR_API_KEY>'
 ```
 
@@ -51,7 +51,7 @@ curl --request GET \
 
 ```bash
 curl --request GET \
-  --url 'https://api.sandbox.dinaria.com/v2/payments?limit=50' \
+  --url 'https://sbx.dinaria.com/v2/payments?limit=50' \
   --header 'Authorization: Bearer <YOUR_API_KEY>'
 ```
 
