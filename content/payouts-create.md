@@ -92,13 +92,22 @@ The beneficiary, remitter, and rail fields shown below are illustrative. Require
 
 ### Chile — bank transfer
 
-CLP amounts use integer precision.
+Use `cl_bank_transfer` to send CLP to a beneficiary's Chilean bank account.
+
+#### Chile rail fields
+
+| Field | Required | Description |
+|---|---|---|
+| `destination.rail.type` | Yes | Must be `cl_bank_transfer`. |
+| `destination.rail.bankCode` | Yes | Bank identifier accepted by Dinaria, sent as a string. |
+| `destination.rail.accountType` | Yes | Beneficiary account type: `checking`, `saving`, `vista`, or `rut`. |
+| `destination.rail.accountNumber` | Yes | Beneficiary bank account number. |
 
 ```json
 {
   "externalId": "PAYOUT-CL-1001",
   "source": {
-    "amount": "25000",
+    "amount": "10000",
     "currency": "CLP"
   },
   "destination": {
@@ -106,19 +115,64 @@ CLP amounts use integer precision.
     "currency": "CLP",
     "beneficiary": {
       "type": "individual",
-      "name": "Camila Soto",
+      "firstName": "María",
+      "lastName": "González",
+      "email": "maria.gonzalez@example.com",
       "documentType": "RUT",
       "documentNumber": "12345678-5"
     },
     "rail": {
       "type": "cl_bank_transfer",
-      "bankCode": "001",
+      "bankCode": "24",
       "accountType": "checking",
       "accountNumber": "123456789"
     }
-  }
+  },
+  "description": "Pago a beneficiario en Chile"
 }
 ```
+
+- `"24"` identifies Banco Estado in Dinaria's bank catalog.
+- Amounts expressed in CLP do not support decimal places.
+- `accountNumber` is the beneficiary's bank account number.
+- `documentNumber` must contain a valid Chilean RUT.
+- Corridor availability depends on it being enabled for the merchant.
+
+#### Chile bank catalog
+
+The values below are identifiers from the catalog accepted by Dinaria. Send them exactly as strings; do not replace them with local Chilean bank codes. The catalog may be updated.
+
+| `bankCode` | Bank or institution |
+|---|---|
+| `"14"` | Banco Bice |
+| `"16"` | Banco de Chile |
+| `"17"` | Banco BCI / MACHBANK |
+| `"18"` | Banco del Desarrollo |
+| `"20"` | Banco Falabella |
+| `"21"` | Banco Internacional |
+| `"22"` | Banco Santander |
+| `"23"` | Banco Security |
+| `"24"` | Banco Estado |
+| `"27"` | Itaú / CorpBanca |
+| `"31"` | Banco Scotiabank |
+| `"992"` | Banco Ripley |
+| `"1362"` | Prepago Tenpo |
+| `"1364"` | Coopeuch / Dale |
+| `"2227"` | Banco Consorcio |
+| `"2953"` | Mercado Pago |
+| `"2954"` | Copec Pay |
+| `"2957"` | Prepago Los Héroes |
+| `"2958"` | TAPP Caja Los Andes |
+| `"3008"` | ISWITCH |
+| `"3009"` | Transbank |
+| `"3010"` | JP Morgan |
+| `"3011"` | HSBC |
+| `"3314"` | Prex |
+| `"3369"` | Fintual |
+| `"3375"` | Tanner |
+| `"3404"` | MetroMuv |
+| `"3418"` | Tricot Prepago |
+| `"3421"` | AndCo. |
 
 </div>
 

@@ -29,7 +29,7 @@ Chile is documented only as `single_use`.
 |---|---|---|---|---|
 | Argentina | ARS | ARS | `ar_bank_transfer` | Beneficiary and 22-digit bank account identifier |
 | Mexico | MXN | MXN | `spei` | Beneficiary and 18-digit CLABE in `destination.rail.accountNumber` |
-| Chile | CLP | CLP | `cl_bank_transfer` | Beneficiary RUT and bank account data |
+| Chile | CLP | CLP | `cl_bank_transfer` | Beneficiary RUT, Dinaria `bankCode`, account type, and account number |
 | Venezuela | USD or USDT | VES | `ve_mobile_payment` | Beneficiary document, bank code, and mobile number |
 | Venezuela | USD or USDT | VES | `ve_bank_account` | Beneficiary document, bank code, account type, and account number |
 | Peru | PEN | PEN | `pe_bank_transfer` | Beneficiary and 20-digit CCI |

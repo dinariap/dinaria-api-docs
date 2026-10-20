@@ -713,6 +713,29 @@ paths:
                       accountType: cbu
                       accountNumber: '0000003100012345678901'
                   description: Supplier payment
+              chileBankTransfer:
+                summary: Chile bank payout
+                value:
+                  externalId: PAYOUT-CL-1001
+                  source:
+                    amount: '10000'
+                    currency: CLP
+                  destination:
+                    country: CL
+                    currency: CLP
+                    beneficiary:
+                      type: individual
+                      firstName: María
+                      lastName: González
+                      email: maria.gonzalez@example.com
+                      documentType: RUT
+                      documentNumber: 12345678-5
+                    rail:
+                      type: cl_bank_transfer
+                      bankCode: '24'
+                      accountType: checking
+                      accountNumber: '123456789'
+                  description: Pago a beneficiario en Chile
               venezuelaMobilePayment:
                 summary: Venezuela mobile payment remittance
                 value:
@@ -2567,6 +2590,17 @@ components:
         type:
           type: string
           minLength: 1
+        bankCode:
+          type: string
+          description: Bank identifier accepted by Dinaria for rails that require one. Send it as a string. For cl_bank_transfer, use a value from Dinaria's Chile bank catalog.
+        accountType:
+          description: Country-specific beneficiary account type. For cl_bank_transfer, accepted values are checking, saving, vista, and rut.
+          oneOf:
+          - type: string
+          - type: integer
+        accountNumber:
+          type: string
+          description: Beneficiary bank account number for rails that require one.
     Pricing:
       type: object
       additionalProperties: false
